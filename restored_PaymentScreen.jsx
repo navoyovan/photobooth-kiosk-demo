@@ -1,0 +1,2 @@
+"import React, { useState, useRef, useEffect } from 'react';\nimport { useGSAP } from '@gsap/react';\nimport gsap from 'gsap';\n\nconst PaymentScreen = ({ onBack, onSuccess, printCopies, setPrintCopies, isExtraPayment = false, timerDisplay }) => {\n  const
+<truncated 9918 bytes>
