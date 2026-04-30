@@ -1,6 +1,5 @@
 import React, { useRef, useEffect } from 'react';
-import { useGSAP } from '@gsap/react';
-import gsap from 'gsap';
+import { animate, stagger } from 'animejs';
 
 const STEPS = ['Hy, Hlo!', '01', '02', '03', '04', 'Pending Additional Payment', '05', 'THANK YOU'];
 const PHASES = [
@@ -12,44 +11,64 @@ const PHASES = [
 
 const KineticPagination = ({ currentStep, subState, isVisible, onBack, backLabel, isCheckoutModalOpen }) => {
   const containerRef = useRef(null);
-  const timeline = useRef(null);
 
-  useGSAP(() => {
-    timeline.current = gsap.timeline({ paused: true });
-
-    // Main reveal
-    timeline.current.fromTo(containerRef.current,
-      { x: -50, opacity: 0 },
-      { x: 0, opacity: 1, duration: 1, ease: "power4.out" }
-    );
-
-    // Kinetic Asterisk "pop"
-    timeline.current.fromTo(".kinetic-asterisk",
-      { scale: 0, rotation: -90 },
-      { scale: 1, rotation: 0, duration: 0.8, ease: "elastic.out(1, 0.5)" },
-      "-=0.6"
-    );
-
-    // Staggered Phase items
-    timeline.current.fromTo(".phase-item",
-      { y: 10, opacity: 0 },
-      { y: 0, opacity: "", duration: 0.6, stagger: 0.05, ease: "power2.out" },
-      "-=0.4"
-    );
-
-    // Back button reveal
-    timeline.current.fromTo(".kinetic-back-btn",
-      { x: -20, opacity: 0 },
-      { x: 0, opacity: 1, duration: 0.6, ease: "power2.out" },
-      "-=0.3"
-    );
-  }, { scope: containerRef });
-
+  // 1. MAIN ENTRANCE / EXIT (Container level)
   useEffect(() => {
     if (isVisible) {
-      timeline.current?.play();
+      animate(containerRef.current, {
+        translateX: [-50, 0],
+        opacity: [0, 1],
+        duration: 1000,
+        easing: 'easeOutQuart'
+      });
     } else {
-      timeline.current?.reverse();
+      animate(containerRef.current, {
+        translateX: -50,
+        opacity: 0,
+        duration: 800, // Slower exit for editorial feel
+        delay: currentStep === 6 ? 1000 : 0, // Stay a bit longer on THANK YOU
+        easing: 'easeInQuart'
+      });
+    }
+  }, [isVisible]);
+
+  // 2. INTERNAL ELEMENTS (Back Button & Asterisk)
+  useEffect(() => {
+    if (!isVisible) return;
+
+    // We animate the back button independently so it doesn't trigger a container re-fade
+    const backBtn = containerRef.current.querySelector(".kinetic-back-btn");
+    if (backBtn) {
+      animate(backBtn, {
+        translateX: [-20, 0],
+        opacity: [0, 1],
+        duration: 600,
+        easing: 'easeOutQuad'
+      });
+    }
+
+    // Kinetic Asterisk "pop" - only on mount or visibility
+    animate('.kinetic-asterisk', {
+      scale: [0, 1],
+      rotate: [-90, 0],
+      duration: 800,
+      easing: 'easeOutElastic(1, 0.5)'
+    });
+  }, [isVisible, !!onBack, backLabel]);
+
+  // 3. PHASE ITEMS (Staggered animation only when visible)
+  useEffect(() => {
+    if (!isVisible) return;
+
+    const phaseItems = containerRef.current.querySelectorAll(".phase-item");
+    if (phaseItems.length > 0) {
+      animate(phaseItems, {
+        translateX: [10, 0],
+        opacity: [0, 1],
+        duration: 600,
+        delay: stagger(50),
+        easing: 'easeOutQuad'
+      });
     }
   }, [isVisible]);
 

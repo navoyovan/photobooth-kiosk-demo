@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, forwardRef, useImperativeHandle } from 'react';
-import gsap from 'gsap';
+import { animate, set } from 'animejs';
 
 const CollageComposer = forwardRef(({ photos = [], frameSrc, photoFilter = 'none', isMirrored = false, isProcessing = false }, ref) => {
   const containerRef = useRef(null);
@@ -69,11 +69,11 @@ const CollageComposer = forwardRef(({ photos = [], frameSrc, photoFilter = 'none
     s.h = initH;
 
     if (photoRefs.current[photoIdx]) {
-      gsap.set(photoRefs.current[photoIdx], { x: initX, y: initY, width: initW, height: initH });
+      set(photoRefs.current[photoIdx], { translateX: initX, translateY: initY, width: initW, height: initH });
     }
 
     if (photoIdx === activeIndex) {
-      gsap.set(boundaryRef.current, { x: initX, y: initY, width: initW, height: initH });
+      set(boundaryRef.current, { translateX: initX, translateY: initY, width: initW, height: initH });
       updateMetrics();
     }
   };
@@ -130,7 +130,7 @@ const CollageComposer = forwardRef(({ photos = [], frameSrc, photoFilter = 'none
         const newH = initH * (newW / initW);
         s.w = newW;
         s.h = newH;
-        gsap.set([photoRefs.current[activeIndex], boundaryRef.current], { width: newW, height: newH });
+        set([photoRefs.current[activeIndex], boundaryRef.current], { width: newW, height: newH });
       } else {
         const dx = mv.clientX - startX;
         const dy = mv.clientY - startY;
@@ -138,7 +138,7 @@ const CollageComposer = forwardRef(({ photos = [], frameSrc, photoFilter = 'none
         const newY = initY + dy;
         s.x = newX;
         s.y = newY;
-        gsap.set([photoRefs.current[activeIndex], boundaryRef.current], { x: newX, y: newY });
+        set([photoRefs.current[activeIndex], boundaryRef.current], { translateX: newX, translateY: newY });
       }
       updateMetrics();
     };
@@ -155,7 +155,7 @@ const CollageComposer = forwardRef(({ photos = [], frameSrc, photoFilter = 'none
   const switchLayer = (idx) => {
     setActiveIndex(idx);
     const s = statesRef.current[idx];
-    gsap.set(boundaryRef.current, { x: s.x, y: s.y, width: s.w, height: s.h });
+    set(boundaryRef.current, { translateX: s.x, translateY: s.y, width: s.w, height: s.h });
     updateMetrics();
   };
 
@@ -167,9 +167,19 @@ const CollageComposer = forwardRef(({ photos = [], frameSrc, photoFilter = 'none
         const wrapper = photoEl.querySelector('.lens-refocus-wrapper');
         if (wrapper) {
           if (isProcessing) {
-            gsap.to(wrapper, { filter: `blur(12px)`, scale: 1.04, duration: 0.2, ease: 'power2.out' });
+            animate(wrapper, {
+              filter: 'blur(12px)',
+              scale: 1.04,
+              duration: 200,
+              easing: 'easeOutQuad'
+            });
           } else {
-            gsap.to(wrapper, { filter: `blur(0px)`, scale: 1, duration: 0.4, ease: 'back.out(2)' });
+            animate(wrapper, {
+              filter: 'blur(0px)',
+              scale: 1,
+              duration: 400,
+              easing: 'easeOutBack(2)'
+            });
           }
         }
       }
@@ -179,12 +189,12 @@ const CollageComposer = forwardRef(({ photos = [], frameSrc, photoFilter = 'none
   return (
     <div className="composer-gallery-wrapper">
       {photos.length > 1 && (
-        <div className="layer-switcher-brutal">
+        <div className="layer-switcher-panel">
           <div className="layer-label">SLOT_INDEX</div>
           {photos.map((_, i) => (
             <button
               key={i}
-              className={`btn-layer-brutal ${activeIndex === i ? 'active' : ''}`}
+              className={`btn-layer-item ${activeIndex === i ? 'active' : ''}`}
               onClick={() => switchLayer(i)}
             >
               0{i + 1}
@@ -286,8 +296,8 @@ const CollageComposer = forwardRef(({ photos = [], frameSrc, photoFilter = 'none
           style={{ position: 'absolute', top: 0, left: 0 }}
         >
           {/* Dashed border — inner div, never clipped by overflow:hidden */}
-          <div 
-            className="boundary-dashed-line" 
+          <div
+            className="boundary-dashed-line"
             onPointerDown={(e) => handlePointerDown(e, false)}
           />
 
@@ -307,3 +317,4 @@ const CollageComposer = forwardRef(({ photos = [], frameSrc, photoFilter = 'none
 });
 
 export default CollageComposer;
+

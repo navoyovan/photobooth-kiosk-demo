@@ -1,133 +1,156 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useGSAP } from '@gsap/react';
-import gsap from 'gsap';
+import { animate, createTimeline } from 'animejs';
 
-const GalleryCheckoutModal = ({ isOpen, onClose, onSuccess, totalPrice, orderId = "ORD-9921" }) => {
+const GalleryCheckoutModal = ({ isOpen, onClose, onSuccess, totalPrice, initialPayment = 0, orderId = "ORD-9921", timeLeft, devFreeFlow }) => {
   const [paymentStatus, setPaymentStatus] = useState('pending'); // 'pending', 'success'
-  const [timeLeft, setTimeLeft] = useState(299); // 04:59
+  const [qrData, setQrData] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
   const modalRef = useRef();
   const backdropRef = useRef();
   const qrRef = useRef();
   const primaryBtnRef = useRef();
   const successOverlayRef = useRef();
 
-  // GSAP Entrance
-  useGSAP(() => {
+  // Anime.js Entrance
+  useEffect(() => {
     if (isOpen) {
-      const tl = gsap.timeline();
-      
+      const tl = createTimeline();
+
       // Backdrop entrance: Glassine blur & dark wash
-      tl.fromTo(backdropRef.current, 
-        { opacity: 0, backdropFilter: 'blur(0px) brightness(1)' },
-        { opacity: 1, backdropFilter: 'blur(20px) brightness(0.7)', duration: 0.8, ease: 'power2.out' }
-      );
-      
+      tl.add(backdropRef.current, {
+        opacity: [0, 1],
+        backdropFilter: ['blur(0px) brightness(1)', 'blur(20px) brightness(0.7)'],
+        duration: 800,
+        easing: 'easeOutQuad'
+      });
+
       // Modal entrance: Physical depth & slide
-      tl.fromTo(modalRef.current,
-        { y: 40, opacity: 0, scale: 0.98 },
-        { y: 0, opacity: 1, scale: 1, duration: 0.7, ease: 'power3.out' },
-        "-=0.4"
-      );
+      tl.add(modalRef.current, {
+        translateY: [40, 0],
+        opacity: [0, 1],
+        scale: [0.98, 1],
+        duration: 700,
+        easing: 'easeOutCubic'
+      }, '-=400');
 
       // Primary button fade in smoothly
-      tl.fromTo(primaryBtnRef.current,
-        { opacity: 0, y: 10 },
-        { opacity: 1, y: 0, duration: 0.5, ease: 'power2.out' },
-        "-=0.2"
-      );
+      tl.add(primaryBtnRef.current, {
+        opacity: [0, 1],
+        translateY: [10, 0],
+        duration: 500,
+        easing: 'easeOutQuad'
+      }, '-=200');
     }
   }, [isOpen]);
 
-  // Timer logic
+  // WebSocket logic (Laravel Reverb Mock)
   useEffect(() => {
-    if (!isOpen || paymentStatus !== 'pending') return;
-    
-    const timer = setInterval(() => {
-      setTimeLeft((prev) => {
-        if (prev <= 0) {
-          clearInterval(timer);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
+    if (!isOpen) return;
 
-    return () => clearInterval(timer);
-  }, [isOpen, paymentStatus]);
+    const fetchQr = async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
+        const response = await fetch('http://localhost:8000/api/qris/mock-generate', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          body: JSON.stringify({
+            "kiosk_id": "HYPEBOX-DEV-01",
+            "package_id": "premium_grid",
+            "amount": totalPrice - initialPayment
+          })
+        });
 
-  // WebSocket logic (Laravel Reverb)
-  useEffect(() => {
-    if (!isOpen || paymentStatus !== 'pending') return;
+        if (!response.ok) throw new Error('Hardware Network Error');
+        const data = await response.json();
+        setQrData(data);
+      } catch (err) {
+        console.error('Fetch error:', err);
+        setError('Hardware Network Error');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchQr();
     
-    console.log(`[WS] Listening to Laravel Reverb for Order: ${orderId}`);
-    
-    // DEV MODE: Allow manual success for testing
-    window.simulatePaymentSuccess = () => handlePaymentSuccess();
+    // Global hook for dev console testing
+    window.simulatePaymentSuccess = () => {
+      console.log("[Mock WebSocket] Received: Paid!");
+      handlePaymentSuccess();
+    };
 
     return () => {
       delete window.simulatePaymentSuccess;
     };
-  }, [isOpen, paymentStatus, orderId]);
+  }, [isOpen]);
 
   const handleExit = (callback) => {
-    const tl = gsap.timeline({ onComplete: callback });
-    
-    tl.to(modalRef.current, {
-      y: 30,
+    const tl = createTimeline({ onComplete: callback });
+
+    tl.add(modalRef.current, {
+      translateY: 30,
       opacity: 0,
-      duration: 0.5,
-      ease: 'power3.in'
+      duration: 500,
+      easing: 'easeInCubic'
     }, 0);
-    
-    tl.to(backdropRef.current, {
+
+    tl.add(backdropRef.current, {
       opacity: 0,
-      duration: 0.6,
-      ease: 'power2.inOut'
-    }, 0.1);
+      duration: 600,
+      easing: 'easeInOutQuad'
+    }, 100);
   };
 
   const handlePaymentSuccess = () => {
     if (paymentStatus === 'success') return;
 
     // Trigger Cyan Flash on click/success
-    const flashTl = gsap.timeline();
-    flashTl.to(primaryBtnRef.current, { backgroundColor: '#00FFFF', duration: 0.05 })
-           .to(primaryBtnRef.current, { backgroundColor: '#000000', duration: 0.1 });
+    animate(primaryBtnRef.current, {
+      backgroundColor: ['#00FFFF', '#000000'],
+      duration: 150,
+      easing: 'linear'
+    });
 
     // Transition Logic
     setTimeout(() => {
       setPaymentStatus('success');
 
-      const tl = gsap.timeline();
-      
+      const tl = createTimeline();
+
       // 1. QR artifact gently fades out
-      tl.to(qrRef.current, { 
-        opacity: 0, 
-        scale: 0.95, 
-        duration: 0.6, 
-        ease: 'power2.inOut' 
+      tl.add(qrRef.current, {
+        opacity: 0,
+        scale: 0.95,
+        duration: 600,
+        easing: 'easeInOutQuad'
       });
-      
+
       // 2. Simple checkmark fades in
-      tl.fromTo(successOverlayRef.current,
-        { opacity: 0 },
-        { opacity: 1, duration: 0.8, ease: 'power2.out' },
-        "-=0.3"
-      );
+      tl.add(successOverlayRef.current, {
+        opacity: [0, 1],
+        duration: 800,
+        easing: 'easeOutQuad'
+      }, '-=300');
 
       // 3. Modal dissolves and glide to Archive
-      tl.to(modalRef.current, {
+      tl.add(modalRef.current, {
         opacity: 0,
-        y: -20,
-        duration: 0.8,
-        ease: 'power3.inOut'
-      }, "+=1.0");
+        translateY: -20,
+        duration: 800,
+        easing: 'easeInOutCubic'
+      }, '+=1000');
 
-      tl.to(backdropRef.current, {
+      tl.add(backdropRef.current, {
         opacity: 0,
-        duration: 0.8,
+        duration: 800,
+        easing: 'linear',
         onComplete: onSuccess
-      }, "-=0.5");
+      }, '-=500');
 
     }, 150);
   };
@@ -140,15 +163,12 @@ const GalleryCheckoutModal = ({ isOpen, onClose, onSuccess, totalPrice, orderId 
 
   if (!isOpen) return null;
 
-  // Generate dynamic QRIS link
-  const qrisUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=REVERB_PAYMENT_${orderId}_${totalPrice}`;
-
   return (
-    <div 
+    <div
       ref={backdropRef}
       className="acquisition-modal-backdrop"
     >
-      <div 
+      <div
         ref={modalRef}
         className="acquisition-certificate-card"
       >
@@ -158,21 +178,50 @@ const GalleryCheckoutModal = ({ isOpen, onClose, onSuccess, totalPrice, orderId 
         </h2>
 
         {/* The Artifact QR Code */}
-        <div 
+        <div
           ref={qrRef}
           className="acquisition-qr-container"
+          style={{ position: 'relative' }}
+          onClick={(e) => {
+            if (devFreeFlow && e.detail === 2) {
+              console.log("[DevFreeFlow] Double-tap QR skip triggered.");
+              handlePaymentSuccess();
+            }
+          }}
         >
-          <img 
-            src={qrisUrl} 
-            alt="Artifact QR" 
-            className="acquisition-qr-image"
-          />
+          {isLoading ? (
+            <div className="spinner-sleek animate-spin" style={{ 
+              width: '40px', 
+              height: '40px', 
+              border: '3px solid rgba(0,0,0,0.1)', 
+              borderTopColor: '#111', 
+              borderRadius: '50%',
+              margin: '80px auto'
+            }}></div>
+          ) : error ? (
+            <div className="payment-error-state" style={{ textAlign: 'center', padding: '2rem' }}>
+              <div style={{ fontSize: '2.5rem', marginBottom: '1.5rem' }}>⚠️</div>
+              <span className="qr-placeholder-text" style={{ fontSize: '0.75rem', fontWeight: 600, color: "#ff4444", letterSpacing: '0.1rem', fontFamily: 'Space Grotesk' }}>
+                {error.toUpperCase()}
+              </span>
+            </div>
+          ) : (
+            <img
+              src={qrData?.qr_url}
+              alt="Artifact QR"
+              className="acquisition-qr-image"
+            />
+          )}
         </div>
 
         {/* Summary (Minimalist & Clear) */}
         <div className="acquisition-summary">
-          <span className="acquisition-label">Acquisition Value //</span>
-          <span className="acquisition-value">Rp {totalPrice.toLocaleString()}</span>
+          <span className="acquisition-label">
+            {qrData?.order_id || "GENERATING ID..."} //
+          </span>
+          <span className="acquisition-value">
+            Rp {(qrData?.amount || (totalPrice - initialPayment)).toLocaleString()}
+          </span>
         </div>
 
         {/* Expiry Indicator */}
@@ -181,8 +230,8 @@ const GalleryCheckoutModal = ({ isOpen, onClose, onSuccess, totalPrice, orderId 
         </div>
 
         {/* Execute Block (Now for Cancel) */}
-        <button 
-          className="btn-acquisition-secondary" 
+        <button
+          className="btn-acquisition-secondary"
           onClick={() => handleExit(onClose)}
         >
           ← CANCEL & EDIT ORDER

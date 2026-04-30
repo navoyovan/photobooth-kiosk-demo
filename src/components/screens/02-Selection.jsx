@@ -1,11 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useGSAP } from '@gsap/react';
-import gsap from 'gsap';
+import { animate, createTimeline, stagger } from 'animejs';
 import ThumbnailOrFallback from '../shared/ThumbnailOrFallback';
 import EditorialSkeletonFrame from '../shared/EditorialSkeletonFrame';
 import { FRAME_TYPES } from '../../constants/frames';
 
-const SelectionScreen = ({ onFinish }) => {
+const SelectionScreen = ({ onFinish, onPrepareCamera }) => {
   const screenRef = useRef(null);
   const rightPanelRef = useRef(null);
   const colRefs = useRef([]);
@@ -17,123 +16,140 @@ const SelectionScreen = ({ onFinish }) => {
   const frameRefText = useRef(null);
   const collageRefText = useRef(null);
 
-  useGSAP(() => {
+  useEffect(() => {
     // Indicator slide
-    gsap.to(indicatorRef.current, {
+    animate(indicatorRef.current, {
       top: activeCategory === 'GRID' ? '6.1rem' : '0',
-      duration: 0.6,
-      ease: "elastic.out(1, 0.75)"
+      duration: 600,
+      easing: 'easeOutElastic(1, .75)'
     });
 
     // FRAME Text
-    gsap.to(frameRefText.current, {
-      x: activeCategory === 'SPACE' ? 0 : '3rem',
+    animate(frameRefText.current, {
+      translateX: activeCategory === 'SPACE' ? 0 : '3rem',
       opacity: activeCategory === 'SPACE' ? 1 : 0.3,
-      duration: 0.5,
-      ease: "power3.out"
+      duration: 500,
+      easing: 'easeOutCubic'
     });
 
     // COLLAGE Text
-    gsap.to(collageRefText.current, {
-      x: activeCategory === 'GRID' ? 0 : '3rem',
+    animate(collageRefText.current, {
+      translateX: activeCategory === 'GRID' ? 0 : '3rem',
       opacity: activeCategory === 'GRID' ? 1 : 0.3,
-      duration: 0.5,
-      ease: "power3.out"
+      duration: 500,
+      easing: 'easeOutCubic'
     });
 
-    // Right Panel Fade-in - REMOVED OPACITY DROP TO PREVENT "TINT"
-    gsap.fromTo(rightPanelRef.current,
-      { opacity: 1, y: 10 },
-      { opacity: 1, y: 0, duration: 0.5, ease: "power3.out" }
-    );
+    // Right Panel Fade-in
+    animate(rightPanelRef.current, {
+      translateY: [10, 0],
+      opacity: [1, 1], // Just for y movement feel
+      duration: 500,
+      easing: 'easeOutCubic'
+    });
   }, [activeCategory]);
 
   const handleFinish = (frameId) => {
-    const tl = gsap.timeline({
+    const tl = createTimeline({
       onComplete: () => onFinish(frameId)
     });
 
     // 1. Animate modal content out (shrink and fade)
     if (modalContentRef.current) {
-      tl.to(modalContentRef.current, {
+      tl.add(modalContentRef.current, {
         scale: 0.9,
         opacity: 0,
-        duration: 0.3,
-        ease: "back.in(1.2)"
+        duration: 300,
+        easing: 'easeInBack(1.2)'
       }, 0);
     }
 
     // 2. Fade out the overlay backdrop
     if (modalOverlayRef.current) {
-      tl.to([modalOverlayRef.current], {
+      tl.add(modalOverlayRef.current, {
         opacity: 0,
-        duration: 0.4,
-        ease: "power2.in"
-      }, 0.1);
+        duration: 400,
+        easing: 'linear'
+      }, 100);
     }
 
     // 3. Elements slide out
-    tl.to([".panel-left", ".panel-right"], {
-      x: -100,
+    tl.add([".panel-left", ".panel-right"], {
+      translateX: -100,
       opacity: 0,
-      duration: 0.5,
-      ease: "power2.in",
-      stagger: 0.1
-    }, 0.2);
+      duration: 500,
+      easing: 'easeInQuad',
+      delay: stagger(100)
+    }, 200);
   };
 
   // Modal Animation Logic (Fixes Looping Issue)
   const modalOverlayRef = useRef(null);
   const modalContentRef = useRef(null);
-  useGSAP(() => {
+  useEffect(() => {
     if (activeFrame !== null && modalOverlayRef.current) {
-      gsap.fromTo(modalOverlayRef.current, { opacity: 0 }, { opacity: 1, duration: 0.4, ease: "power2.out" });
-      gsap.fromTo(modalContentRef.current, { scale: 0.95, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.4, delay: 0.1, ease: "back.out(1.2)" });
+      animate(modalOverlayRef.current, {
+        opacity: [0, 1],
+        duration: 400,
+        easing: 'easeOutQuad'
+      });
+      animate(modalContentRef.current, {
+        scale: [0.95, 1],
+        opacity: [0, 1],
+        duration: 400,
+        delay: 100,
+        easing: 'easeOutBack(1.2)'
+      });
     }
   }, [activeFrame]);
 
-  useGSAP(() => {
-    const tl = gsap.timeline();
+  const timelineRef = useRef(null);
+
+  useEffect(() => {
+    if (timelineRef.current) timelineRef.current.pause();
+    const tl = createTimeline();
+    timelineRef.current = tl;
 
     // 1. Initial State
     // Forced block in JSX
 
     // 2. The Master Sequence - HALVED
-
     // Background Title (Deepest parallax) - HALVED
-    tl.from(".watermark-sideways", {
-      x: 300,
-      opacity: 0,
-      duration: 1.1,
-      ease: "power4.out"
-    }, 0.05);
+    tl.add('.watermark-sideways', {
+      translateX: [300, 0],
+      opacity: [0, 0.04],
+      duration: 1100,
+      easing: 'easeOutQuart'
+    }, 50);
 
     // Left Panel UI Elements - HALVED
-    tl.from(".hero-h1-container", {
-      x: 150,
-      opacity: 0,
-      duration: 0.65,
-      ease: "power3.out"
-    }, 0.2);
+    tl.add('.panel-left', {
+      translateX: [150, 0],
+      opacity: [0, 1],
+      duration: 650,
+      easing: 'easeOutCubic'
+    }, 200);
 
-    // Right Panel (Grid) - Slide from right - HALVED
-    tl.from(".panel-right", {
-      x: 100,
-      opacity: 0,
-      duration: 0.75,
-      ease: "power3.out"
-    }, 0.1);
+    // Right Panel (Grid) - Slide from right
+    tl.add('.panel-right', {
+      translateX: [100, 0],
+      opacity: [0, 1],
+      duration: 750,
+      easing: 'easeOutCubic'
+    }, 100);
 
-    // Individual Columns stagger - HALVED
-    tl.from(".scroll-col", {
-      y: 50,
-      opacity: 0,
-      duration: 0.6,
-      stagger: 0.05,
-      ease: "power2.out"
-    }, 0.25);
+    // Individual Columns stagger - Removed redundant opacity to prevent blinking
+    tl.add('.scroll-col', {
+      translateX: [50, 0],
+      duration: 600,
+      delay: stagger(50),
+      easing: 'easeOutQuad'
+    }, 250);
 
-  }, { scope: screenRef });
+    return () => {
+      if (tl) tl.pause();
+    };
+  }, []);
 
   // Filter & Generate Columns
   const filteredFrames = React.useMemo(() => {
@@ -248,7 +264,7 @@ const SelectionScreen = ({ onFinish }) => {
       panel.removeEventListener('mouseleave', handleEnd);
       cancelAnimationFrame(animationFrame);
     };
-  }, []); // Only once, uses refs for all dynamic values
+  }, [onPrepareCamera]); // Only once, uses refs for all dynamic values
 
 
   return (
@@ -263,6 +279,7 @@ const SelectionScreen = ({ onFinish }) => {
 
         <div style={{ display: 'flex', flexDirection: 'column', flexGrow: 1, justifyItems: 'flex-start', justifyContent: 'center', zIndex: 20 }}>
           <div className="hero-h1-container">
+            <div className="hero-title-halo" />
             <div ref={indicatorRef} className="hero-bullet">{'▌'}</div>
             <div
               ref={frameRefText}
@@ -348,7 +365,10 @@ const SelectionScreen = ({ onFinish }) => {
 
               <button
                 className="btn-tier-1 "
-                onClick={() => handleFinish(activeFrame)}
+                onClick={() => {
+                  onPrepareCamera?.();
+                  handleFinish(activeFrame);
+                }}
               >
                 CONFIRM SELECTION
               </button>

@@ -1,64 +1,67 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useGSAP } from '@gsap/react';
-import gsap from 'gsap';
+import { animate, createTimeline, stagger, remove } from 'animejs';
 import GalleryCheckoutModal from '../shared/GalleryCheckoutModal';
 
-const PrintManifestScreen = ({ finalImage, printCopies, setPrintCopies, isCheckoutOpen, setIsCheckoutOpen, onNext }) => {
+const PrintManifestScreen = ({ finalImage, printCopies, setPrintCopies, isCheckoutOpen, setIsCheckoutOpen, transactionTime, amountPaid, onNext, devFreeFlow }) => {
   const screenRef = useRef();
   const stackContainerRef = useRef();
   const audioRef = useRef();
   const odoDigitRef = useRef();
 
-  useGSAP(() => {
-    const tl = gsap.timeline();
+  const timelineRef = useRef(null);
+
+  useEffect(() => {
+    if (timelineRef.current) timelineRef.current.pause();
+    const tl = createTimeline();
+    timelineRef.current = tl;
 
     // 1. Master Entrance
-    tl.from(".ghost-watermark", {
-      x: 300,
-      opacity: 0,
-      duration: 1.1,
-      ease: "power4.out"
-    }, 0.05);
+    tl.add('.ghost-watermark', {
+      translateX: ['-35%', '-50%'],
+      translateY: ['-50%', '-50%'],
+      opacity: [0, 1],
+      duration: 1400,
+      easing: 'easeOutQuart'
+    }, 50);
 
-    tl.from(".qty-engine-axis", {
-      x: 150,
-      opacity: 0,
-      duration: 0.65,
-      ease: "power3.out"
-    }, 0.15);
+    tl.add('.qty-engine-axis', {
+      translateX: [150, 0],
+      translateY: ['-50%', '-50%'],
+      opacity: [0, 1],
+      duration: 650,
+      easing: 'easeOutCubic'
+    }, 150);
 
-    // Entrance with the 5vw rightward offset
-    tl.fromTo(".uno-visual-axis", 
-      { x: 150, opacity: 0, scale: 0.9 },
-      { x: "5vw", opacity: 1, scale: 1, duration: 0.75, ease: "power3.out" }, 
-      0.1
-    );
+    // Subtle entrance that settles at 5vw rightward offset
+    tl.add('.uno-visual-axis', {
+      translateX: ['8vw', '5vw'],
+      opacity: [0, 1],
+      duration: 750,
+      easing: 'easeOutCubic'
+    }, 100);
 
-    tl.from(".manifest-right-panel", {
-      x: 80,
-      opacity: 0,
-      duration: 0.6,
-      ease: "power2.out"
-    }, 0.2);
+    tl.add('.telemetry-right-axis', {
+      translateX: [100, 0],
+      opacity: [0, 1],
+      duration: 800,
+      easing: 'easeOutQuad'
+    }, 200);
 
-    // 2. Start Infinite Float via GSAP (so we can smoothly kill it)
-    gsap.to(".uno-visual-anchor", {
-      y: -20,
-      duration: 3,
-      ease: "sine.inOut",
-      yoyo: true,
-      repeat: -1
-    });
-
-  }, { scope: screenRef });
+    return () => {
+      if (tl) tl.pause();
+    };
+  }, []);
 
   // Punchy QTY Animation
   useEffect(() => {
     if (odoDigitRef.current) {
-      gsap.fromTo(odoDigitRef.current,
-        { scale: 0.5, opacity: 0, filter: "blur(10px)" },
-        { scale: 1, opacity: 1, filter: "blur(0px)", duration: 0.4, ease: "back.out(1.7)" }
-      );
+      animate(odoDigitRef.current, {
+        scale: [0.5, 1],
+        opacity: [0, 1],
+        filter: ['blur(10px)', 'blur(0px)'],
+        duration: 400,
+        easing: 'easeOutBack(1.7)'
+      });
     }
   }, [printCopies]);
 
@@ -66,10 +69,12 @@ const PrintManifestScreen = ({ finalImage, printCopies, setPrintCopies, isChecko
   const lastCount = useRef(printCopies);
   useEffect(() => {
     if (printCopies > lastCount.current && stackContainerRef.current) {
-      gsap.fromTo(stackContainerRef.current,
-        { scale: 0.99, y: 5 },
-        { scale: 1, y: 0, duration: 0.3, ease: "power2.out" }
-      );
+      animate(stackContainerRef.current, {
+        scale: [0.99, 1],
+        translateY: [5, 0],
+        duration: 300,
+        easing: 'easeOutQuad'
+      });
     }
     lastCount.current = printCopies;
   }, [printCopies]);
@@ -77,12 +82,6 @@ const PrintManifestScreen = ({ finalImage, printCopies, setPrintCopies, isChecko
   const handleSetCopies = (val) => {
     if (val < 1 || val > 10) return;
     setPrintCopies(val);
-
-    // Sound effect on change
-    if (audioRef.current) {
-      audioRef.current.currentTime = 0;
-      audioRef.current.play().catch(e => console.log("Audio play failed:", e));
-    }
   };
 
   const totalPrice = 40000 + (printCopies - 1) * 20000;
@@ -93,50 +92,67 @@ const PrintManifestScreen = ({ finalImage, printCopies, setPrintCopies, isChecko
   };
 
   const handleCheckoutSuccess = () => {
-    // Kill the infinite float smoothly
-    gsap.killTweensOf(".uno-visual-anchor");
+    // Kill the infinite float smoothly by adding the CSS class
+    const floater = screenRef.current.querySelector('.uno-visual-float');
+    if (floater) floater.classList.add('no-float');
 
-    const tl = gsap.timeline({
+    const tl = createTimeline({
       onComplete: onNext
     });
 
     // 1. Smoothly return Y to 0 while snapping X back to center
-    tl.to(".uno-visual-anchor", {
-      y: 0,
-      duration: 1.0,
-      ease: "power2.inOut"
-    }, 0);
+    if (screenRef.current.querySelector(".uno-visual-anchor")) {
+      tl.add('.uno-visual-anchor', {
+        translateY: 0,
+        duration: 1000,
+        easing: 'easeInOutQuad'
+      }, 0);
+    }
 
-    tl.to(".uno-visual-axis", {
-      x: 0,
-      duration: 1.0,
-      ease: "power4.inOut"
-    }, 0);
+    if (screenRef.current.querySelector(".uno-visual-axis")) {
+      tl.add('.uno-visual-axis', {
+        translateX: 0,
+        opacity: 1, // Keep it visible during transition
+        duration: 1000,
+        easing: 'easeInOutQuart'
+      }, 0);
+    }
 
     // Collapse stack
-    tl.to(".uno-card", {
-      x: 0,
-      y: 0,
-      rotation: 0,
-      duration: 0.8,
-      ease: "power3.inOut"
-    }, 0);
+    const cards = screenRef.current.querySelectorAll(".uno-card");
+    if (cards.length > 0) {
+      tl.add(cards, {
+        translateX: 0,
+        translateY: 0,
+        rotate: 0,
+        duration: 800,
+        easing: 'easeInOutCubic'
+      }, 0);
 
-    // Fade out background cards to prevent shadow stacking artifacts
-    tl.to(".uno-card:not(:last-child)", {
-      opacity: 0,
-      duration: 0.6,
-      ease: "power2.in"
-    }, 0.1);
+      // Fade out background cards to prevent shadow stacking artifacts
+      const backgroundCards = screenRef.current.querySelectorAll(".uno-card:not(:last-child)");
+      if (backgroundCards.length > 0) {
+        tl.add(backgroundCards, {
+          opacity: 0,
+          duration: 600,
+          easing: 'easeInQuad'
+        }, 100);
+      }
+    }
 
     // 2. Parallax out the checkout-specific UI
-    tl.to([".manifest-right-panel", ".qty-engine-axis", ".ghost-watermark"], {
-      opacity: 0,
-      x: -100,
-      duration: 0.6,
-      ease: "power2.in",
-      stagger: 0.05
-    }, 0);
+    const uiElements = [".manifest-right-panel", ".qty-engine-axis", ".ghost-watermark"].filter(sel =>
+      screenRef.current.querySelector(sel)
+    );
+    if (uiElements.length > 0) {
+      tl.add(uiElements, {
+        opacity: 0,
+        translateX: -100,
+        duration: 600,
+        easing: 'easeInQuad',
+        delay: stagger(50)
+      }, 0);
+    }
   };
 
   // Guard against non-number printCopies
@@ -144,7 +160,6 @@ const PrintManifestScreen = ({ finalImage, printCopies, setPrintCopies, isChecko
 
   return (
     <div ref={screenRef} className="darkroom-pedestal editorial-shared-layout">
-      <audio ref={audioRef} src="https://assets.mixkit.co/active_storage/sfx/2571/2571-preview.mp3" preload="auto"></audio>
 
       {/* 0. GHOST WATERMARK */}
       <div className="ghost-watermark">DARK<br />ROOM</div>
@@ -167,30 +182,31 @@ const PrintManifestScreen = ({ finalImage, printCopies, setPrintCopies, isChecko
         <button className="qty-stepper-btn" onClick={() => handleSetCopies(safeCopies - 1)}>-</button>
       </div>
 
-      {/* SHARED MASTERPIECE AXIS */}
       <div className="masterpiece-left-axis">
         <div className="uno-visual-axis">
-          <div className="uno-visual-anchor">
-            <div ref={stackContainerRef} className="uno-stack-container">
-              {Array.from({ length: safeCopies }).map((_, index) => {
-                const mid = (safeCopies - 1) / 2;
-                const targetX = (index - mid) * -15;
-                const targetY = (index - mid) * 15;
-                const targetRotate = getRotation(index);
-                return (
-                  <div
-                    key={index}
-                    className="uno-card"
-                    style={{
-                      zIndex: index,
-                      transform: `translate(${targetX}px, ${targetY}px) rotate(${targetRotate}deg)`,
-                      filter: `brightness(${100 - (safeCopies - index - 1) * 4}%)`,
-                    }}
-                  >
-                    <img src={finalImage || "/taken_pic/default.png"} alt={`Manifest ${index + 1}`} />
-                  </div>
-                );
-              })}
+          <div className="uno-visual-float">
+            <div className="uno-visual-anchor">
+              <div ref={stackContainerRef} className="uno-stack-container">
+                {Array.from({ length: safeCopies }).map((_, index) => {
+                  const mid = (safeCopies - 1) / 2;
+                  const targetX = (index - mid) * -15;
+                  const targetY = (index - mid) * 15;
+                  const targetRotate = getRotation(index);
+                  return (
+                    <div
+                      key={index}
+                      className="uno-card"
+                      style={{
+                        zIndex: index,
+                        transform: `translate(${targetX}px, ${targetY}px) rotate(${targetRotate}deg)`,
+                        filter: `brightness(${100 - (safeCopies - index - 1) * 4}%)`,
+                      }}
+                    >
+                      <img src={finalImage || "/taken_pic/default.png"} alt={`Manifest ${index + 1}`} />
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           </div>
         </div>
@@ -199,7 +215,8 @@ const PrintManifestScreen = ({ finalImage, printCopies, setPrintCopies, isChecko
       {/* SHARED TELEMETRY AXIS */}
       <div className="telemetry-right-axis">
         <div className="manifest-right-panel">
-          <div className="manifest-title-group">
+          <div className="manifest-title-group" style={{ position: 'relative' }}>
+            {/* <div className="hero-title-halo dark" /> */}
             <h1 className="manifest-huge-title">CHECKOUT</h1>
             <span className="manifest-cyan-sub">CONFIRM YOUR SELECTION TO PROCEED</span>
           </div>
@@ -236,7 +253,10 @@ const PrintManifestScreen = ({ finalImage, printCopies, setPrintCopies, isChecko
           handleCheckoutSuccess();
         }}
         totalPrice={40000 + (safeCopies - 1) * 20000}
+        initialPayment={amountPaid}
         orderId={`PHB-${Math.floor(Date.now() / 1000)}`}
+        timeLeft={transactionTime}
+        devFreeFlow={devFreeFlow}
       />
     </div>
   );

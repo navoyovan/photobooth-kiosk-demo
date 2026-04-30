@@ -1,58 +1,63 @@
 import React, { useState, useRef, useEffect, forwardRef, useImperativeHandle } from 'react';
-import { useGSAP } from '@gsap/react';
-import gsap from 'gsap';
+import { animate, createTimeline, stagger } from 'animejs';
 
-const PaymentScreen = forwardRef(({ onBack, onSuccess, printCopies, setPrintCopies, timerDisplay, devMode = false, setIsTimerPaused, kioskId }, ref) => {
+const PaymentScreen = forwardRef(({ onBack, onSuccess, printCopies, setPrintCopies, timerDisplay, devMode = false, setIsTimerPaused, kioskId, devFreeFlow }, ref) => {
   const screenRef = useRef();
   const leftPanelRef = useRef();
   const rightPanelRef = useRef();
+
+  // State
   const [coupon, setCoupon] = useState("");
   const [promoStatus, setPromoStatus] = useState("idle"); // idle, checking, success, failed
   const [price, setPrice] = useState(40000);
   const [originalPrice, setOriginalPrice] = useState(null);
-  const [paymentStatus, setPaymentStatus] = useState("pending"); // pending, success, failed
-  const [qrData, setQrData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [qrData, setQrData] = useState(null);
+  const [paymentStatus, setPaymentStatus] = useState("pending"); // pending, success, failed
 
-  const UNIT_PRICE = 20000;
-
-  useGSAP(() => {
-    const tl = gsap.timeline();
+  const timelineRef = useRef(null);
+  useEffect(() => {
+    if (timelineRef.current) timelineRef.current.pause();
+    const tl = createTimeline();
+    timelineRef.current = tl;
 
     // Fade in the milky-mica-background
-    tl.from(screenRef.current, {
-      opacity: 0,
-      duration: 0.8,
-      ease: "power2.out"
+    tl.add(screenRef.current, {
+      opacity: [0, 1],
+      duration: 800,
+      easing: 'easeOutQuad'
     }, 0);
 
-    // Parallax Slide-in from Right to Left - HALVED DURATIONS
+    // Parallax Slide-in from Right to Left
     // Giant Watermark (Deepest parallax)
-    tl.from(".watermark-sideways", {
-      x: 300,
-      opacity: 0,
-      duration: 1.1,
-      ease: "power4.out"
-    }, 0.05);
+    tl.add('.watermark-sideways', {
+      translateX: [300, 0],
+      opacity: [0, 0.04],
+      duration: 1100,
+      easing: 'easeOutQuart'
+    }, 50);
 
     // Left Panel UI Elements
-    tl.from(leftPanelRef.current, {
-      x: 150,
-      opacity: 0,
-      duration: 0.65,
-      ease: "power3.out"
-    }, 0.15);
+    tl.add(leftPanelRef.current, {
+      translateX: [150, 0],
+      opacity: [0, 1],
+      duration: 650,
+      easing: 'easeOutCubic'
+    }, 150);
 
     // Right Panel (QR & Price)
-    tl.from(rightPanelRef.current, {
-      x: 100,
-      opacity: 0,
-      duration: 0.75,
-      ease: "power3.out"
-    }, 0.2);
+    tl.add(rightPanelRef.current, {
+      translateX: [100, 0],
+      opacity: [0, 1],
+      duration: 750,
+      easing: 'easeOutCubic'
+    }, 200);
 
-  }, { scope: screenRef });
+    return () => {
+      if (tl) tl.pause();
+    };
+  }, []);
 
   useEffect(() => {
     let rawPrice = 40000 + (printCopies - 1) * 20000;
@@ -101,11 +106,11 @@ const PaymentScreen = forwardRef(({ onBack, onSuccess, printCopies, setPrintCopi
   }, []);
 
   const handleCancel = () => {
-    gsap.to(screenRef.current, {
+    animate(screenRef.current, {
       opacity: 0,
-      y: 40,
-      duration: 0.6,
-      ease: "power3.in",
+      translateY: 40,
+      duration: 600,
+      easing: 'easeInCubic',
       onComplete: onBack
     });
   };
@@ -123,72 +128,84 @@ const PaymentScreen = forwardRef(({ onBack, onSuccess, printCopies, setPrintCopi
     // 2. Set local success status
     setPaymentStatus("success");
 
-    // 3. Animate the success feedback
-    gsap.fromTo(".payment-status-overlay.success",
-      { scale: 0.8, opacity: 0 },
-      { scale: 1, opacity: 1, duration: 0.6, ease: "back.out(1.7)" }
-    );
+    // 3. Status animation handled by useEffect below
 
     // 4. Delay before transitioning to next screen - TIGHT HANDSHAKE
     setTimeout(() => {
-      const exitTl = gsap.timeline({
+      const exitTl = createTimeline({
         onComplete: () => {
           setIsTimerPaused(false);
-          onSuccess();
+          onSuccess(price);
         }
       });
 
       // Elements slide out left
-      exitTl.to([leftPanelRef.current, rightPanelRef.current], {
-        x: -100,
+      exitTl.add([leftPanelRef.current, rightPanelRef.current], {
+        translateX: -100,
         opacity: 0,
-        duration: 0.4,
-        ease: "power2.in",
-        stagger: 0.1
+        duration: 400,
+        easing: 'easeInQuad',
+        delay: stagger(100)
       });
 
       // Watermark deeper parallax exit
-      exitTl.to(".watermark-sideways", {
-        x: -200,
-        opacity: 0,
-        duration: 0.5,
-        ease: "power2.in"
+      exitTl.add('.watermark-sideways', {
+        translateX: -200,
+        opacity: [0.04, 0],
+        duration: 500,
+        easing: 'easeInQuad'
       }, 0);
-
-      // // Flash to white
-      // exitTl.to(".page-exit-white-overlay", {
-      //   opacity: 1,
-      //   duration: 0.3,
-      //   ease: "power1.in"
-      // }, "-=0.2");
 
     }, 2000); // 2 second celebration delay
   };
 
   const handlePaymentFailed = () => {
     setPaymentStatus("failed");
-    gsap.fromTo(".payment-status-overlay.failed",
-      { y: 20, opacity: 0 },
-      { y: 0, opacity: 1, duration: 0.4, ease: "power2.out" }
-    );
+    // Status animation handled by useEffect below
   };
 
   const handlePaymentRetry = () => {
     setPaymentStatus("pending");
     // Animation for returning to QR state
-    gsap.fromTo(".qr-placeholder-text", { opacity: 0 }, { opacity: 1, duration: 0.5 });
+    animate('.qr-placeholder-text', {
+      opacity: [0, 1],
+      duration: 500,
+      easing: 'linear'
+    });
   };
 
   const [showNumpad, setShowNumpad] = useState(false);
   const numpadRef = useRef();
 
+  // Status Animations
+  useEffect(() => {
+    if (paymentStatus === "success") {
+      animate('.payment-status-overlay.success', {
+        scale: [0.8, 1],
+        opacity: [0, 1],
+        duration: 600,
+        easing: 'easeOutBack(1.7)'
+      });
+    } else if (paymentStatus === "failed") {
+      animate('.payment-status-overlay.failed', {
+        translateY: [20, 0],
+        opacity: [0, 1],
+        duration: 400,
+        easing: 'easeOutQuad'
+      });
+    }
+  }, [paymentStatus]);
+
   // Animation for numpad appearance (Pushing Input Up)
   useEffect(() => {
     if (showNumpad && numpadRef.current) {
-      gsap.fromTo(numpadRef.current,
-        { height: 0, opacity: 0, marginTop: 0 },
-        { height: 'auto', opacity: 1, marginTop: 16, duration: 0.4, ease: "power3.out" }
-      );
+      animate(numpadRef.current, {
+        height: [0, 'auto'],
+        opacity: [0, 1],
+        marginTop: [0, 16],
+        duration: 400,
+        easing: 'easeOutCubic'
+      });
     }
   }, [showNumpad]);
 
@@ -249,6 +266,7 @@ const PaymentScreen = forwardRef(({ onBack, onSuccess, printCopies, setPrintCopi
         <div style={{ width: '100%', marginTop: 'auto', marginBottom: 'auto', zIndex: 20 }}>
           {/* The Hero Overlap Title */}
           <div className="hero-h1-container">
+            <div className="hero-title-halo" />
             <div className="hero-bullet">▌</div>
             <h2 className="hero-h1">PAYMENT</h2>
           </div>
@@ -316,17 +334,25 @@ const PaymentScreen = forwardRef(({ onBack, onSuccess, printCopies, setPrintCopi
             />
           </div>
 
-          <div style={{
-            width: '450px',
-            height: '450px',
-            background: 'transparent',
-            border: '2px dashed #999',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            position: 'relative',
-            overflow: 'hidden'
-          }}>
+          <div
+            style={{
+              width: '450px',
+              height: '450px',
+              background: 'transparent',
+              border: '2px dashed #999',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              position: 'relative',
+              overflow: 'hidden'
+            }}
+            onClick={(e) => {
+              if (devFreeFlow && e.detail === 2) {
+                console.log("[DevFreeFlow] Double-tap QR skip triggered.");
+                handlePaymentSuccess();
+              }
+            }}
+          >
             {isLoading && (
               <div className="payment-loading-state" style={{ textAlign: 'center' }}>
                 <div className="spinner-sleek animate-spin" style={{

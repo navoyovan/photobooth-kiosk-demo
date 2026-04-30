@@ -1,6 +1,5 @@
 import React, { useState, useRef, useEffect, startTransition } from 'react';
-import { useGSAP } from '@gsap/react';
-import gsap from 'gsap';
+import { animate, createTimeline, stagger } from 'animejs';
 import RunningTimestamp from '../shared/RunningTimestamp';
 import InteractivePhoto from '../shared/InteractivePhoto';
 import CollageComposer from '../shared/CollageComposer';
@@ -36,69 +35,75 @@ const CaptureScreen = React.forwardRef(({
   const watermarkRef = useRef(null);
   const filterListRef = useRef(null);
   const magneticAnchorRef = useRef(null);
+  const timelineRef = useRef(null);
 
-  useGSAP(() => {
-    const tl = gsap.timeline();
-
-    // 1. Initial State for Elements (to avoid flash)
-
-    // 2. The Master Sequence
+  useEffect(() => {
+    if (timelineRef.current) timelineRef.current.pause();
+    const tl = createTimeline();
+    timelineRef.current = tl;
 
     // Background (Subtle scale in)
-    tl.from(".camera-feed-background", {
-      // scale: 1.15,
-      filter: "blur(20px)",
-      duration: 0.9,
-      ease: "power2.out"
+    tl.add('.camera-feed-background', {
+      filter: ['blur(20px)', 'blur(0px)'],
+      duration: 900,
+      easing: 'easeOutQuad'
     }, 0);
 
     // Parallax Slide-in from Right to Left
     // Ghost Watermark (Deepest parallax - starts furthest right)
-    tl.from(".ghost-capture-watermark", {
-      x: 300,
-      opacity: 0,
-      duration: 1.1,
-      ease: "power4.out"
-    }, 0.1);
+    tl.add('.ghost-capture-watermark', {
+      translateX: [300, 0],
+      opacity: [0, 0.2],
+      duration: 1200,
+      easing: 'easeOutQuart'
+    }, 50);
 
     // Optical Grid (Mid-depth)
-    tl.from(".optical-grid-system", {
-      x: 100,
-      opacity: 0,
-      duration: 0.75,
-      ease: "power3.out"
-    }, 0.3);
+    tl.add('.optical-grid-system', {
+      translateX: [100, 0],
+      opacity: [0, 1],
+      duration: 750,
+      easing: 'easeOutCubic'
+    }, 300);
 
     // HUD Elements (Foreground parallax)
-    tl.from(".hud-anchor.top-left", {
-      x: 150,
-      opacity: 0,
-      duration: 0.6,
-      ease: "power2.out"
-    }, 0.4);
+    tl.add('.hud-anchor.top-left', {
+      translateX: [150, 0],
+      opacity: [0, 1],
+      duration: 600,
+      easing: 'easeOutQuad'
+    }, 400);
 
-    tl.from(".hud-anchor.center-left", {
-      x: 200,
-      opacity: 0,
-      duration: 0.65,
-      ease: "power2.out"
-    }, 0.5);
+    tl.add('.hud-anchor.center-left', {
+      translateX: [200, 0],
+      translateY: ['-50%', '-50%'],
+      opacity: [0, 1],
+      duration: 650,
+      easing: 'easeOutQuad'
+    }, 500);
 
-    tl.from(".hud-anchor.bottom-right", {
-      x: 100,
-      opacity: 0,
-      duration: 5.5,
-      ease: "power2.out"
-    }, 0.6);
+    tl.add('.hud-anchor.bottom-right', {
+      translateX: [100, 0],
+      opacity: [0, 1],
+      duration: 550,
+      easing: 'easeOutQuad'
+    }, 600);
 
     // Viewfinder Entrance Overlay (Milky Mica Fade-out)
-    tl.fromTo(".viewfinder-entrance-overlay",
-      { opacity: 1 },
-      { opacity: 0, duration: 0.4, ease: "power2.inOut", onComplete: () => gsap.set(".viewfinder-entrance-overlay", { display: 'none' }) },
-      0
-    );
+    tl.add('.viewfinder-entrance-overlay', {
+      opacity: [1, 0],
+      duration: 400,
+      easing: 'easeInOutQuad',
+      onComplete: () => {
+        const el = document.querySelector('.viewfinder-entrance-overlay');
+        if (el) el.style.display = 'none';
+      }
+    }, 0);
 
-  }, { scope: screenRef });
+    return () => {
+      if (tl) tl.pause();
+    };
+  }, []);
 
   const deviceList = cameraDevices || [];
 
@@ -110,6 +115,8 @@ const CaptureScreen = React.forwardRef(({
   }, [devMode]);
   const [isCapturing, setIsCapturing] = useState(false);
   const [countdown, setCountdown] = useState(null);
+  const countdownRef = useRef(null);
+  const timerIntervalRef = useRef(null);
   // State lifted to App.jsx: photos, currentSlotIndex, selectedFilter, isMirrored, isFinished
   const [isProcessingFilter, setIsProcessingFilter] = useState(false);
   const [lastCapturedPhoto, setLastCapturedPhoto] = useState(null);
@@ -127,60 +134,48 @@ const CaptureScreen = React.forwardRef(({
     }
   }, [isFinished, isCapturing, setCaptureSubState]);
 
-  // Compositing Panel Parallax Entrance (mirrors PaymentScreen pattern)
-  useGSAP(() => {
+  // Compositing Panel Parallax Entrance
+  useEffect(() => {
     if (isFinished && !isCapturing) {
-      const tl = gsap.timeline();
-
-      // Ensure all targets start hidden (prevents flash before animation)
-      gsap.set([".comp-entrance-overlay", ".watermark-sideways", ".panel-left", ".panel-right", ".compositing-panel"], { clearProps: "all" });
+      const tl = createTimeline();
 
       // We want the milky-mica-background (compositing-panel) to fade in
-      tl.from(".compositing-panel", {
-        opacity: 0,
-        duration: 0.8,
-        ease: "power2.out"
+      tl.add('.compositing-panel', {
+        opacity: [0, 1],
+        duration: 800,
+        easing: 'easeOutQuad'
       }, 0);
 
-      // Parallax slide-in (deepest element first, most x offset)
-      // Giant watermark — deepest parallax layer
-      tl.from(".watermark-sideways", {
-        x: 300,
-        opacity: 0,
-        duration: 1.1,
-        ease: "power4.out"
-      }, 0.05);
+      // Parallax slide-in
+      tl.add('.watermark-sideways', {
+        translateX: [300, 0],
+        opacity: [0, 0.04],
+        duration: 1100,
+        easing: 'easeOutQuart'
+      }, 50);
 
-      // Left panel (controls)
-      tl.from(".panel-left", {
-        x: 150,
-        opacity: 0,
-        duration: 0.65,
-        ease: "power3.out"
-      }, 0.15);
+      tl.add('.panel-left', {
+        translateX: [150, 0],
+        opacity: [0, 1],
+        duration: 650,
+        easing: 'easeOutCubic'
+      }, 150);
 
-      // Right main canvas
-      tl.from(".panel-right", {
-        x: 80,
-        opacity: 0,
-        duration: 0.75,
-        ease: "power3.out"
-      }, 0.2);
+      tl.add('.panel-right', {
+        translateX: [80, 0],
+        opacity: [0, 1],
+        duration: 750,
+        easing: 'easeOutCubic'
+      }, 200);
 
-      // 3. Staggered filter buttons after panels settle
-      if (filterListRef.current) {
-        tl.fromTo(".btn-filter-editorial",
-          { opacity: 0, y: 12 },
-          {
-            opacity: 1,
-            y: 0,
-            duration: 0.5,
-            stagger: 0.04,
-            ease: "power2.out"
-          },
-          0.55
-        );
-      }
+      // Staggered filter buttons
+      tl.add('.btn-filter-editorial', {
+        translateX: [30, 0],
+        opacity: [0, 1],
+        duration: 500,
+        delay: stagger(40),
+        easing: 'easeOutQuad'
+      }, 550);
     }
   }, [isFinished, isCapturing]);
 
@@ -189,10 +184,10 @@ const CaptureScreen = React.forwardRef(({
     if (magneticAnchorRef.current && filterListRef.current) {
       const activeBtn = filterListRef.current.querySelector('.btn-filter-editorial.active');
       if (activeBtn) {
-        gsap.to(magneticAnchorRef.current, {
-          y: activeBtn.offsetTop + (activeBtn.offsetHeight / 2) - 12, // Precisely center the ▌ character
-          duration: 0.6,
-          ease: "elastic.out(1, 0.7)"
+        animate(magneticAnchorRef.current, {
+          translateY: activeBtn.offsetTop + (activeBtn.offsetHeight / 2) - 12,
+          duration: 600,
+          easing: 'easeOutElastic(1, .7)'
         });
       }
     }
@@ -268,10 +263,13 @@ const CaptureScreen = React.forwardRef(({
       takeSnapshot(slotIdx);
     } else {
       setCountdown(timeLeft);
-      const interval = setInterval(() => {
+      if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+      
+      timerIntervalRef.current = setInterval(() => {
         timeLeft -= 1;
         if (timeLeft <= 0) {
-          clearInterval(interval);
+          clearInterval(timerIntervalRef.current);
+          timerIntervalRef.current = null;
           setCountdown(null);
           takeSnapshot(slotIdx);
         } else {
@@ -281,25 +279,55 @@ const CaptureScreen = React.forwardRef(({
     }
   };
 
+  // Animate countdown "punch" when number changes
+  useEffect(() => {
+    if (countdown !== null) {
+      animate('.elegant-countdown-number', {
+        scale: [1.5, 1],
+        opacity: [0, 1],
+        duration: 400,
+        easing: 'easeOutBack'
+      });
+    }
+  }, [countdown]);
+
+  // Clean up timer on unmount
+  useEffect(() => {
+    return () => {
+      if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+    };
+  }, []);
+
   const takeSnapshot = (slotIdx) => {
     // Shutter Flash Sequence
     const flash = document.createElement('div');
     flash.className = 'shutter-flash-overlay';
     document.body.appendChild(flash);
 
-    // Flash the CAPTURE watermark too
+    // Flash the Ghost Watermark punch: Fill white then back to ghost
     if (watermarkRef.current) {
-      gsap.to(watermarkRef.current, { color: 'white', duration: 0.1, yoyo: true, repeat: 1 });
+      animate(watermarkRef.current, {
+        color: ['rgba(255, 255, 255, 0)', 'rgba(255, 255, 255, 1)', 'rgba(255, 255, 255, 0)'],
+        opacity: [0.2, 0.8, 0.2],
+        duration: 500,
+        easing: 'easeOutQuad'
+      });
     }
 
-    gsap.fromTo(flash,
-      { opacity: 0 },
-      {
-        opacity: 1, duration: 0.05, ease: "none", onComplete: () => {
-          gsap.to(flash, { opacity: 0, duration: 0.4, ease: "power2.out", onComplete: () => flash.remove() });
-        }
+    animate(flash, {
+      opacity: [0, 1],
+      duration: 50,
+      easing: 'linear',
+      onComplete: () => {
+        animate(flash, {
+          opacity: 0,
+          duration: 400,
+          easing: 'easeOutQuad',
+          onComplete: () => flash.remove()
+        });
       }
-    );
+    });
+
 
     if (audioRef.current) {
       audioRef.current.currentTime = 0;
@@ -361,15 +389,37 @@ const CaptureScreen = React.forwardRef(({
 
   const handleExport = async () => {
     if (composerRef.current && canvasRef.current) {
-      const tl = gsap.timeline();
+      const tl = createTimeline();
 
       // Parallax exit — elements slide left at different depths
-      tl.to(".watermark-sideways", { x: -200, opacity: 0, duration: 0.55, ease: "power2.in" }, 0);
-      tl.to(".panel-left", { x: -100, opacity: 0, duration: 0.4, ease: "power2.in" }, 0.05);
-      tl.to(".panel-right", { x: -60, opacity: 0, duration: 0.4, ease: "power2.in" }, 0.1);
+      tl.add('.watermark-sideways', {
+        translateX: -200,
+        opacity: [0.04, 0],
+        duration: 550,
+        easing: 'easeInQuart'
+      }, 0);
+
+      tl.add('.panel-left', {
+        translateX: -100,
+        opacity: 0,
+        duration: 400,
+        easing: 'easeInQuad'
+      }, 50);
+
+      tl.add('.panel-right', {
+        translateX: -60,
+        opacity: 0,
+        duration: 400,
+        easing: 'easeInQuad'
+      }, 100);
 
       // Flash to overlay
-      tl.to(".page-exit-overlay", { opacity: 1, duration: 0.3, ease: "power1.in" }, "-=0.2");
+      tl.add('.page-exit-overlay', {
+        opacity: [0, 1],
+        duration: 300,
+        easing: 'linear'
+      }, '-=200');
+
 
       const comp = composerRef.current.getComposition();
       const canvas = canvasRef.current;
@@ -434,7 +484,10 @@ const CaptureScreen = React.forwardRef(({
       ctx.drawImage(frameImg, 0, 0, Math.round(comp.cW), Math.round(comp.cH));
 
       const dataUrl = canvas.toDataURL('image/jpeg', 0.95);
-      tl.add(() => onFinish(dataUrl));
+      tl.add({
+        duration: 1,
+        onComplete: () => onFinish(dataUrl)
+      });
     }
   };
 
@@ -592,7 +645,7 @@ const CaptureScreen = React.forwardRef(({
 
         {/* CENTER: TAP ANYWHERE CTA */}
         {!isCapturing && photos.length === 0 && countdown === null && (
-          <div className="hud-anchor absolute-center">
+          <div className="hud-anchor absolute-center" style={{ opacity: 1 }}>
             <div className="tap-capture-cta">
               <span className="cta-default">TAP ANYWHERE TO CAPTURE</span>
             </div>
@@ -601,7 +654,7 @@ const CaptureScreen = React.forwardRef(({
 
         {/* ELEGANT CENTER COUNTDOWN */}
         {countdown !== null && (
-          <div className="hud-anchor absolute-center">
+          <div className="hud-anchor absolute-center" style={{ opacity: 1 }}>
             <div className="elegant-countdown-number">{countdown}</div>
           </div>
         )}

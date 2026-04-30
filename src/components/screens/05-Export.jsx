@@ -1,51 +1,47 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { useGSAP } from '@gsap/react';
-import gsap from 'gsap';
+import { animate, createTimeline } from 'animejs';
 
-const ExportScreen = ({ finalImage, printCopies, onFinish, kioskId }) => {
+const ExportScreen = ({ finalImage, printCopies, onFinish, kioskId, devFreeFlow }) => {
   const screenRef = useRef(null);
   const [progress, setProgress] = useState(0);
 
-  useGSAP(() => {
-    const tl = gsap.timeline();
+  const timelineRef = useRef(null);
 
-    // 1. Initial State
-    // Forced block in JSX
+  useEffect(() => {
+    if (timelineRef.current) timelineRef.current.pause();
+    const tl = createTimeline();
+    timelineRef.current = tl;
 
-    // 2. The Master Sequence - HALVED
-
-    // Parallax Slide-in from Right to Left - HALVED
+    // 1. Master Entrance
     // Ghost Watermark (Deepest parallax)
-    tl.from(".ghost-watermark", {
-      x: 300,
-      opacity: 0,
-      duration: 1.1,
-      ease: "power4.out"
-    }, 0.05);
+    tl.add('.ghost-watermark', {
+      translateX: ['-35%', '-50%'],
+      translateY: ['-50%', '-50%'],
+      opacity: [0, 1],
+      duration: 1400,
+      easing: 'easeOutQuart'
+    }, 50);
 
-    // Masterpiece axis (the card) intentionally left static for shared-element feel
-    gsap.set(".masterpiece-left-axis", { opacity: 1, x: 0 });
+    // Main Telemetry Panel (Right axis)
+    tl.add('.telemetry-right-axis', {
+      translateY: [100, 0],
+      opacity: [0, 1],
+      duration: 800,
+      easing: 'easeOutCubic'
+    }, 200);
 
-    // Right Axis (QR & Info) - HALVED
-    tl.from(".telemetry-right-axis", {
-      x: 150,
-      opacity: 0,
-      duration: 0.8,
-      ease: "power3.out"
-    }, 0.2);
+    // Footer Progress & Button
+    tl.add('.final-execution-footer', {
+      translateY: [50, 0],
+      opacity: [0, 1],
+      duration: 600,
+      easing: 'easeOutQuad'
+    }, 400);
 
-    // Note: masterpiece-left-axis (the card) is skipped here 
-    // to maintain continuity with the Checkout transition.
-
-    // Footer - HALVED
-    tl.from(".final-execution-footer", {
-      y: 50,
-      opacity: 0,
-      duration: 0.5,
-      ease: "power2.out"
-    }, 0.3);
-
-  }, { scope: screenRef });
+    return () => {
+      if (tl) tl.pause();
+    };
+  }, []);
 
   const [isFloating, setIsFloating] = useState(false);
 
@@ -71,7 +67,13 @@ const ExportScreen = ({ finalImage, printCopies, onFinish, kioskId }) => {
   }, [printCopies]);
 
   const handleManualExit = () => {
-    gsap.to(screenRef.current, { opacity: 0, scale: 0.95, duration: 0.5, onComplete: onFinish });
+    animate(screenRef.current, {
+      opacity: 0,
+      scale: 0.95,
+      duration: 500,
+      easing: 'easeInQuad',
+      onComplete: onFinish
+    });
   };
 
   return (
@@ -93,17 +95,37 @@ const ExportScreen = ({ finalImage, printCopies, onFinish, kioskId }) => {
 
       {/* 3. Sumbu Kanan: Telemetry Stack */}
       <div className="telemetry-right-axis">
-        <h1 className="telemetry-title">YOUR AMAZING DIGITAL ARCHIVE</h1>
+        <div style={{ position: 'relative' }}>
+          {/* <div className="hero-title-halo dark" /> */}
+          <h1 className="telemetry-title">YOUR AMAZING DIGITAL ARCHIVE</h1>
+        </div>
 
         <div className="qr-scanner-monument">
           <div className="qr-crop-marks">
             <span></span>
           </div>
-          <div style={{ width: '100%', height: '100%', background: "rgba(var(--theme-surface-dark-rgb), 0.1)", display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            {/* Placeholder for QR Code */}
-            <div style={{ textAlign: 'center', color: "rgb(var(--theme-text-muted-rgb))", fontFamily: 'Space Grotesk', fontSize: '0.6rem' }}>
-              SCAN TO DOWNLOAD
-            </div>
+          <div
+            style={{
+              width: '100%',
+              height: '100%',
+              background: "white",
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: devFreeFlow ? 'pointer' : 'default'
+            }}
+            onClick={(e) => {
+              if (devFreeFlow && e.detail === 2) {
+                console.log("[DevFreeFlow] Double-tap QR skip triggered.");
+                onFinish();
+              }
+            }}
+          >
+            <img
+              src={`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=https://hypebox.id/download/${kioskId}-${Date.now()}`}
+              alt="Download QR"
+              style={{ width: '80%', height: '80%', objectFit: 'contain' }}
+            />
           </div>
         </div>
 

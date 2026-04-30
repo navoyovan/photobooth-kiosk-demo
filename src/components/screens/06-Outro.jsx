@@ -1,24 +1,48 @@
 import React, { useRef, useEffect } from 'react';
-import { useGSAP } from '@gsap/react';
-import gsap from 'gsap';
+import { animate, stagger } from 'animejs';
 
-const OutroScreen = ({ finalImage, type = 'NORMAL', onReset }) => {
+const OutroScreen = ({ finalImage, type = 'NORMAL', onReset, onExitStart }) => {
   const screenRef = useRef(null);
 
   useEffect(() => {
-    const timer = setTimeout(onReset, 6000); // 6 seconds for the dramatic reveal
-    return () => clearTimeout(timer);
-  }, []);
-
-  useGSAP(() => {
-    gsap.from(".outro-text", {
-      opacity: 0,
-      scale: 0.9,
-      duration: 1.5,
-      ease: "power2.out",
-      stagger: 0.3
+    // Entrance: Background fade and Text Zoom In
+    animate(screenRef.current, {
+      opacity: [0, 1],
+      duration: 1000,
+      easing: 'easeOutQuad'
     });
-  }, []);
+
+    animate('.outro-text', {
+      opacity: [0, 1],
+      scale: [0.5, 1],
+      filter: ['blur(20px)', 'blur(0px)'],
+      duration: 1500,
+      easing: 'easeOutQuad',
+      delay: stagger(300)
+    });
+
+    // Stay for 4.5 seconds then start exit animation
+    const exitTimer = setTimeout(() => {
+      if (onExitStart) onExitStart();
+      animate(screenRef.current, {
+        opacity: 0,
+        duration: 1000,
+        easing: 'easeInQuad'
+      });
+
+      animate('.outro-text', {
+        opacity: 0,
+        scale: 0.4, // Zoom Out (settling into distance) as requested
+        filter: 'blur(30px)',
+        duration: 1500,
+        easing: 'easeInQuad',
+        delay: stagger(100),
+        onComplete: onReset
+      });
+    }, 4500);
+
+    return () => clearTimeout(exitTimer);
+  }, []); // Run once on mount
 
   const messages = {
     NORMAL: ["MEMORIES ARCHIVED", "ENJOY THE WILDERNESS"],

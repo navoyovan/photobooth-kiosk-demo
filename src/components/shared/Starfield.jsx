@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useMemo } from 'react';
-import gsap from 'gsap';
+import { animate } from 'animejs';
 
 const FloatingPhotos = ({ previousImage, isOutro, isVisible, isTransformed }) => {
   const canvasRef = useRef(null);
@@ -27,14 +27,6 @@ const FloatingPhotos = ({ previousImage, isOutro, isVisible, isTransformed }) =>
   // Sync isOutro to ref for animation loop access without re-running useEffect
   useEffect(() => {
     isOutroRef.current = isOutro;
-
-    // When switching from Outro to Idle, we want to gradually "infect" the photos back to random images
-    if (!isOutro && photosRef.current.length > 0) {
-      photosRef.current.forEach(photo => {
-        // If it was using previousImage, it will naturally switch on next respawn or we can force it
-        // For now, let it switch on respawn to look more natural
-      });
-    }
   }, [isOutro]);
 
   // Load previous image when it changes
@@ -54,10 +46,22 @@ const FloatingPhotos = ({ previousImage, isOutro, isVisible, isTransformed }) =>
   useEffect(() => {
     if (isTransformed) {
       // Transform to "Payment/Outro" mode (closer, FASTER, shallower)
-      gsap.to(animProps.current, { focalLength: 600, speed: 3.5, maxDepth: 1000, duration: 1.3, ease: "power2.inOut" });
+      animate(animProps.current, {
+        focalLength: 600,
+        speed: 3.5,
+        maxDepth: 1000,
+        duration: 1200,
+        easing: 'easeInOutQuad'
+      });
     } else {
       // Transform back to "Idle" mode (original values)
-      gsap.to(animProps.current, { focalLength: 200, speed: 1.2, maxDepth: 1000, duration: 1.3, ease: "power2.inOut" });
+      animate(animProps.current, {
+        focalLength: 200,
+        speed: 1.2,
+        maxDepth: 1000,
+        duration: 1300,
+        easing: 'easeInOutQuad'
+      });
     }
   }, [isTransformed]);
 
@@ -73,7 +77,7 @@ const FloatingPhotos = ({ previousImage, isOutro, isVisible, isTransformed }) =>
     window.addEventListener('resize', resizeCanvas);
     resizeCanvas();
 
-    const numPhotos = 21; // whats 9 +10
+    const numPhotos = 15;
 
     const getSpawnPos = () => {
       let px, py;

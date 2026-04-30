@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, forwardRef, useImperativeHandle } from 'react';
-import gsap from 'gsap';
+import { animate, set } from 'animejs';
 
 const InteractivePhoto = forwardRef(({ src, frameSrc, photoFilter = 'none', isMirrored = false, isProcessing = false }, ref) => {
   const photoRef = useRef(null);
@@ -40,8 +40,8 @@ const InteractivePhoto = forwardRef(({ src, frameSrc, photoFilter = 'none', isMi
 
     state.current = { x: initX, y: 0, w: photoW, h: photoH };
 
-    gsap.set(photoRef.current, { x: initX, y: 0, width: photoW, height: photoH });
-    gsap.set(boundaryRef.current, { x: initX, y: 0, width: photoW, height: photoH });
+    set(photoRef.current, { translateX: initX, translateY: 0, width: photoW, height: photoH });
+    set(boundaryRef.current, { translateX: initX, translateY: 0, width: photoW, height: photoH });
 
     updateMetrics();
     setReady(true);
@@ -99,7 +99,7 @@ const InteractivePhoto = forwardRef(({ src, frameSrc, photoFilter = 'none', isMi
         const newH = initH * (newW / initW);
         state.current.w = newW;
         state.current.h = newH;
-        gsap.set([photoRef.current, boundaryRef.current], { width: newW, height: newH });
+        set([photoRef.current, boundaryRef.current], { width: newW, height: newH });
       } else {
         const rawX = initX + (mv.clientX - startX);
         const rawY = initY + (mv.clientY - startY);
@@ -107,7 +107,7 @@ const InteractivePhoto = forwardRef(({ src, frameSrc, photoFilter = 'none', isMi
         const newY = Math.max(-(state.current.h - 40), Math.min(cH - 40, rawY));
         state.current.x = newX;
         state.current.y = newY;
-        gsap.set([photoRef.current, boundaryRef.current], { x: newX, y: newY });
+        set([photoRef.current, boundaryRef.current], { translateX: newX, translateY: newY });
       }
       updateMetrics();
     };
@@ -128,9 +128,19 @@ const InteractivePhoto = forwardRef(({ src, frameSrc, photoFilter = 'none', isMi
     if (!wrapper) return;
 
     if (isProcessing) {
-      gsap.to(wrapper, { filter: `blur(12px)`, scale: 1.04, duration: 0.2, ease: 'power2.out' });
+      animate(wrapper, {
+        filter: 'blur(12px)',
+        scale: 1.04,
+        duration: 200,
+        easing: 'easeOutQuad'
+      });
     } else {
-      gsap.to(wrapper, { filter: `blur(0px)`, scale: 1, duration: 0.4, ease: 'back.out(2)' });
+      animate(wrapper, {
+        filter: 'blur(0px)',
+        scale: 1,
+        duration: 400,
+        easing: 'easeOutBack(2)'
+      });
     }
   }, [isProcessing, ready]);
 
@@ -228,8 +238,8 @@ const InteractivePhoto = forwardRef(({ src, frameSrc, photoFilter = 'none', isMi
           style={{ position: 'absolute', top: 0, left: 0 }}
         >
           {/* Dashed border — inner div, never clipped by overflow:hidden */}
-          <div 
-            className="boundary-dashed-line" 
+          <div
+            className="boundary-dashed-line"
             onPointerDown={(e) => handlePointerDown(e, false)}
           />
 

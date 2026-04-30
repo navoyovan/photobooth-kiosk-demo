@@ -1,6 +1,5 @@
-import React, { useState, useEffect, startTransition } from 'react';
-import { useGSAP } from '@gsap/react';
-import gsap from 'gsap';
+import React, { useState, useEffect, useCallback } from 'react';
+import { animate } from 'animejs';
 
 import FloatingPhotos from './components/shared/Starfield';
 import IdleScreen from './components/screens/00-Idle';
@@ -29,29 +28,37 @@ export default function App() {
   const [selectedFrame, setSelectedFrame] = useState(null);
   const [outroType, setOutroType] = useState('NORMAL');
   const [finalImage, setFinalImage] = useState(null);
+  const [amountPaid, setAmountPaid] = useState(0);
+  const [isOutroExiting, setIsOutroExiting] = useState(false);
 
   // Telemetry HUD Animation Logic
-  const isTelemetryVisible = currentStep >= 2 && currentStep <= 4;
+  const isTelemetryVisible = currentStep >= 2 && currentStep <= 5;
 
-  useGSAP(() => {
+  useEffect(() => {
     if (isTelemetryVisible) {
-      gsap.to(".telemetry-anchor-top-right", {
-        x: 0,
-        opacity: 1,
-        duration: 0.8,
-        ease: "power3.out",
-        pointerEvents: "auto"
+      animate('.telemetry-anchor-top-right', {
+        translateX: [100, 0],
+        opacity: [0, 1],
+        duration: 800,
+        easing: 'easeOutCubic',
+        onBegin: () => {
+          const el = document.querySelector('.telemetry-anchor-top-right');
+          if (el) el.style.pointerEvents = 'auto';
+        }
       });
     } else {
-      gsap.to(".telemetry-anchor-top-right", {
-        x: 100,
+      animate('.telemetry-anchor-top-right', {
+        translateX: 100,
         opacity: 0,
-        duration: 0.6,
-        ease: "power3.in",
-        pointerEvents: "none"
+        duration: 600,
+        easing: 'easeInCubic',
+        onComplete: () => {
+          const el = document.querySelector('.telemetry-anchor-top-right');
+          if (el) el.style.pointerEvents = 'none';
+        }
       });
     }
-  }, { dependencies: [isTelemetryVisible], scope: appRef });
+  }, [isTelemetryVisible]);
   const [printCopies, setPrintCopies] = useState(1);
   const [capturedPhotos, setCapturedPhotos] = useState([]);
   const [isCaptureFinished, setIsCaptureFinished] = useState(false);
@@ -62,6 +69,7 @@ export default function App() {
   const [cameraStream, setCameraStream] = useState(null);
   const [cameraDevices, setCameraDevices] = useState([]);
   const [selectedDeviceId, setSelectedDeviceId] = useState("");
+  const [isCameraRequested, setIsCameraRequested] = useState(false);
 
   const activeFrame = selectedFrame || DEFAULT_FRAME;
 
@@ -109,9 +117,10 @@ export default function App() {
     }
 
     return () => clearInterval(timer);
-  }, [currentStep, sessionTime, transactionTime]);
+  }, [currentStep, sessionTime, transactionTime, isTimerPaused]);
 
   const [devMode, setDevMode] = useState(false);
+  const [devFreeFlow, setDevFreeFlow] = useState(false);
 
   useEffect(() => {
     syncKioskConfig();
@@ -131,18 +140,19 @@ export default function App() {
     return () => window.removeEventListener('keydown', handleKeydown);
   }, []);
 
-  const handleAbort = () => {
+  const handleAbort = useCallback(() => {
     setOutroType('TIMEOUT');
     setFinalImage(null);
     setCurrentStep(6);
-  };
+  }, []);
 
-  const handleReset = () => {
+  const handleReset = useCallback(() => {
     setCurrentStep(0);
     setIsTunneling(false);
     setSelectedFrame(null);
     setOutroType('NORMAL');
     setFinalImage(null);
+    setAmountPaid(0);
     setPrintCopies(1);
     setCapturedPhotos([]);
     setIsCaptureFinished(false);
@@ -152,7 +162,8 @@ export default function App() {
     setSessionTime(300);
     setTransactionTime(180);
     setIsCheckoutModalOpen(false);
-  };
+    setIsOutroExiting(false);
+  }, []);
 
   const formatTime = (seconds) => {
     const m = Math.floor(seconds / 60).toString().padStart(2, '0');
@@ -170,8 +181,8 @@ export default function App() {
 
   // CAMERA MANAGEMENT (LAZY INITIALIZATION)
   useEffect(() => {
-    // 1 Step Behind (Selection: 2) | Target (Capture: 3) | 1 Step Forward (Print: 4)
-    const isCameraNeeded = currentStep >= 2 && currentStep <= 4;
+    // Narrowed: only requested warmup or active in Capture (Step 3)
+    const isCameraNeeded = currentStep === 3 || isCameraRequested;
 
     if (!isCameraNeeded) {
       if (cameraStream) {
@@ -229,7 +240,7 @@ export default function App() {
     };
 
     startCamera();
-  }, [currentStep, selectedDeviceId]);
+  }, [currentStep, selectedDeviceId, isCameraRequested, cameraDevices, cameraStream]);
 
   // GLOBAL TRANSITION HANDLER
   const startPageTransition = (callback) => {
@@ -251,7 +262,7 @@ export default function App() {
         previousImage={outroType === 'NORMAL' ? finalImage : null}
         isOutro={currentStep >= 5}
         isVisible={currentStep < 2 || currentStep >= 5}
-        isTransformed={isTunneling || currentStep === 1 || currentStep >= 5}
+        isTransformed={isTunneling || currentStep === 1 || (currentStep >= 5 && !isOutroExiting)}
       />
 
       {/* GLOBAL KINETIC PAGINATION */}
@@ -325,6 +336,13 @@ export default function App() {
                 AUTHORIZE
               </button>
             )}
+            <button
+              className={`telemetry-dev-skip-minimal ${devFreeFlow ? 'active' : ''}`}
+              onClick={() => setDevFreeFlow(!devFreeFlow)}
+              style={{ color: devFreeFlow ? '#00FF00' : '#FF0000', borderColor: devFreeFlow ? '#00FF00' : '#FF0000' }}
+            >
+              FREE_FLOW: {devFreeFlow ? 'ON' : 'OFF'}
+            </button>
             <button className="telemetry-dev-skip-minimal exit" onClick={handleAbort}>END</button>
           </div>
         </div>
@@ -345,23 +363,29 @@ export default function App() {
         <PaymentScreen
           ref={paymentRef}
           onBack={() => setCurrentStep(0)}
-          onSuccess={() => startPageTransition(() => setCurrentStep(2))}
+          onSuccess={(paid) => {
+            setAmountPaid(paid);
+            startPageTransition(() => setCurrentStep(2));
+          }}
           printCopies={1}
           setPrintCopies={() => { }}
           timerDisplay={formatTime(transactionTime)}
           devMode={devMode}
           setIsTimerPaused={setIsTimerPaused}
           kioskId={kioskId}
+          devFreeFlow={devFreeFlow}
         />
       )}
 
       {currentStep === 2 && (
         <SelectionScreen
+          onPrepareCamera={() => setIsCameraRequested(true)}
           onFinish={(frameId) => startPageTransition(() => {
             const frameData = FRAME_TYPES.find(f => f.id === frameId);
             setSelectedFrame(frameData);
             setCurrentStep(3);
             setCaptureSubState('viewfinder');
+            setIsCameraRequested(false);
           })}
         />
       )}
@@ -411,7 +435,10 @@ export default function App() {
           setPrintCopies={setPrintCopies}
           isCheckoutOpen={isCheckoutModalOpen}
           setIsCheckoutOpen={setIsCheckoutModalOpen}
+          transactionTime={transactionTime}
+          amountPaid={amountPaid}
           onNext={() => setCurrentStep(5)}
+          devFreeFlow={devFreeFlow}
         />
       )}
 
@@ -421,11 +448,12 @@ export default function App() {
           printCopies={printCopies}
           onFinish={() => setCurrentStep(6)}
           kioskId={kioskId}
+          devFreeFlow={devFreeFlow}
         />
       )}
 
       {currentStep === 6 && (
-        <OutroScreen finalImage={finalImage} type={outroType} onReset={handleReset} />
+        <OutroScreen finalImage={finalImage} type={outroType} onReset={handleReset} onExitStart={() => setIsOutroExiting(true)} />
       )}
 
       {/* GLOBAL TRANSITION OVERLAY
