@@ -2,9 +2,13 @@ import React, { useState, useRef, useEffect } from 'react';
 import { animate, createTimeline, stagger } from 'animejs';
 import ThumbnailOrFallback from '../shared/ThumbnailOrFallback';
 import EditorialSkeletonFrame from '../shared/EditorialSkeletonFrame';
-import { FRAME_TYPES } from '../../constants/frames';
+import { useKioskBoot } from '../../hooks/useKioskBoot';
+import KioskIdentitySetup from '../shared/KioskIdentitySetup';
+import { exitEditorialLayout } from '../../utils/transitions';
+import { entranceEditorialLayout } from '../../utils/transitions';
 
-const SelectionScreen = ({ onFinish, onPrepareCamera }) => {
+
+const SelectionScreenInner = ({ onFinish, onPrepareCamera, kioskData, loading }) => {
   const screenRef = useRef(null);
   const rightPanelRef = useRef(null);
   const colRefs = useRef([]);
@@ -40,18 +44,21 @@ const SelectionScreen = ({ onFinish, onPrepareCamera }) => {
       easing: 'easeOutCubic'
     });
 
+    // entranceEditorialLayout(tl, { duration: 800 });
+
     // Right Panel Fade-in
     animate(rightPanelRef.current, {
       translateY: [10, 0],
-      opacity: [1, 1], // Just for y movement feel
+      opacity: [0, 1],
       duration: 500,
       easing: 'easeOutCubic'
     });
   }, [activeCategory]);
 
   const handleFinish = (frameId) => {
+    const selectedFrameData = filteredFrames.find(f => f.id === frameId);
     const tl = createTimeline({
-      onComplete: () => onFinish(frameId)
+      onComplete: () => onFinish(selectedFrameData)
     });
 
     // 1. Animate modal content out (shrink and fade)
@@ -73,14 +80,8 @@ const SelectionScreen = ({ onFinish, onPrepareCamera }) => {
       }, 100);
     }
 
-    // 3. Elements slide out
-    tl.add([".panel-left", ".panel-right"], {
-      translateX: -100,
-      opacity: 0,
-      duration: 500,
-      easing: 'easeInQuad',
-      delay: stagger(100)
-    }, 200);
+    // 3. BUNDLE: Unified Editorial Exit
+    exitEditorialLayout(tl, { duration: 500 });
   };
 
   // Modal Animation Logic (Fixes Looping Issue)
@@ -115,28 +116,29 @@ const SelectionScreen = ({ onFinish, onPrepareCamera }) => {
 
     // 2. The Master Sequence - HALVED
     // Background Title (Deepest parallax) - HALVED
-    tl.add('.watermark-sideways', {
-      translateX: [300, 0],
-      opacity: [0, 0.04],
-      duration: 1100,
-      easing: 'easeOutQuart'
-    }, 50);
+    entranceEditorialLayout(tl, { duration: 800 });
+    // tl.add('.watermark-sideways', {
+    //   translateX: [300, 0],
+    //   opacity: [0, 0.04],
+    //   duration: 1100,
+    //   easing: 'easeOutQuart'
+    // }, 50);
 
-    // Left Panel UI Elements - HALVED
-    tl.add('.panel-left', {
-      translateX: [150, 0],
-      opacity: [0, 1],
-      duration: 650,
-      easing: 'easeOutCubic'
-    }, 200);
+    // // Left Panel UI Elements - HALVED
+    // tl.add('.panel-left', {
+    //   translateX: [150, 0],
+    //   opacity: [0, 1],
+    //   duration: 650,
+    //   easing: 'easeOutCubic'
+    // }, 200);
 
-    // Right Panel (Grid) - Slide from right
-    tl.add('.panel-right', {
-      translateX: [100, 0],
-      opacity: [0, 1],
-      duration: 750,
-      easing: 'easeOutCubic'
-    }, 100);
+    // // Right Panel (Grid) - Slide from right
+    // tl.add('.panel-right', {
+    //   translateX: [100, 0],
+    //   opacity: [0, 1],
+    //   duration: 750,
+    //   easing: 'easeOutCubic'
+    // }, 100);
 
     // Individual Columns stagger - Removed redundant opacity to prevent blinking
     tl.add('.scroll-col', {
@@ -153,20 +155,61 @@ const SelectionScreen = ({ onFinish, onPrepareCamera }) => {
 
   // Filter & Generate Columns
   const filteredFrames = React.useMemo(() => {
-    const base = FRAME_TYPES.filter(f => f.category === activeCategory);
+    // 0. If still booting, show skeletons
+    if (loading) {
+      return Array.from({ length: 8 }).map((_, i) => ({
+        id: `skeleton-${i}`,
+        isLoading: true,
+        thumbnail: null,
+        name: "Loading...",
+        slots: 1
+      }));
+    }
+
+    // 1. Get frames from backend
+    const backendFrames = kioskData?.frames?.map(f => ({
+      id: f.id,
+      category: f.category || 'SPACE',
+      thumbnail: f.asset_path,
+      name: f.name,
+      slots: f.slots || 1
+    })) || [];
+
+    // 2. Add Hardcoded "Bonus" Frames (Dev / Basic)
+    const bonusFrames = [
+      {
+        id: 'bonus-basic',
+        category: 'SPACE',
+        thumbnail: '/frames/default.png',
+        name: 'HYPEBOX BASIC',
+        slots: 1
+      },
+      {
+        id: 'bonus-collage',
+        category: 'GRID',
+        thumbnail: '/collage/default.png',
+        name: 'HYPEBOX GRID',
+        slots: 4
+      }
+    ];
+
+    // 3. Combine and Filter by Active UI Category (SPACE vs GRID)
+    const combined = [...backendFrames, ...bonusFrames];
+    const filtered = combined.filter(f => f.category === activeCategory);
+
     const minItems = 6;
-    if (base.length < minItems) {
-      const placeholders = Array.from({ length: minItems - base.length }).map((_, i) => ({
+    if (filtered.length < minItems) {
+      const placeholders = Array.from({ length: minItems - filtered.length }).map((_, i) => ({
         id: `placeholder-${i}`,
         isPlaceholder: true,
         thumbnail: null,
         name: "Coming Soon",
         slots: 1
       }));
-      return [...base, ...placeholders];
+      return [...filtered, ...placeholders];
     }
-    return base;
-  }, [activeCategory]);
+    return filtered;
+  }, [activeCategory, kioskData, loading]);
 
   const infiniteCols = React.useMemo(() => {
     const cols = Array.from({ length: 4 }).map((_, colIndex) => {
@@ -191,6 +234,8 @@ const SelectionScreen = ({ onFinish, onPrepareCamera }) => {
 
   useEffect(() => {
     const panel = rightPanelRef.current;
+    if (!panel) return;
+
     let animationFrame;
     let isDragging = false;
     let startY = 0;
@@ -236,7 +281,14 @@ const SelectionScreen = ({ onFinish, onPrepareCamera }) => {
       colRefs.current.forEach((col, index) => {
         if (!col) return;
         const direction = index % 2 === 0 ? 1 : -1;
-        col.style.transform = `translateY(${scrollState.current.current * direction * 0.6}px)`;
+        
+        // BASE CENTER: Start every stick at its own middle
+        const baseMiddle = -(col.scrollHeight / 2);
+        
+        // APPLY DELTA: Add or subtract based on direction
+        const delta = scrollState.current.current * 0.6 * direction;
+        
+        col.style.transform = `translateY(${baseMiddle + delta}px)`;
       });
 
       animationFrame = requestAnimationFrame(smoothScroll);
@@ -301,7 +353,7 @@ const SelectionScreen = ({ onFinish, onPrepareCamera }) => {
       </div>
 
       {/* KANAN: Grid Alternating Scroll */}
-      <div className="panel-right" style={{ zIndex: -1 }} ref={rightPanelRef}>
+      <div className="panel-right" style={{ zIndex: 1 }} ref={rightPanelRef}>
         <div className="grid-wrapper">
           {infiniteCols.map((colData, colIndex) => (
             <div
@@ -341,7 +393,8 @@ const SelectionScreen = ({ onFinish, onPrepareCamera }) => {
 
       {/* Glass Backdrop Overlay (Moved to top level to cover both panels) */}
       {activeFrame !== null && (() => {
-        const selected = FRAME_TYPES.find(f => f.id === activeFrame);
+        const selected = filteredFrames.find(f => f.id === activeFrame);
+        if (!selected) return null;
         return (
           <div
             className="frame-preview-overlay"
@@ -379,6 +432,13 @@ const SelectionScreen = ({ onFinish, onPrepareCamera }) => {
 
     </div>
   );
+};
+
+const SelectionScreen = (props) => {
+  const { kioskData, loading, error } = useKioskBoot();
+  const [showSetupManual, setShowSetupManual] = useState(false);
+
+  return <SelectionScreenInner kioskData={kioskData || { frames: [] }} loading={loading} {...props} />;
 };
 
 export default SelectionScreen;

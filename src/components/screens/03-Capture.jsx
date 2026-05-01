@@ -3,6 +3,7 @@ import { animate, createTimeline, stagger } from 'animejs';
 import RunningTimestamp from '../shared/RunningTimestamp';
 import InteractivePhoto from '../shared/InteractivePhoto';
 import CollageComposer from '../shared/CollageComposer';
+import { exitEditorialLayout } from '../../utils/transitions';
 
 const CaptureScreen = React.forwardRef(({
   selectedFrame,
@@ -242,8 +243,10 @@ const CaptureScreen = React.forwardRef(({
     };
   }, [isFinished, onEnsureCamera]);
 
+  const isCapturingRef = useRef(false);
   const startSequence = () => {
-    if (isCapturing || photos.length > 0) return;
+    if (isCapturingRef.current || photos.length > 0) return;
+    isCapturingRef.current = true;
     setIsCapturing(true);
     setCurrentSlotIndex(0);
     setPhotos([]);
@@ -251,10 +254,12 @@ const CaptureScreen = React.forwardRef(({
   };
 
   const captureNext = (slotIdx) => {
-    if (slotIdx >= selectedFrame.slots) {
+    const totalSlots = selectedFrame?.slots || 1;
+    if (slotIdx >= totalSlots) {
+      isCapturingRef.current = false;
       setIsCapturing(false);
       setCountdown(null);
-      setIsFinished(true); // Signal the end of capture sequence
+      setIsFinished(true);
       return;
     }
 
@@ -353,19 +358,15 @@ const CaptureScreen = React.forwardRef(({
         dataUrl = "/taken_pic/default.png";
       }
 
-      setPhotos(prev => {
-        const newPhotos = [...prev, dataUrl];
-        setLastCapturedPhoto(dataUrl);
-        setShowFreezeFrame(true);
-        setCurrentSlotIndex(slotIdx + 1);
+      setPhotos(prev => [...prev, dataUrl]);
+      setLastCapturedPhoto(dataUrl);
+      setShowFreezeFrame(true);
+      setCurrentSlotIndex(slotIdx + 1);
 
-        setTimeout(() => {
-          setShowFreezeFrame(false);
-          captureNext(slotIdx + 1);
-        }, 1500);
-
-        return newPhotos;
-      });
+      setTimeout(() => {
+        setShowFreezeFrame(false);
+        captureNext(slotIdx + 1);
+      }, 1500);
     }
   };
 
@@ -376,6 +377,7 @@ const CaptureScreen = React.forwardRef(({
 
   const handleRetake = () => {
     startTransition(() => {
+      isCapturingRef.current = false;
       setPhotos([]);
       setCurrentSlotIndex(0);
       setIsFinished(false);
@@ -391,39 +393,38 @@ const CaptureScreen = React.forwardRef(({
     if (composerRef.current && canvasRef.current) {
       const tl = createTimeline();
 
-      // Parallax exit — elements slide left at different depths
-      tl.add('.watermark-sideways', {
-        translateX: -200,
-        opacity: [0.04, 0],
-        duration: 550,
-        easing: 'easeInQuart'
-      }, 0);
-
-      tl.add('.panel-left', {
-        translateX: -100,
-        opacity: 0,
-        duration: 400,
-        easing: 'easeInQuad'
-      }, 50);
-
-      tl.add('.panel-right', {
-        translateX: -60,
-        opacity: 0,
-        duration: 400,
-        easing: 'easeInQuad'
-      }, 100);
-
-      // Flash to overlay
-      tl.add('.page-exit-overlay', {
-        opacity: [0, 1],
-        duration: 300,
-        easing: 'linear'
-      }, '-=200');
+      // BUNDLE: Unified Editorial Exit
+      exitEditorialLayout(tl, { duration: 350 });
 
 
       const comp = composerRef.current.getComposition();
+      console.log("EXPORT_COMPOSITION_DATA:", comp);
       const canvas = canvasRef.current;
       const ctx = canvas.getContext('2d');
+
+      // HELPER: Fetch image as Blob to bypass Tainted Canvas issues
+      const fetchImageAsDataUrl = async (url) => {
+        if (!url || url.startsWith('data:')) return url;
+        try {
+          const response = await fetch(url, { mode: 'cors' });
+          if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+          const blob = await response.blob();
+          return new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result);
+            reader.readAsDataURL(blob);
+          });
+        } catch (e) {
+          console.error("CORS_FETCH_FAILED:", url, e);
+          return url; // Fallback to raw URL
+        }
+      };
+
+      // PERFORMANCE BOOST: Fetch all images in PARALLEL
+      const [photoImages, frameImgData] = await Promise.all([
+        Promise.all(comp.photos.map(p => fetchImageAsDataUrl(p.src))),
+        fetchImageAsDataUrl(selectedFrame.thumbnail)
+      ]);
 
       // Force high-fidelity export
       canvas.width = comp.cW * 2;
@@ -432,7 +433,7 @@ const CaptureScreen = React.forwardRef(({
       ctx.imageSmoothingEnabled = true;
       ctx.imageSmoothingQuality = 'high';
 
-      ctx.fillStyle = "rgb(var(--theme-surface-dark-rgb))";
+      ctx.fillStyle = "rgb(21, 21, 21)";
       ctx.fillRect(0, 0, comp.cW, comp.cH);
 
       // PERFECT ALIGNMENT FIX: Clip all photo layers to the frame container
@@ -441,37 +442,36 @@ const CaptureScreen = React.forwardRef(({
       ctx.rect(0, 0, comp.cW, comp.cH);
       ctx.clip();
 
-      // Branch based on composition type
-      if (comp.isCollage) {
-        // Draw all photos in order
-        for (const photoData of comp.photos) {
-          const photoImg = new Image();
-          photoImg.src = photoData.src;
-          await new Promise(r => photoImg.onload = r);
-          ctx.save();
-          ctx.filter = comp.photoFilter;
-          if (comp.isMirrored) {
-            ctx.translate(Math.round(photoData.x + photoData.w), Math.round(photoData.y));
-            ctx.scale(-1, 1);
-            ctx.drawImage(photoImg, 0, 0, Math.round(photoData.w), Math.round(photoData.h));
-          } else {
-            ctx.drawImage(photoImg, Math.round(photoData.x), Math.round(photoData.y), Math.round(photoData.w), Math.round(photoData.h));
-          }
-          ctx.restore();
-        }
-      } else {
-        // Draw single photo (Legacy Adaptive Logic)
+      // UNIFIED EXPORT LOGIC: Use the photos array for everything
+      for (let i = 0; i < comp.photos.length; i++) {
+        const photoData = comp.photos[i];
+        const photoSrc = photoImages[i];
+        
         const photoImg = new Image();
-        photoImg.src = comp.src;
-        await new Promise(r => photoImg.onload = r);
+        photoImg.src = photoSrc;
+        photoImg.crossOrigin = "anonymous"; 
+        
+        await new Promise((resolve, reject) => {
+          const timeout = setTimeout(() => reject(new Error('Image load timeout')), 3000);
+          photoImg.onload = () => { clearTimeout(timeout); resolve(); };
+          photoImg.onerror = () => { clearTimeout(timeout); reject(new Error('Image load failed')); };
+        }).catch(err => console.error("Export Error:", err));
+        
         ctx.save();
+        // Apply individual slot clipping (if slot data is present)
+        if (photoData.sW) {
+          ctx.beginPath();
+          ctx.rect(Math.round(photoData.sX), Math.round(photoData.sY), Math.round(photoData.sW), Math.round(photoData.sH));
+          ctx.clip();
+        }
+
         ctx.filter = comp.photoFilter;
         if (comp.isMirrored) {
-          ctx.translate(Math.round(comp.x + comp.w), Math.round(comp.y));
+          ctx.translate(Math.round(photoData.x + photoData.w), Math.round(photoData.y));
           ctx.scale(-1, 1);
-          ctx.drawImage(photoImg, 0, 0, Math.round(comp.w), Math.round(comp.h));
+          ctx.drawImage(photoImg, 0, 0, Math.round(photoData.w), Math.round(photoData.h));
         } else {
-          ctx.drawImage(photoImg, Math.round(comp.x), Math.round(comp.y), Math.round(comp.w), Math.round(comp.h));
+          ctx.drawImage(photoImg, Math.round(photoData.x), Math.round(photoData.y), Math.round(photoData.w), Math.round(photoData.h));
         }
         ctx.restore();
       }
@@ -479,14 +479,20 @@ const CaptureScreen = React.forwardRef(({
       ctx.restore(); // End clipping
 
       const frameImg = new Image();
-      frameImg.src = selectedFrame.thumbnail;
+      frameImg.crossOrigin = "anonymous";
+      frameImg.src = frameImgData;
       await new Promise(r => frameImg.onload = r);
       ctx.drawImage(frameImg, 0, 0, Math.round(comp.cW), Math.round(comp.cH));
 
       const dataUrl = canvas.toDataURL('image/jpeg', 0.95);
+      
+      // Snappier final transition
       tl.add({
-        duration: 1,
-        onComplete: () => onFinish(dataUrl)
+        duration: 50,
+        onComplete: () => {
+          console.log("EXPORT_COMPLETE_CALLING_ONFINISH");
+          onFinish(dataUrl);
+        }
       });
     }
   };
@@ -693,17 +699,6 @@ const CaptureScreen = React.forwardRef(({
 
           return (
             <div className="milky-mica-background compositing-panel">
-              {/* Compositing Entrance Flash Overlay (Kept for optional additional pop, but logic now favors mica fade) */}
-              <div className="comp-entrance-overlay" style={{
-                position: 'absolute',
-                inset: 0,
-                backgroundColor: 'white',
-                opacity: 0,
-                zIndex: 9999,
-                pointerEvents: 'none',
-                display: 'none'
-              }}></div>
-
               <div className="panel-left">
                 {/* Vertical Watermark — separate ref for deepest parallax */}
                 <h2 className="watermark-sideways">CURATE</h2>
@@ -792,7 +787,7 @@ const CaptureScreen = React.forwardRef(({
                     <CollageComposer
                       ref={composerRef}
                       photos={photos}
-                      frameSrc={selectedFrame.thumbnail}
+                      frame={selectedFrame}
                       photoFilter={selectedFilter}
                       isMirrored={isMirrored}
                       isProcessing={isProcessingFilter}
@@ -800,8 +795,8 @@ const CaptureScreen = React.forwardRef(({
                   ) : (
                     <InteractivePhoto
                       ref={composerRef}
-                      src={photos[0]}
-                      frameSrc={selectedFrame.thumbnail}
+                      photos={photos}
+                      frame={selectedFrame}
                       photoFilter={selectedFilter}
                       isMirrored={isMirrored}
                       isProcessing={isProcessingFilter}

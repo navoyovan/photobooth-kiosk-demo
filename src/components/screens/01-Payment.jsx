@@ -1,5 +1,7 @@
 import React, { useState, useRef, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { animate, createTimeline, stagger } from 'animejs';
+import { exitEditorialLayout } from '../../utils/transitions';
+import { entranceEditorialLayout } from '../../utils/transitions';
 
 const PaymentScreen = forwardRef(({ onBack, onSuccess, printCopies, setPrintCopies, timerDisplay, devMode = false, setIsTimerPaused, kioskId, devFreeFlow }, ref) => {
   const screenRef = useRef();
@@ -18,6 +20,7 @@ const PaymentScreen = forwardRef(({ onBack, onSuccess, printCopies, setPrintCopi
 
   const timelineRef = useRef(null);
   useEffect(() => {
+
     if (timelineRef.current) timelineRef.current.pause();
     const tl = createTimeline();
     timelineRef.current = tl;
@@ -29,30 +32,33 @@ const PaymentScreen = forwardRef(({ onBack, onSuccess, printCopies, setPrintCopi
       easing: 'easeOutQuad'
     }, 0);
 
+    //fade in watermark, panel kiri, panel kanan
+    entranceEditorialLayout(tl, { duration: 800 });
+
     // Parallax Slide-in from Right to Left
     // Giant Watermark (Deepest parallax)
-    tl.add('.watermark-sideways', {
-      translateX: [300, 0],
-      opacity: [0, 0.04],
-      duration: 1100,
-      easing: 'easeOutQuart'
-    }, 50);
+    // tl.add('.watermark-sideways', {
+    //   translateX: [300, 0],
+    //   opacity: [0, 0.04],
+    //   duration: 1100,
+    //   easing: 'easeOutQuart'
+    // }, 50);
 
-    // Left Panel UI Elements
-    tl.add(leftPanelRef.current, {
-      translateX: [150, 0],
-      opacity: [0, 1],
-      duration: 650,
-      easing: 'easeOutCubic'
-    }, 150);
+    // // Left Panel UI Elements
+    // tl.add(leftPanelRef.current, {
+    //   translateX: [150, 0],
+    //   opacity: [0, 1],
+    //   duration: 650,
+    //   easing: 'easeOutCubic'
+    // }, 150);
 
-    // Right Panel (QR & Price)
-    tl.add(rightPanelRef.current, {
-      translateX: [100, 0],
-      opacity: [0, 1],
-      duration: 750,
-      easing: 'easeOutCubic'
-    }, 200);
+    // // Right Panel (QR & Price)
+    // tl.add(rightPanelRef.current, {
+    //   translateX: [100, 0],
+    //   opacity: [0, 1],
+    //   duration: 750,
+    //   easing: 'easeOutCubic'
+    // }, 200);
 
     return () => {
       if (tl) tl.pause();
@@ -139,22 +145,8 @@ const PaymentScreen = forwardRef(({ onBack, onSuccess, printCopies, setPrintCopi
         }
       });
 
-      // Elements slide out left
-      exitTl.add([leftPanelRef.current, rightPanelRef.current], {
-        translateX: -100,
-        opacity: 0,
-        duration: 400,
-        easing: 'easeInQuad',
-        delay: stagger(100)
-      });
-
-      // Watermark deeper parallax exit
-      exitTl.add('.watermark-sideways', {
-        translateX: -200,
-        opacity: [0.04, 0],
-        duration: 500,
-        easing: 'easeInQuad'
-      }, 0);
+      // BUNDLE: Unified Editorial Exit
+      exitEditorialLayout(exitTl, { duration: 400 });
 
     }, 2000); // 2 second celebration delay
   };
@@ -183,14 +175,14 @@ const PaymentScreen = forwardRef(({ onBack, onSuccess, printCopies, setPrintCopi
       animate('.payment-status-overlay.success', {
         scale: [0.8, 1],
         opacity: [0, 1],
-        duration: 600,
+        duration: 300,
         easing: 'easeOutBack(1.7)'
       });
     } else if (paymentStatus === "failed") {
       animate('.payment-status-overlay.failed', {
         translateY: [20, 0],
         opacity: [0, 1],
-        duration: 400,
+        duration: 300,
         easing: 'easeOutQuad'
       });
     }

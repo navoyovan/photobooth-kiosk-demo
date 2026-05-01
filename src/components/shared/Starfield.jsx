@@ -1,11 +1,13 @@
 import React, { useEffect, useRef, useMemo } from 'react';
 import { animate } from 'animejs';
 
-const FloatingPhotos = ({ previousImage, isOutro, isVisible, isTransformed }) => {
+const FloatingPhotos = ({ previousImage, isOutro, isVisible, isTransformed, showPhotos = true }) => {
   const canvasRef = useRef(null);
   const photosRef = useRef([]);
   const prevImgRef = useRef(null);
   const isOutroRef = useRef(isOutro);
+  const showPhotosRef = useRef(showPhotos);
+  const globalPhotosOpacity = useRef({ value: showPhotos ? 1 : 0 });
 
   // Pre-load all collage images
   const loadedImages = useMemo(() => {
@@ -27,7 +29,16 @@ const FloatingPhotos = ({ previousImage, isOutro, isVisible, isTransformed }) =>
   // Sync isOutro to ref for animation loop access without re-running useEffect
   useEffect(() => {
     isOutroRef.current = isOutro;
-  }, [isOutro]);
+
+    if (showPhotos !== showPhotosRef.current) {
+      showPhotosRef.current = showPhotos;
+      animate(globalPhotosOpacity.current, {
+        value: showPhotos ? 1 : 0,
+        duration: 1500,
+        easing: 'easeInOutQuad'
+      });
+    }
+  }, [isOutro, showPhotos]);
 
   // Load previous image when it changes
   useEffect(() => {
@@ -173,6 +184,7 @@ const FloatingPhotos = ({ previousImage, isOutro, isVisible, isTransformed }) =>
         if (photo.z < 0) opacity *= Math.max(0, (100 + photo.z) / 100);
 
         if (
+          globalPhotosOpacity.current.value > 0.01 &&
           projectedX + scaledWidth > 0 && projectedX - scaledWidth < canvas.width &&
           projectedY + scaledHeight > 0 && projectedY - scaledHeight < canvas.height
         ) {
@@ -180,7 +192,7 @@ const FloatingPhotos = ({ previousImage, isOutro, isVisible, isTransformed }) =>
           ctx.save();
           ctx.translate(projectedX, projectedY);
           // ctx.rotate(photo.rotation); // Rotation removed
-          ctx.globalAlpha = Math.max(0, opacity);
+          ctx.globalAlpha = Math.max(0, opacity * globalPhotosOpacity.current.value);
 
           // 1. Render Gambar Asli (Raw / No Border)
           if (photo.imageObject && photo.imageObject.complete && photo.imageObject.naturalHeight !== 0) {
@@ -216,7 +228,7 @@ const FloatingPhotos = ({ previousImage, isOutro, isVisible, isTransformed }) =>
         height: '100%',
         zIndex: 0,
         pointerEvents: 'none',
-        background: isOutro ? '#000' : '#fff',
+        background: isOutro ? '#000' : 'var(--mica-light)',
         transition: 'background 2s ease-in-out, opacity 1s ease-in-out',
         opacity: isVisible ? 1 : 0,
       }}

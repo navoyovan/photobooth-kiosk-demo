@@ -77,7 +77,7 @@ const ExportScreen = ({ finalImage, printCopies, onFinish, kioskId, devFreeFlow 
   };
 
   return (
-    <div ref={screenRef} className="delivery-hub-layout">
+    <div ref={screenRef} className="panel-whole panel-center-content charcoal-mica-background mica-blur-background">
 
       {/* 1. Kanvas Global & Ghost Watermark */}
       <div className="ghost-watermark">

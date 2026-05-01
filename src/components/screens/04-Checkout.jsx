@@ -159,7 +159,7 @@ const PrintManifestScreen = ({ finalImage, printCopies, setPrintCopies, isChecko
   const safeCopies = Number(printCopies) || 1;
 
   return (
-    <div ref={screenRef} className="darkroom-pedestal editorial-shared-layout">
+    <div ref={screenRef} className="panel-whole panel-center-content charcoal-mica-background">
 
       {/* 0. GHOST WATERMARK */}
       <div className="ghost-watermark">DARK<br />ROOM</div>

@@ -13,7 +13,8 @@ import ExportScreen from './components/screens/05-Export';
 import OutroScreen from './components/screens/06-Outro';
 
 import KineticPagination from './components/shared/KineticPagination';
-import { FRAME_TYPES, DEFAULT_FRAME } from './constants/frames';
+import KioskIdentitySetup from './components/shared/KioskIdentitySetup';
+import { DEFAULT_FRAME } from './constants/frames';
 import { getKioskId, getMachineUUID, syncKioskConfig } from './utils/kioskId';
 
 // --- OTAK STATE MACHINE ---
@@ -30,6 +31,7 @@ export default function App() {
   const [finalImage, setFinalImage] = useState(null);
   const [amountPaid, setAmountPaid] = useState(0);
   const [isOutroExiting, setIsOutroExiting] = useState(false);
+  const [isSetupOpen, setIsSetupOpen] = useState(false);
 
   // Telemetry HUD Animation Logic
   const isTelemetryVisible = currentStep >= 2 && currentStep <= 5;
@@ -257,12 +259,14 @@ export default function App() {
 
   return (
     <div ref={appRef} className="app-wrapper" style={{ position: 'relative', width: '100vw', height: '100vh' }}>
+      <KioskIdentitySetup forceShow={isSetupOpen} onClose={() => setIsSetupOpen(false)} />
 
       <FloatingPhotos
         previousImage={outroType === 'NORMAL' ? finalImage : null}
-        isOutro={currentStep >= 5}
-        isVisible={currentStep < 2 || currentStep >= 5}
-        isTransformed={isTunneling || currentStep === 1 || (currentStep >= 5 && !isOutroExiting)}
+        isOutro={currentStep >= 3}
+        isVisible={currentStep !== 2}
+        showPhotos={currentStep < 2 || currentStep >= 5}
+        isTransformed={isTunneling || currentStep === 1 || (currentStep >= 3 && !isOutroExiting)}
       />
 
       {/* GLOBAL KINETIC PAGINATION */}
@@ -343,6 +347,7 @@ export default function App() {
             >
               FREE_FLOW: {devFreeFlow ? 'ON' : 'OFF'}
             </button>
+            <button className="telemetry-dev-skip-minimal" onClick={() => setIsSetupOpen(true)}>SETUP</button>
             <button className="telemetry-dev-skip-minimal exit" onClick={handleAbort}>END</button>
           </div>
         </div>
@@ -379,10 +384,10 @@ export default function App() {
 
       {currentStep === 2 && (
         <SelectionScreen
+          devMode={devMode}
           onPrepareCamera={() => setIsCameraRequested(true)}
-          onFinish={(frameId) => startPageTransition(() => {
-            const frameData = FRAME_TYPES.find(f => f.id === frameId);
-            setSelectedFrame(frameData);
+          onFinish={(frame) => startPageTransition(() => {
+            setSelectedFrame(frame);
             setCurrentStep(3);
             setCaptureSubState('viewfinder');
             setIsCameraRequested(false);
@@ -393,7 +398,7 @@ export default function App() {
       {currentStep === 3 && (
         <CaptureScreen
           ref={captureRef}
-          selectedFrame={activeFrame}
+          selectedFrame={selectedFrame}
           photos={capturedPhotos}
           setPhotos={setCapturedPhotos}
           isFinished={isCaptureFinished}

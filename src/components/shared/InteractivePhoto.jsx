@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { animate, set } from 'animejs';
 
-const InteractivePhoto = forwardRef(({ src, frameSrc, photoFilter = 'none', isMirrored = false, isProcessing = false }, ref) => {
+const InteractivePhoto = forwardRef(({ photos = [], frame, photoFilter = 'none', isMirrored = false, isProcessing = false }, ref) => {
   const photoRef = useRef(null);
   const boundaryRef = useRef(null); // renamed from handleWrapperRef — tracks photo bounds
   const frameRef = useRef(null);
@@ -12,10 +12,14 @@ const InteractivePhoto = forwardRef(({ src, frameSrc, photoFilter = 'none', isMi
   const photoNaturalDims = useRef(null);
   const containerDims = useRef(null);
 
+  const src = photos[0];
+
   useImperativeHandle(ref, () => ({
     getComposition: () => ({
-      ...state.current,
-      src,
+      photos: [{
+        src,
+        ...state.current
+      }],
       cW: containerDims.current?.cW || 400,
       cH: containerDims.current?.cH || 400,
       photoFilter,
@@ -146,6 +150,33 @@ const InteractivePhoto = forwardRef(({ src, frameSrc, photoFilter = 'none', isMi
 
   return (
     <div className="composer-gallery-wrapper">
+      {/* INTERNAL HUD LAYER: Viewfinder lines that sit on top but stay relative to the pedestal */}
+      <div 
+        className="viewfinder-hud-layer"
+        style={{
+          position: 'absolute',
+          inset: 0,
+          pointerEvents: 'none',
+          zIndex: 1000 
+        }}
+      >
+        <div
+          style={{
+            position: 'absolute',
+            transform: `translate(${metrics.x}px, ${metrics.y}px)`,
+            width: `${metrics.w}px`,
+            height: `${metrics.h}px`,
+          }}
+        >
+          <div className="viewfinder-crosshair"></div>
+          <div className="vf-corner tl"></div>
+          <div className="vf-corner tr"></div>
+          <div className="vf-corner bl"></div>
+          <div className="vf-corner br"></div>
+          <div className="boundary-dashed-line-visual"></div>
+        </div>
+      </div>
+
       {/*
         gallery-pedestal: overflow VISIBLE so the boundary+handle
         can hang outside without being clipped.
@@ -203,7 +234,7 @@ const InteractivePhoto = forwardRef(({ src, frameSrc, photoFilter = 'none', isMi
           {/* FRAME OVERLAY */}
           <img
             ref={frameRef}
-            src={frameSrc}
+            src={frame.thumbnail}
             onLoad={handleFrameLoad}
             style={{
               position: 'absolute',

@@ -1,12 +1,13 @@
 import React, { useState, useRef, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { animate, set } from 'animejs';
+import { getFrameLayout } from '../../constants/frame_layouts';
 
-const CollageComposer = forwardRef(({ photos = [], frameSrc, photoFilter = 'none', isMirrored = false, isProcessing = false }, ref) => {
+const CollageComposer = forwardRef(({ photos = [], frame, photoFilter = 'none', isMirrored = false, isProcessing = false }, ref) => {
   const containerRef = useRef(null);
   const frameRef = useRef(null);
 
   const [activeIndex, setActiveIndex] = useState(0);
-  const statesRef = useRef(photos.map((_, i) => ({ x: i * 20, y: i * 20, w: 300, h: 300 })));
+  const statesRef = useRef(photos.map((_, i) => ({ x: 0, y: 0, w: 300, h: 300 })));
   const [ready, setReady] = useState(false);
   const [metrics, setMetrics] = useState({ x: 0, y: 0, w: 0, h: 0 });
 
@@ -24,25 +25,56 @@ const CollageComposer = forwardRef(({ photos = [], frameSrc, photoFilter = 'none
   }, [photos]);
 
   useImperativeHandle(ref, () => ({
-    getComposition: () => ({
-      photos: photos.map((src, i) => ({
-        src,
-        ...statesRef.current[i]
-      })),
-      cW: containerDims.current?.cW || 400,
-      cH: containerDims.current?.cH || 400,
-      photoFilter,
-      isMirrored,
-      isCollage: true
-    })
+    getComposition: () => {
+      const { cW, cH } = containerDims.current || { cW: 400, cH: 400 };
+      const layout = getFrameLayout(frame);
+
+      return {
+        photos: photos.map((src, i) => {
+          const s = statesRef.current[i];
+          const slot = layout[i] || { x: 0, y: 0, w: 100, h: 100 };
+          
+          // Slot dimensions in pixels
+          const sX = (slot.x / 100) * cW;
+          const sY = (slot.y / 100) * cH;
+          const sW = (slot.w / 100) * cW;
+          const sH = (slot.h / 100) * cH;
+
+          // Absolute pixels relative to the frame/container
+          const absX = sX + s.x;
+          const absY = sY + s.y;
+
+          return {
+            src,
+            x: absX,
+            y: absY,
+            w: s.w,
+            h: s.h,
+            // Provide clipping slot data to the backend
+            sX, sY, sW, sH
+          };
+        }),
+        cW: cW,
+        cH: cH,
+        photoFilter,
+        isMirrored,
+        isCollage: true
+      };
+    }
   }));
 
   const updateMetrics = () => {
     const s = statesRef.current[activeIndex];
+    const { cW, cH } = containerDims.current || { cW: 400, cH: 400 };
+    const layout = getFrameLayout(frame);
+    const slot = layout[activeIndex] || { x: 0, y: 0, w: 100, h: 100 };
+    const slotX = (slot.x / 100) * cW;
+    const slotY = (slot.y / 100) * cH;
+
     if (s) {
       setMetrics({
-        x: Math.round(s.x),
-        y: Math.round(s.y),
+        x: Math.round(slotX + s.x),
+        y: Math.round(slotY + s.y),
         w: Math.round(s.w),
         h: Math.round(s.h)
       });
@@ -50,30 +82,48 @@ const CollageComposer = forwardRef(({ photos = [], frameSrc, photoFilter = 'none
   };
 
   const initPhotoPlacement = (cW, cH, photoIdx) => {
-    let s = statesRef.current[photoIdx];
-    if (!s) {
-      s = { x: photoIdx * 40, y: photoIdx * 40, w: 300, h: 300 };
-      statesRef.current[photoIdx] = s;
+    const layout = getFrameLayout(frame);
+    const slot = layout[photoIdx] || { x: 0, y: 0, w: 100, h: 100 };
+    
+    // Convert percentage to pixels for the slot window
+    const slotX = (slot.x / 100) * cW;
+    const slotY = (slot.y / 100) * cH;
+    const slotW = (slot.w / 100) * cW;
+    const slotH = (slot.h / 100) * cH;
+
+    const aspect = photoAspects.current[photoIdx] || (slotW / slotH);
+    const slotAspect = slotW / slotH;
+
+    let initW, initH, initX, initY;
+
+    // "Object-Fit: Cover" logic relative to the slot
+    if (aspect > slotAspect) {
+      // Photo is wider than slot
+      initH = slotH;
+      initW = slotH * aspect;
+      initX = (slotW - initW) / 2;
+      initY = 0;
+    } else {
+      // Photo is taller than slot
+      initW = slotW;
+      initH = slotW / aspect;
+      initX = 0;
+      initY = (slotH - initH) / 2;
     }
 
-    const aspect = photoAspects.current[photoIdx] || (cW / cH);
-
-    const initH = cH;
-    const initW = initH * aspect;
-    const initX = (cW - initW) / 2;
-    const initY = 0;
-
-    s.x = initX;
-    s.y = initY;
-    s.w = initW;
-    s.h = initH;
+    const s = { x: initX, y: initY, w: initW, h: initH };
+    statesRef.current[photoIdx] = s;
 
     if (photoRefs.current[photoIdx]) {
       set(photoRefs.current[photoIdx], { translateX: initX, translateY: initY, width: initW, height: initH });
     }
 
     if (photoIdx === activeIndex) {
-      set(boundaryRef.current, { translateX: initX, translateY: initY, width: initW, height: initH });
+      // Boundary tracker follows the photo relative to the pedestal
+      // We need to add slot offset for the global tracker position
+      const globalX = slotX + initX;
+      const globalY = slotY + initY;
+      set(boundaryRef.current, { translateX: globalX, translateY: globalY, width: initW, height: initH });
       updateMetrics();
     }
   };
@@ -124,13 +174,19 @@ const CollageComposer = forwardRef(({ photos = [], frameSrc, photoFilter = 'none
 
     const onMove = (mv) => {
       const { cW, cH } = containerDims.current || { cW: 400, cH: 400 };
+      const layout = getFrameLayout(frame);
+      const slot = layout[activeIndex] || { x: 0, y: 0, w: 100, h: 100 };
+      const slotX = (slot.x / 100) * cW;
+      const slotY = (slot.y / 100) * cH;
+
       if (isResize) {
         const dx = mv.clientX - startX;
         const newW = Math.max(50, initW + dx);
         const newH = initH * (newW / initW);
         s.w = newW;
         s.h = newH;
-        set([photoRefs.current[activeIndex], boundaryRef.current], { width: newW, height: newH });
+        set(photoRefs.current[activeIndex], { width: newW, height: newH });
+        set(boundaryRef.current, { width: newW, height: newH });
       } else {
         const dx = mv.clientX - startX;
         const dy = mv.clientY - startY;
@@ -138,7 +194,8 @@ const CollageComposer = forwardRef(({ photos = [], frameSrc, photoFilter = 'none
         const newY = initY + dy;
         s.x = newX;
         s.y = newY;
-        set([photoRefs.current[activeIndex], boundaryRef.current], { translateX: newX, translateY: newY });
+        set(photoRefs.current[activeIndex], { translateX: newX, translateY: newY });
+        set(boundaryRef.current, { translateX: slotX + newX, translateY: slotY + newY });
       }
       updateMetrics();
     };
@@ -154,8 +211,19 @@ const CollageComposer = forwardRef(({ photos = [], frameSrc, photoFilter = 'none
 
   const switchLayer = (idx) => {
     setActiveIndex(idx);
+    const { cW, cH } = containerDims.current || { cW: 400, cH: 400 };
+    const layout = getFrameLayout(frame);
+    const slot = layout[idx] || { x: 0, y: 0, w: 100, h: 100 };
+    const slotX = (slot.x / 100) * cW;
+    const slotY = (slot.y / 100) * cH;
+
     const s = statesRef.current[idx];
-    set(boundaryRef.current, { translateX: s.x, translateY: s.y, width: s.w, height: s.h });
+    set(boundaryRef.current, { 
+      translateX: slotX + s.x, 
+      translateY: slotY + s.y, 
+      width: s.w, 
+      height: s.h 
+    });
     updateMetrics();
   };
 
@@ -188,13 +256,40 @@ const CollageComposer = forwardRef(({ photos = [], frameSrc, photoFilter = 'none
 
   return (
     <div className="composer-gallery-wrapper">
+      {/* INTERNAL HUD LAYER: Viewfinder lines that sit on top but stay relative to the pedestal */}
+      <div 
+        className="viewfinder-hud-layer"
+        style={{
+          position: 'absolute',
+          inset: 0,
+          pointerEvents: 'none',
+          zIndex: 1000 
+        }}
+      >
+        <div
+          style={{
+            position: 'absolute',
+            transform: `translate(${metrics.x}px, ${metrics.y}px)`,
+            width: `${metrics.w}px`,
+            height: `${metrics.h}px`,
+          }}
+        >
+          <div className="viewfinder-crosshair"></div>
+          <div className="vf-corner tl"></div>
+          <div className="vf-corner tr"></div>
+          <div className="vf-corner bl"></div>
+          <div className="vf-corner br"></div>
+          <div className="boundary-dashed-line-visual"></div>
+        </div>
+      </div>
+
       {photos.length > 1 && (
-        <div className="layer-switcher-panel">
-          <div className="layer-label">SLOT_INDEX</div>
+        <div className="layer-switcher-vertical">
+          <div className="layer-label-micro">SLOT_INDEX</div>
           {photos.map((_, i) => (
             <button
               key={i}
-              className={`btn-layer-item ${activeIndex === i ? 'active' : ''}`}
+              className={`btn-layer-square ${activeIndex === i ? 'active' : ''}`}
               onClick={() => switchLayer(i)}
             >
               0{i + 1}
@@ -203,65 +298,73 @@ const CollageComposer = forwardRef(({ photos = [], frameSrc, photoFilter = 'none
         </div>
       )}
 
-      {/*
-        gallery-pedestal: overflow VISIBLE so the boundary+handle
-        can hang outside without being clipped.
-      */}
       <div
         ref={containerRef}
         className="gallery-pedestal"
         style={{ position: 'relative', width: '400px', height: '400px', overflow: 'visible' }}
       >
-        <div className="hud-data-box top-left">POS_X: {metrics.x}PX</div>
-        <div className="hud-data-box top-right">POS_Y: {metrics.y}PX</div>
-        <div className="hud-data-box bottom-left">WIDTH: {metrics.w}PX</div>
-        <div className="hud-data-box bottom-right">HEIGHT: {metrics.h}PX</div>
+        <div className="hud-data-box top-left">LNS_X: {metrics.x}PX</div>
+        <div className="hud-data-box top-right">LNS_Y: {metrics.y}PX</div>
+        <div className="hud-data-box bottom-left">W_SCALE: {metrics.w}PX</div>
+        <div className="hud-data-box bottom-right">H_SCALE: {metrics.h}PX</div>
 
-        {/*
-          photo-clip-layer: clips photos + frame to the frame bounds.
-          The boundary tracker lives outside this, so it always shows above.
-        */}
         <div className="photo-clip-layer">
-          {photos.map((src, i) => (
-            <div
-              key={i}
-              ref={el => photoRefs.current[i] = el}
-              style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                touchAction: 'none',
-                zIndex: activeIndex === i ? 5 : 1,
-                transition: 'opacity 0.2s',
-                opacity: isProcessing ? 0.5 : 1,
-                pointerEvents: activeIndex === i ? 'auto' : 'none',
-              }}
-              onPointerDown={(e) => i === activeIndex && handlePointerDown(e, false)}
-            >
-              <div className="lens-refocus-wrapper" style={{ width: '100%', height: '100%' }}>
-                <img
-                  src={src || '/taken_pic/default.png'}
-                  onLoad={(e) => handlePhotoLoad(e, i)}
+          {photos.map((src, i) => {
+            const layout = getFrameLayout(frame);
+            const slot = layout[i] || { x: 0, y: 0, w: 100, h: 100 };
+            
+            return (
+              <div
+                key={i}
+                className={`slot-window slot-${i}`}
+                style={{
+                  position: 'absolute',
+                  left: `${slot.x}%`,
+                  top: `${slot.y}%`,
+                  width: `${slot.w}%`,
+                  height: `${slot.h}%`,
+                  overflow: 'hidden',
+                  zIndex: activeIndex === i ? 5 : 1,
+                  transition: 'opacity 0.3s ease',
+                  opacity: isProcessing ? 0.3 : (activeIndex === i ? 1 : 0.4),
+                  pointerEvents: activeIndex === i ? 'auto' : 'none',
+                }}
+              >
+                <div
+                  ref={el => photoRefs.current[i] = el}
                   style={{
-                    width: '100%',
-                    height: '100%',
-                    objectFit: 'fill',
-                    display: 'block',
-                    pointerEvents: 'none',
-                    filter: photoFilter,
-                    transform: isMirrored ? 'scaleX(-1)' : 'none'
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    touchAction: 'none',
                   }}
-                  alt={`Slot ${i}`}
-                  draggable={false}
-                />
+                  onPointerDown={(e) => i === activeIndex && handlePointerDown(e, false)}
+                >
+                  <div className="lens-refocus-wrapper" style={{ width: '100%', height: '100%' }}>
+                    <img
+                      src={src || '/taken_pic/default.png'}
+                      onLoad={(e) => handlePhotoLoad(e, i)}
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'fill',
+                        display: 'block',
+                        pointerEvents: 'none',
+                        filter: photoFilter,
+                        transform: isMirrored ? 'scaleX(-1)' : 'none'
+                      }}
+                      alt={`Slot ${i}`}
+                      draggable={false}
+                    />
+                  </div>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
 
-          {/* FRAME OVERLAY */}
           <img
             ref={frameRef}
-            src={frameSrc}
+            src={frame.thumbnail}
             onLoad={handleFrameLoad}
             style={{
               position: 'absolute',
@@ -276,7 +379,6 @@ const CollageComposer = forwardRef(({ photos = [], frameSrc, photoFilter = 'none
             alt="Frame overlay"
           />
 
-          {/* CROP MARKS */}
           <div className="crop-marks-container" style={{ position: 'absolute', inset: 0, zIndex: 11, pointerEvents: 'none' }}>
             <div className="crop-mark top-left"></div>
             <div className="crop-mark top-right"></div>
@@ -285,17 +387,11 @@ const CollageComposer = forwardRef(({ photos = [], frameSrc, photoFilter = 'none
           </div>
         </div>
 
-        {/*
-          PHOTO BOUNDARY + RESIZE BTN
-          Sibling of photo-clip-layer, outside overflow:hidden.
-          GSAP tracks this to the active photo's position/size.
-        */}
         <div
           ref={boundaryRef}
           className={`photo-boundary-tracker${isProcessing ? ' hidden' : ''}`}
           style={{ position: 'absolute', top: 0, left: 0 }}
         >
-          {/* Dashed border — inner div, never clipped by overflow:hidden */}
           <div
             className="boundary-dashed-line"
             onPointerDown={(e) => handlePointerDown(e, false)}

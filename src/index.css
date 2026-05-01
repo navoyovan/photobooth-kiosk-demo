@@ -3,6 +3,11 @@
 
 :root {
   --accent-color: #04e7dc;
+
+  --mica-light: rgba(247, 247, 247, 0.70);
+  --mica-dark: rgba(5, 5, 5, 0.70);
+
+
   --theme-surface: #ffffff;
   --theme-surface-rgb: 255, 255, 255;
   --theme-surface-dark-rgb: 21, 21, 21;
@@ -22,7 +27,7 @@
 body {
   /* Default ke font mekanis untuk keseluruhan UI */
   font-family: 'Syne', 'Space Grotesk', sans-serif;
-  background-color: #ffffff;
+
   color: #151515;
   overflow: hidden;
   height: 100vh;
@@ -32,35 +37,43 @@ body {
 
 .milky-mica-background {
   background: radial-gradient(circle, rgba(255, 255, 255, 0.85) 0%, rgba(255, 255, 255, 0.5) 45%, rgba(255, 255, 255, 0) 100%);
-  background-color: rgba(247, 247, 246, 0.70);
+
+  background-color: var(--mica-light);
+
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
 }
 
 .charcoal-mica-background {
-  background-color: #050505;
+  background: radial-gradient(circle, rgba(5, 5, 5, 0.85) 0%, rgba(5, 5, 5, 0.5) 45%, rgba(5, 5, 5, 0) 100%);
+
+  background-color: var(--mica-dark);
+
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
 }
+
+/* .charcoal-solid {
+  background-color: #050505;
+} */
 
 /* Panel Kiri global: Tipografi & Instruksi */
 .panel-left {
   width: 35%;
   height: 100%;
   padding: 4rem;
-  display: flex;
 
+  display: flex;
 
   flex-direction: column;
   justify-content: space-between;
-  /* background-color: #f4f2ef; */
-  /* Solid Cream */
+
   border-right: none;
-  z-index: 2;
   text-align: left;
-  position: relative;
   isolation: isolate;
-  /* Critical for mix-blend-mode to react with text/bg */
+  position: relative;
+  z-index: 2;
+
   opacity: 0;
 }
 
@@ -68,13 +81,23 @@ body {
 .panel-right {
   width: 65%;
   height: 100%;
-  position: relative;
-  overflow: hidden;
 
-  /* background-color: #ffffff; */
-  /* Solid White */
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: stretch;
+  position: relative;
+
+  z-index: 100;
+
+  pointer-events: none;
   touch-action: none;
+
   opacity: 0;
+}
+
+.panel-right>* {
+  pointer-events: auto;
 }
 
 .panel-center-content {
@@ -82,6 +105,13 @@ body {
   display: flex;
   justify-content: center;
   align-items: center;
+}
+
+.panel-whole {
+  position: absolute;
+  inset: 0;
+
+  overflow: hidden;
 }
 
 .hero-h1-container {
@@ -1027,7 +1057,7 @@ body {
   gap: 2rem;
   padding: 2rem;
   height: 100%;
-  align-items: center;
+  align-items: stretch;
   transform: rotateX('angle');
   transform: rotate(-2deg);
 
@@ -1035,7 +1065,8 @@ body {
 
 /* Kolom Individual */
 .scroll-col {
-  flex: 1;
+  flex: 1 0 25%;
+  min-width: 250px;
   /* each column gets equal share of panel-right width */
   display: flex;
   flex-direction: column;
@@ -2716,26 +2747,166 @@ body {
   letter-spacing: 0.15rem;
   display: flex;
   gap: 3rem;
-  opacity: 0.4;
+  opacity: 0.7;
 }
 
-/* Layer Switcher for Collage */
-.layer-switcher-panel {
+/* Layer Switcher Square Style */
+.layer-switcher-vertical {
   position: absolute;
-  left: -5rem;
+  left: -6rem;
   top: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 1rem;
   z-index: 100;
 }
 
-/* -------------------------------------------
-   PHOTO CLIP LAYER
-   Inner overflow:hidden container — clips photos
-   and the frame. Separate from the boundary tracker
-   so the resize handle is never clipped.
-   ------------------------------------------- */
+.layer-label-micro {
+  font-family: 'Space Grotesk', monospace;
+  font-size: 0.5rem;
+  font-weight: 800;
+  color: #AAA;
+  writing-mode: vertical-rl;
+  text-transform: uppercase;
+  letter-spacing: 0.3rem;
+  margin-bottom: 1rem;
+  transform: rotate(180deg);
+}
+
+.btn-layer-square {
+  width: 48px;
+  height: 48px;
+  background: transparent;
+  border: 1px dotted rgba(0, 0, 0, 0.4);
+  color: #888;
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 500;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.btn-layer-square.active {
+  background: #111111;
+  color: #FFFFFF;
+  border: 1px solid #111111;
+  font-family: 'Syne', sans-serif;
+  font-weight: 800;
+  font-size: 1.1rem;
+  transform: scale(1.15);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+}
+
+/* Photo Editing Controls */
+.photo-resize-btn {
+  position: absolute;
+  right: -24px;
+  bottom: -24px;
+  width: 48px;
+  height: 48px;
+  background: #111111;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: nwse-resize;
+  pointer-events: auto;
+  z-index: 53;
+  transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.photo-resize-btn:hover {
+  background: var(--accent-color);
+  color: #000;
+}
+
+.photo-resize-btn svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* Viewfinder Editing Controls */
+.viewfinder-crosshair {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 40px;
+  height: 40px;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  opacity: 0.2;
+}
+
+.viewfinder-crosshair::before,
+.viewfinder-crosshair::after {
+  content: '';
+  position: absolute;
+  background: #000;
+}
+
+.viewfinder-crosshair::before {
+  top: 50%;
+  left: 0;
+  width: 100%;
+  height: 1px;
+}
+
+.viewfinder-crosshair::after {
+  left: 50%;
+  top: 0;
+  width: 1px;
+  height: 100%;
+}
+
+.vf-corner {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  border: 2px solid #000;
+  opacity: 0.4;
+}
+
+.vf-corner.tl {
+  top: -12px;
+  left: -12px;
+  border-right: none;
+  border-bottom: none;
+}
+
+.vf-corner.tr {
+  top: -12px;
+  right: -12px;
+  border-left: none;
+  border-bottom: none;
+}
+
+.vf-corner.bl {
+  bottom: -12px;
+  left: -12px;
+  border-right: none;
+  border-top: none;
+}
+
+.vf-corner.br {
+  bottom: -12px;
+  right: -12px;
+  border-left: none;
+  border-top: none;
+}
+
+.photo-boundary-tracker:active .vf-corner {
+  border-color: var(--accent-color);
+  opacity: 1;
+  width: 30px;
+  height: 30px;
+  transition: all 0.2s;
+}
+
+/* Architectural Grid & Layer Logic */
 .photo-clip-layer {
   position: absolute;
   inset: 0;
@@ -2743,127 +2914,40 @@ body {
   z-index: 1;
 }
 
-/* -------------------------------------------
-   PHOTO BOUNDARY TRACKER
-   Floats ABOVE photo-clip-layer (sibling, not child).
-   Tracks active photo position/size via GSAP.
-   ------------------------------------------- */
 .photo-boundary-tracker {
-  /* Size + position set dynamically by GSAP */
   pointer-events: none;
   z-index: 52;
-}
-
-/* Inner dashed line — rendered as a border child div so it's
-   never clipped by any ancestor's overflow:hidden */
-.boundary-dashed-line {
-  position: absolute;
-  inset: 0;
-  border: 1.5px dashed rgba(0, 0, 0, 0.3);
-  pointer-events: auto;
-  cursor: grab;
-  background: transparent;
-  z-index: 1;
+  transition: opacity 0.3s;
 }
 
 .photo-boundary-tracker.hidden {
   display: none;
 }
 
-
-/* -------------------------------------------
-   PHOTO RESIZE BUTTON — Tier 2 "Calibrator" style
-   Solid dark background, sharp square, hairline border.
-   ------------------------------------------- */
-.photo-resize-btn {
+.boundary-dashed-line {
   position: absolute;
-  right: -24px;
-  /* Centered on the corner */
-  bottom: -24px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-  width: 48px;
-  height: 48px;
-  background: #111111;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 0;
-  color: rgba(255, 255, 255, 0.7);
-  cursor: nwse-resize;
+  inset: 0;
+  border: none;
+  /* Interactive only */
   pointer-events: auto;
-  transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
-  z-index: 53;
+  cursor: grab;
+  background: transparent;
+  z-index: 1;
 }
 
-.photo-resize-btn:hover {
-  border-color: #fff;
-  color: var(--accent-color);
-  background: #111111;
-}
-
-
-.photo-resize-btn:active {
-  transform: scale(0.95);
-  background: #111111;
-}
-
-.photo-resize-btn svg {
-  stroke: currentColor;
-  flex-shrink: 0;
-  width: 18px;
-  height: 18px;
-}
-
-.resize-btn-label {
-  font-family: 'Space Grotesk', monospace;
-  font-size: 0.38rem;
-  font-weight: 500;
-  color: currentColor;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
-  line-height: 1;
-  white-space: nowrap;
+.boundary-dashed-line-visual {
+  position: absolute;
+  inset: 0;
+  border: 1px dashed rgba(0, 0, 0, 0.2);
   pointer-events: none;
 }
 
-
-
-.layer-label {
-  font-family: 'Space Grotesk', monospace;
-  font-size: 0.5rem;
-  font-weight: 800;
-  color: #888;
-  writing-mode: vertical-rl;
-  transform: rotate(180deg);
-  margin-bottom: 0.5rem;
-  letter-spacing: 0.1rem;
-}
-
-.btn-layer-item {
-  width: 40px;
-  height: 40px;
-  background: #fff;
-  border: 2px solid #000;
-  font-family: 'Syne', sans-serif;
-  font-weight: 800;
-  font-size: 0.9rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.1s;
-}
-
-.btn-layer-item.active {
-  background: var(--accent-color);
-  box-shadow: 4px 4px 0px #000;
-  transform: translate(-2px, -2px);
-}
-
-.btn-layer-item:hover:not(.active) {
-  background: #f0f0f0;
+.viewfinder-hud-overlay-global {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1000;
+  overflow: hidden;
 }
 
 /* Finalize Action Container */
@@ -3375,25 +3459,30 @@ body {
    PRINT MANIFEST (DARKROOM REDESIGN)
    --------------------------------- */
 .darkroom-pedestal {
-  position: absolute;
+  /* position: absolute;
   inset: 0;
+
   background-color: #050505;
-  overflow: hidden;
-  z-index: 100;
   display: flex;
-  align-items: center;
   justify-content: center;
+  align-items: center;
+  overflow: hidden;
+  z-index: 100; */
 }
 
 /* Shared Layout for Snap-consistency */
-.editorial-shared-layout {
-  display: flex;
+/* .editorial-shared-layout {
+  background: #000;
+  background-color: var(--mica-dark);
   width: 100vw;
   height: 100vh;
+
+  display: flex;
   justify-content: center;
   align-items: center;
+
   position: relative;
-}
+} */
 
 /* CENTER: UNO STACK (Floating Pedestal) */
 .uno-visual-float {
@@ -3402,8 +3491,15 @@ body {
 }
 
 @keyframes floating-stack {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-20px); }
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-20px);
+  }
 }
 
 .uno-visual-anchor {
@@ -3637,14 +3733,15 @@ body {
    DELIVERY HUB (ULTRA-BLACK REDESIGN)
    --------------------------------- */
 .delivery-hub-layout {
-  position: fixed;
+  /* position: absolute;
   inset: 0;
+
   background-color: #050505;
   display: flex;
-  align-items: center;
   justify-content: center;
+  align-items: center;
   overflow: hidden;
-  z-index: 1000;
+  z-index: 1000; */
 }
 
 .ghost-watermark {
