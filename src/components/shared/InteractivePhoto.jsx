@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { animate, set } from 'animejs';
+import { getFrameLayout } from '../../constants/frame_layouts';
 
 const InteractivePhoto = forwardRef(({ photos = [], frame, photoFilter = 'none', isMirrored = false, isProcessing = false }, ref) => {
   const photoRef = useRef(null);
@@ -15,17 +16,38 @@ const InteractivePhoto = forwardRef(({ photos = [], frame, photoFilter = 'none',
   const src = photos[0];
 
   useImperativeHandle(ref, () => ({
-    getComposition: () => ({
-      photos: [{
-        src,
-        ...state.current
-      }],
-      cW: containerDims.current?.cW || 400,
-      cH: containerDims.current?.cH || 400,
-      photoFilter,
-      isMirrored,
-      isCollage: false
-    })
+    getComposition: () => {
+      const { cW, cH } = containerDims.current || { cW: 400, cH: 400 };
+      const layout = getFrameLayout(frame);
+      const slot = layout[0] || { x: 0, y: 0, w: 100, h: 100 };
+
+      // Slot dimensions in pixels
+      const sX = (slot.x / 100) * cW;
+      const sY = (slot.y / 100) * cH;
+      const sW = (slot.w / 100) * cW;
+      const sH = (slot.h / 100) * cH;
+
+      // Absolute pixels relative to the frame/container
+      const absX = sX + state.current.x;
+      const absY = sY + state.current.y;
+
+      return {
+        photos: [{
+          src,
+          x: absX,
+          y: absY,
+          w: state.current.w,
+          h: state.current.h,
+          // Provide clipping slot data to the backend
+          sX, sY, sW, sH
+        }],
+        cW: cW,
+        cH: cH,
+        photoFilter,
+        isMirrored,
+        isCollage: false
+      };
+    }
   }));
 
   const updateMetrics = () => {
@@ -37,15 +59,50 @@ const InteractivePhoto = forwardRef(({ photos = [], frame, photoFilter = 'none',
     });
   };
 
-  const initPhotoPlacement = (cW, cH, natPhotoW, natPhotoH) => {
-    const photoH = cH;
-    const photoW = cH * (natPhotoW / natPhotoH);
-    const initX = (cW - photoW) / 2;
+  const initPhotoPlacement = (cW, cH) => {
+    const layout = getFrameLayout(frame);
+    const slot = layout[0] || { x: 0, y: 0, w: 100, h: 100 };
 
-    state.current = { x: initX, y: 0, w: photoW, h: photoH };
+    // Convert percentage to pixels for the slot window
+    const slotX = (slot.x / 100) * cW;
+    const slotY = (slot.y / 100) * cH;
+    const slotW = (slot.w / 100) * cW;
+    const slotH = (slot.h / 100) * cH;
 
-    set(photoRef.current, { translateX: initX, translateY: 0, width: photoW, height: photoH });
-    set(boundaryRef.current, { translateX: initX, translateY: 0, width: photoW, height: photoH });
+    const natPhotoW = photoNaturalDims.current?.w || slotW;
+    const natPhotoH = photoNaturalDims.current?.h || slotH;
+    const aspect = natPhotoW / natPhotoH;
+    const slotAspect = slotW / slotH;
+
+    let initW, initH, initX, initY;
+
+    // "Object-Fit: Cover" logic relative to the slot
+    if (aspect > slotAspect) {
+      // Photo is wider than slot
+      initH = slotH;
+      initW = slotH * aspect;
+      initX = (slotW - initW) / 2;
+      initY = 0;
+    } else {
+      // Photo is taller than slot
+      initW = slotW;
+      initH = slotW / aspect;
+      initX = 0;
+      initY = (slotH - initH) / 2;
+    }
+
+    state.current = { x: initX, y: initY, w: initW, h: initH };
+
+    if (photoRef.current) {
+      set(photoRef.current, { translateX: initX, translateY: initY, width: initW, height: initH });
+    }
+
+    if (boundaryRef.current) {
+      // Boundary tracker follows the photo relative to the pedestal
+      const globalX = slotX + initX;
+      const globalY = slotY + initY;
+      set(boundaryRef.current, { translateX: globalX, translateY: globalY, width: initW, height: initH });
+    }
 
     updateMetrics();
     setReady(true);
@@ -73,7 +130,7 @@ const InteractivePhoto = forwardRef(({ photos = [], frame, photoFilter = 'none',
     containerDims.current = { cW, cH };
 
     if (photoNaturalDims.current) {
-      initPhotoPlacement(cW, cH, photoNaturalDims.current.w, photoNaturalDims.current.h);
+      initPhotoPlacement(cW, cH);
     }
   };
 
@@ -81,9 +138,16 @@ const InteractivePhoto = forwardRef(({ photos = [], frame, photoFilter = 'none',
     const { naturalWidth: w, naturalHeight: h } = e.currentTarget;
     photoNaturalDims.current = { w, h };
     if (containerDims.current) {
-      initPhotoPlacement(containerDims.current.cW, containerDims.current.cH, w, h);
+      initPhotoPlacement(containerDims.current.cW, containerDims.current.cH);
     }
   };
+
+  // Re-init if frame changes (even if images are already loaded)
+  useEffect(() => {
+    if (ready && containerDims.current && photoNaturalDims.current) {
+      initPhotoPlacement(containerDims.current.cW, containerDims.current.cH);
+    }
+  }, [frame.id, frame.slots_config]);
 
   const handlePointerDown = (e, isResize) => {
     e.stopPropagation();
@@ -105,13 +169,20 @@ const InteractivePhoto = forwardRef(({ photos = [], frame, photoFilter = 'none',
         state.current.h = newH;
         set([photoRef.current, boundaryRef.current], { width: newW, height: newH });
       } else {
-        const rawX = initX + (mv.clientX - startX);
-        const rawY = initY + (mv.clientY - startY);
-        const newX = Math.max(-(state.current.w - 40), Math.min(cW - 40, rawX));
-        const newY = Math.max(-(state.current.h - 40), Math.min(cH - 40, rawY));
+        const dx = mv.clientX - startX;
+        const dy = mv.clientY - startY;
+        const newX = initX + dx;
+        const newY = initY + dy;
         state.current.x = newX;
         state.current.y = newY;
-        set([photoRef.current, boundaryRef.current], { translateX: newX, translateY: newY });
+
+        const layout = getFrameLayout(frame);
+        const slot = layout[0] || { x: 0, y: 0, w: 100, h: 100 };
+        const slotX = (slot.x / 100) * cW;
+        const slotY = (slot.y / 100) * cH;
+
+        set(photoRef.current, { translateX: newX, translateY: newY });
+        set(boundaryRef.current, { translateX: slotX + newX, translateY: slotY + newY });
       }
       updateMetrics();
     };
@@ -198,38 +269,56 @@ const InteractivePhoto = forwardRef(({ photos = [], frame, photoFilter = 'none',
           inside the frame bounds, while the boundary/handle float above.
         */}
         <div className="photo-clip-layer">
-          {/* PHOTO LAYER */}
-          <div
-            ref={photoRef}
-            style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              touchAction: 'none',
-              zIndex: 1,
-              transition: 'opacity 0.1s ease-in-out',
-              opacity: isProcessing ? 0.5 : 1,
-            }}
-            onPointerDown={(e) => handlePointerDown(e, false)}
-          >
-            <div className="lens-refocus-wrapper" style={{ width: '100%', height: '100%' }}>
-              <img
-                src={src || '/taken_pic/default.png'}
-                onLoad={handlePhotoLoad}
+          {/* PHOTO SLOT WINDOW */}
+          {(() => {
+            const layout = getFrameLayout(frame);
+            const slot = layout[0] || { x: 0, y: 0, w: 100, h: 100 };
+            return (
+              <div
+                className="slot-window slot-0"
                 style={{
-                  width: '100%',
-                  height: '100%',
-                  objectFit: 'fill',
-                  display: 'block',
-                  pointerEvents: 'none',
-                  filter: photoFilter,
-                  transform: isMirrored ? 'scaleX(-1)' : 'none'
+                  position: 'absolute',
+                  left: `${slot.x}%`,
+                  top: `${slot.y}%`,
+                  width: `${slot.w}%`,
+                  height: `${slot.h}%`,
+                  overflow: 'hidden',
+                  zIndex: 1,
+                  transition: 'opacity 0.1s ease-in-out',
+                  opacity: isProcessing ? 0.5 : 1,
                 }}
-                alt="Captured"
-                draggable={false}
-              />
-            </div>
-          </div>
+              >
+                <div
+                  ref={photoRef}
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    touchAction: 'none',
+                  }}
+                  onPointerDown={(e) => handlePointerDown(e, false)}
+                >
+                  <div className="lens-refocus-wrapper" style={{ width: '100%', height: '100%' }}>
+                    <img
+                      src={src || '/taken_pic/default.png'}
+                      onLoad={handlePhotoLoad}
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'fill',
+                        display: 'block',
+                        pointerEvents: 'none',
+                        filter: photoFilter,
+                        transform: isMirrored ? 'scaleX(-1)' : 'none'
+                      }}
+                      alt="Captured"
+                      draggable={false}
+                    />
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
 
           {/* FRAME OVERLAY */}
           <img

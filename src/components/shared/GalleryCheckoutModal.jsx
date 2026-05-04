@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { animate, createTimeline } from 'animejs';
+import styles from './GalleryCheckoutModal.module.css';
 
-const GalleryCheckoutModal = ({ isOpen, onClose, onSuccess, totalPrice, initialPayment = 0, orderId = "ORD-9921", timeLeft, devFreeFlow }) => {
+const GalleryCheckoutModal = ({ isOpen, onClose, onSuccess, totalPrice, initialPayment = 0, orderId = "ORD-9921", timeLeft, devFreeFlow, setIsTimerPaused }) => {
   const [paymentStatus, setPaymentStatus] = useState('pending'); // 'pending', 'success'
   const [qrData, setQrData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -12,9 +13,12 @@ const GalleryCheckoutModal = ({ isOpen, onClose, onSuccess, totalPrice, initialP
   const primaryBtnRef = useRef();
   const successOverlayRef = useRef();
 
+  const hasAnimatedIn = useRef(false);
+
   // Anime.js Entrance
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && !hasAnimatedIn.current) {
+      hasAnimatedIn.current = true;
       const tl = createTimeline();
 
       // Backdrop entrance: Glassine blur & dark wash
@@ -35,12 +39,22 @@ const GalleryCheckoutModal = ({ isOpen, onClose, onSuccess, totalPrice, initialP
       }, '-=400');
 
       // Primary button fade in smoothly
-      tl.add(primaryBtnRef.current, {
-        opacity: [0, 1],
-        translateY: [10, 0],
-        duration: 500,
-        easing: 'easeOutQuad'
-      }, '-=200');
+      if (primaryBtnRef.current) {
+        tl.add(primaryBtnRef.current, {
+          opacity: [0, 1],
+          translateY: [10, 0],
+          duration: 500,
+          easing: 'easeOutQuad'
+        }, '-=200');
+      }
+
+      return () => {
+        if (tl) tl.pause();
+      };
+    }
+
+    if (!isOpen) {
+      hasAnimatedIn.current = false;
     }
   }, [isOpen]);
 
@@ -77,7 +91,7 @@ const GalleryCheckoutModal = ({ isOpen, onClose, onSuccess, totalPrice, initialP
     };
 
     fetchQr();
-    
+
     // Global hook for dev console testing
     window.simulatePaymentSuccess = () => {
       console.log("[Mock WebSocket] Received: Paid!");
@@ -109,50 +123,43 @@ const GalleryCheckoutModal = ({ isOpen, onClose, onSuccess, totalPrice, initialP
   const handlePaymentSuccess = () => {
     if (paymentStatus === 'success') return;
 
-    // Trigger Cyan Flash on click/success
-    animate(primaryBtnRef.current, {
-      backgroundColor: ['#00FFFF', '#000000'],
-      duration: 150,
-      easing: 'linear'
-    });
+    // Pause timer immediately as soon as payment is accepted
+    setIsTimerPaused?.(true);
 
     // Transition Logic
-    setTimeout(() => {
-      setPaymentStatus('success');
+    setPaymentStatus('success');
 
-      const tl = createTimeline();
+    const tl = createTimeline();
 
-      // 1. QR artifact gently fades out
-      tl.add(qrRef.current, {
-        opacity: 0,
-        scale: 0.95,
-        duration: 600,
-        easing: 'easeInOutQuad'
-      });
+    // 1. QR artifact gently fades out
+    tl.add(qrRef.current, {
+      opacity: 0,
+      scale: 0.95,
+      duration: 600,
+      easing: 'easeInOutQuad'
+    }, 0);
 
-      // 2. Simple checkmark fades in
-      tl.add(successOverlayRef.current, {
-        opacity: [0, 1],
-        duration: 800,
-        easing: 'easeOutQuad'
-      }, '-=300');
+    // 2. Simple checkmark fades in
+    tl.add(successOverlayRef.current, {
+      opacity: [0, 1],
+      duration: 800,
+      easing: 'easeOutQuad'
+    }, '-=300');
 
-      // 3. Modal dissolves and glide to Archive
-      tl.add(modalRef.current, {
-        opacity: 0,
-        translateY: -20,
-        duration: 800,
-        easing: 'easeInOutCubic'
-      }, '+=1000');
+    // 3. Modal dissolves and app glides forward
+    tl.add(modalRef.current, {
+      opacity: 0,
+      translateY: -20,
+      duration: 800,
+      easing: 'easeInOutCubic'
+    }, '+=1000');
 
-      tl.add(backdropRef.current, {
-        opacity: 0,
-        duration: 800,
-        easing: 'linear',
-        onComplete: onSuccess
-      }, '-=500');
-
-    }, 150);
+    tl.add(backdropRef.current, {
+      opacity: 0,
+      duration: 800,
+      easing: 'linear',
+      onComplete: onSuccess
+    }, '-=500');
   };
 
   const formatTime = (seconds) => {
@@ -166,21 +173,21 @@ const GalleryCheckoutModal = ({ isOpen, onClose, onSuccess, totalPrice, initialP
   return (
     <div
       ref={backdropRef}
-      className="acquisition-modal-backdrop"
+      className={styles.backdrop}
     >
       <div
         ref={modalRef}
-        className="acquisition-certificate-card"
+        className={styles.modal}
       >
         {/* Header (Editorial Hook) */}
-        <h2 className="acquisition-header">
+        <h2 className={styles.header}>
           ACQUISITION CERTIFICATE
         </h2>
 
         {/* The Artifact QR Code */}
         <div
           ref={qrRef}
-          className="acquisition-qr-container"
+          className="qr-box"
           style={{ position: 'relative' }}
           onClick={(e) => {
             if (devFreeFlow && e.detail === 2) {
@@ -189,12 +196,17 @@ const GalleryCheckoutModal = ({ isOpen, onClose, onSuccess, totalPrice, initialP
             }
           }}
         >
+          <div className="vf-corner tl"></div>
+          <div className="vf-corner tr"></div>
+          <div className="vf-corner bl"></div>
+          <div className="vf-corner br"></div>
+          <div className="boundary-dashed-line-visual"></div>
           {isLoading ? (
-            <div className="spinner-sleek animate-spin" style={{ 
-              width: '40px', 
-              height: '40px', 
-              border: '3px solid rgba(0,0,0,0.1)', 
-              borderTopColor: '#111', 
+            <div className="spinner-sleek animate-spin" style={{
+              width: '40px',
+              height: '40px',
+              border: '3px solid rgba(0,0,0,0.1)',
+              borderTopColor: '#111',
               borderRadius: '50%',
               margin: '80px auto'
             }}></div>
@@ -209,40 +221,44 @@ const GalleryCheckoutModal = ({ isOpen, onClose, onSuccess, totalPrice, initialP
             <img
               src={qrData?.qr_url}
               alt="Artifact QR"
-              className="acquisition-qr-image"
+              className={styles.qrImage}
             />
           )}
         </div>
 
         {/* Summary (Minimalist & Clear) */}
-        <div className="acquisition-summary">
-          <span className="acquisition-label">
-            {qrData?.order_id || "GENERATING ID..."} //
+        <div className={styles.summary}>
+          <span className={styles.label}>
+            ACQUISITION VALUE //
           </span>
-          <span className="acquisition-value">
+          <span className={styles.value}>
             Rp {(qrData?.amount || (totalPrice - initialPayment)).toLocaleString()}
           </span>
         </div>
 
         {/* Expiry Indicator */}
-        <div className="acquisition-expiry">
+        <div className={styles.expiry}>
           QR VALID UNTIL [ {formatTime(timeLeft)} ]
         </div>
 
         {/* Execute Block (Now for Cancel) */}
         <button
-          className="btn-acquisition-secondary"
+          ref={primaryBtnRef}
+          className="btn-secondary"
           onClick={() => handleExit(onClose)}
+          style={{ marginTop: 'auto' }}
         >
           ← CANCEL & EDIT ORDER
         </button>
 
         {/* Success Overlay (Checkmark) */}
-        {paymentStatus === 'success' && (
-          <div ref={successOverlayRef} className="acquisition-success-overlay">
-            <div className="acquisition-checkmark">✓</div>
-          </div>
-        )}
+        <div
+          ref={successOverlayRef}
+          className={styles.successOverlay}
+          style={{ pointerEvents: 'none' }}
+        >
+          <div className={styles.checkmark}>✓</div>
+        </div>
       </div>
     </div>
   );

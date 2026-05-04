@@ -33,7 +33,7 @@ const CollageComposer = forwardRef(({ photos = [], frame, photoFilter = 'none', 
         photos: photos.map((src, i) => {
           const s = statesRef.current[i];
           const slot = layout[i] || { x: 0, y: 0, w: 100, h: 100 };
-          
+
           // Slot dimensions in pixels
           const sX = (slot.x / 100) * cW;
           const sY = (slot.y / 100) * cH;
@@ -63,11 +63,12 @@ const CollageComposer = forwardRef(({ photos = [], frame, photoFilter = 'none', 
     }
   }));
 
-  const updateMetrics = () => {
-    const s = statesRef.current[activeIndex];
+  const updateMetrics = (forceIdx) => {
+    const idx = forceIdx !== undefined ? forceIdx : activeIndex;
+    const s = statesRef.current[idx];
     const { cW, cH } = containerDims.current || { cW: 400, cH: 400 };
     const layout = getFrameLayout(frame);
-    const slot = layout[activeIndex] || { x: 0, y: 0, w: 100, h: 100 };
+    const slot = layout[idx] || { x: 0, y: 0, w: 100, h: 100 };
     const slotX = (slot.x / 100) * cW;
     const slotY = (slot.y / 100) * cH;
 
@@ -84,7 +85,7 @@ const CollageComposer = forwardRef(({ photos = [], frame, photoFilter = 'none', 
   const initPhotoPlacement = (cW, cH, photoIdx) => {
     const layout = getFrameLayout(frame);
     const slot = layout[photoIdx] || { x: 0, y: 0, w: 100, h: 100 };
-    
+
     // Convert percentage to pixels for the slot window
     const slotX = (slot.x / 100) * cW;
     const slotY = (slot.y / 100) * cH;
@@ -124,7 +125,7 @@ const CollageComposer = forwardRef(({ photos = [], frame, photoFilter = 'none', 
       const globalX = slotX + initX;
       const globalY = slotY + initY;
       set(boundaryRef.current, { translateX: globalX, translateY: globalY, width: initW, height: initH });
-      updateMetrics();
+      updateMetrics(photoIdx);
     }
   };
 
@@ -218,13 +219,13 @@ const CollageComposer = forwardRef(({ photos = [], frame, photoFilter = 'none', 
     const slotY = (slot.y / 100) * cH;
 
     const s = statesRef.current[idx];
-    set(boundaryRef.current, { 
-      translateX: slotX + s.x, 
-      translateY: slotY + s.y, 
-      width: s.w, 
-      height: s.h 
+    set(boundaryRef.current, {
+      translateX: slotX + s.x,
+      translateY: slotY + s.y,
+      width: s.w,
+      height: s.h
     });
-    updateMetrics();
+    updateMetrics(idx);
   };
 
   useEffect(() => {
@@ -257,13 +258,13 @@ const CollageComposer = forwardRef(({ photos = [], frame, photoFilter = 'none', 
   return (
     <div className="composer-gallery-wrapper">
       {/* INTERNAL HUD LAYER: Viewfinder lines that sit on top but stay relative to the pedestal */}
-      <div 
+      <div
         className="viewfinder-hud-layer"
         style={{
           position: 'absolute',
           inset: 0,
           pointerEvents: 'none',
-          zIndex: 1000 
+          zIndex: 1000
         }}
       >
         <div
@@ -312,7 +313,7 @@ const CollageComposer = forwardRef(({ photos = [], frame, photoFilter = 'none', 
           {photos.map((src, i) => {
             const layout = getFrameLayout(frame);
             const slot = layout[i] || { x: 0, y: 0, w: 100, h: 100 };
-            
+
             return (
               <div
                 key={i}

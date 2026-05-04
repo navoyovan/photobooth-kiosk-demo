@@ -1,12 +1,12 @@
 import React, { useRef, useEffect } from 'react';
 import { animate, stagger } from 'animejs';
 
-const STEPS = ['Hy, Hlo!', '01', '02', '03', '04', 'Pending Additional Payment', '05', 'THANK YOU'];
+const STEPS = ['Hy, Hlo!', '01', '02', '03', '04', 'Pending Additional Payment', '05'];
 const PHASES = [
   { id: 'PYMT', steps: [1] },
   { id: 'CNVS', steps: [2] },
   { id: 'CPTR', steps: [3] },
-  { id: 'PRNT', steps: [4, 5, 6] }
+  { id: 'PRNT', steps: [4, 5] }
 ];
 
 const KineticPagination = ({ currentStep, subState, isVisible, onBack, backLabel, isCheckoutModalOpen }) => {
@@ -26,7 +26,6 @@ const KineticPagination = ({ currentStep, subState, isVisible, onBack, backLabel
         translateX: -50,
         opacity: 0,
         duration: 800, // Slower exit for editorial feel
-        delay: currentStep === 6 ? 1000 : 0, // Stay a bit longer on THANK YOU
         easing: 'easeInQuart'
       });
     }
@@ -75,15 +74,16 @@ const KineticPagination = ({ currentStep, subState, isVisible, onBack, backLabel
   // Determine tape index
   let tapeIndex = 0;
   if (currentStep === 1) tapeIndex = 0; // 0X
-  if (currentStep === 2) tapeIndex = 1; // 01
-  if (currentStep === 3) {
+  else if (currentStep === 2) tapeIndex = 1; // 01
+  else if (currentStep === 3) {
     tapeIndex = subState === 'viewfinder' ? 2 : 3; // 02 : 03
   }
-  if (currentStep === 4) {
+  else if (currentStep === 4) {
     tapeIndex = isCheckoutModalOpen ? 5 : 4; // 04 : 04a
   }
-  if (currentStep === 5) tapeIndex = 6; // 05
-  if (currentStep === 6) tapeIndex = 7; // THANK YOU
+  else if (currentStep >= 5) {
+    tapeIndex = 6; // 05
+  }
 
   return (
     <div ref={containerRef} className="kinetic-pagination-container" style={{ opacity: 0 }}>
@@ -121,31 +121,12 @@ const KineticPagination = ({ currentStep, subState, isVisible, onBack, backLabel
         {onBack && (
           <div style={{ position: 'relative', display: 'inline-block' }}>
             <button
-              className="kinetic-back-btn"
+              className="btn-secondary dark"
               onClick={onBack}
-              style={{
-                background: 'transparent',
-                border: 'none',
-                color: 'rgba(255, 255, 255, 1)',
-                fontFamily: 'Space Grotesk',
-                fontSize: '0.75rem',
-                fontWeight: 500,
-                padding: '0.8rem 2rem',
-                letterSpacing: '0.12rem',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'flex-start',
-                pointerEvents: 'auto',
-                transition: 'all 0.3s ease',
-                position: 'relative',
-                zIndex: 2,
-
-              }}
             >
               {backLabel || '← BACK'}
             </button>
-            <div className="boundary-dashed-line" style={{ opacity: 1, borderColor: 'var(--accent-color)' }}></div>
+
           </div>
         )}
       </div>

@@ -1,9 +1,14 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { animate, createTimeline } from 'animejs';
+import { entranceAqcuisitionLayout } from '../../utils/transitions';
+import styles from './05-Export.module.css';
 
 const ExportScreen = ({ finalImage, printCopies, onFinish, kioskId, devFreeFlow }) => {
   const screenRef = useRef(null);
   const [progress, setProgress] = useState(0);
+  const telemetryAxisRef = useRef(null);
+  const footerRef = useRef(null);
+  const watermarkRef = useRef(null);
 
   const timelineRef = useRef(null);
 
@@ -13,30 +18,39 @@ const ExportScreen = ({ finalImage, printCopies, onFinish, kioskId, devFreeFlow 
     timelineRef.current = tl;
 
     // 1. Master Entrance
-    // Ghost Watermark (Deepest parallax)
-    tl.add('.ghost-watermark', {
-      translateX: ['-35%', '-50%'],
-      translateY: ['-50%', '-50%'],
-      opacity: [0, 1],
-      duration: 1400,
-      easing: 'easeOutQuart'
-    }, 50);
+    entranceAqcuisitionLayout(tl, {
+      elements: {
+        watermark: watermarkRef.current,
+        telemetry: telemetryAxisRef.current
+      }
+    });
+
+    // // Ghost Watermark (Deepest parallax)
+    // tl.add('.ghost-watermark', {
+    //   translateX: ['-35%', '-50%'],
+    //   translateY: ['-50%', '-50%'],
+    //   opacity: [0, 1],
+    //   duration: 1400,
+    //   easing: 'easeOutQuart'
+    // }, 50);
 
     // Main Telemetry Panel (Right axis)
-    tl.add('.telemetry-right-axis', {
-      translateY: [100, 0],
-      opacity: [0, 1],
-      duration: 800,
-      easing: 'easeOutCubic'
-    }, 200);
+    // tl.add('.telemetry-right-axis', {
+    //   translateY: [100, 0],
+    //   opacity: [0, 1],
+    //   duration: 800,
+    //   easing: 'easeOutCubic'
+    // }, 200);
 
     // Footer Progress & Button
-    tl.add('.final-execution-footer', {
-      translateY: [50, 0],
-      opacity: [0, 1],
-      duration: 600,
-      easing: 'easeOutQuad'
-    }, 400);
+    if (footerRef.current) {
+      tl.add(footerRef.current, {
+        translateY: [50, 0],
+        opacity: [0, 1],
+        duration: 600,
+        easing: 'easeOutQuad'
+      }, 400);
+    }
 
     return () => {
       if (tl) tl.pause();
@@ -80,7 +94,7 @@ const ExportScreen = ({ finalImage, printCopies, onFinish, kioskId, devFreeFlow 
     <div ref={screenRef} className="panel-whole panel-center-content charcoal-mica-background mica-blur-background">
 
       {/* 1. Kanvas Global & Ghost Watermark */}
-      <div className="ghost-watermark">
+      <div ref={watermarkRef} className="ghost-watermark">
         ARCH<br />IVE
       </div>
 
@@ -94,24 +108,25 @@ const ExportScreen = ({ finalImage, printCopies, onFinish, kioskId, devFreeFlow 
       </div>
 
       {/* 3. Sumbu Kanan: Telemetry Stack */}
-      <div className="telemetry-right-axis">
+      <div ref={telemetryAxisRef} className="telemetry-right-axis">
         <div style={{ position: 'relative' }}>
           {/* <div className="hero-title-halo dark" /> */}
-          <h1 className="telemetry-title">YOUR AMAZING DIGITAL ARCHIVE</h1>
+          <h1 className={styles.telemetryTitle}>YOUR AMAZING DIGITAL ARCHIVE</h1>
         </div>
 
-        <div className="qr-scanner-monument">
+        <div className="qr-box" style={{ margin: '0 0 2rem 0', alignSelf: 'flex-start', position: 'relative', width: '280px', height: '280px' }}>
           <div className="qr-crop-marks">
             <span></span>
           </div>
-          <div
+
+          <img
+            src={`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=https://hypebox.id/download/${kioskId}-${Date.now()}`}
+            alt="Download QR"
             style={{
-              width: '100%',
-              height: '100%',
-              background: "white",
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
+              width: '200px',
+              height: '200px',
+              objectFit: 'contain',
+              zIndex: 5,
               cursor: devFreeFlow ? 'pointer' : 'default'
             }}
             onClick={(e) => {
@@ -120,35 +135,29 @@ const ExportScreen = ({ finalImage, printCopies, onFinish, kioskId, devFreeFlow 
                 onFinish();
               }
             }}
-          >
-            <img
-              src={`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=https://hypebox.id/download/${kioskId}-${Date.now()}`}
-              alt="Download QR"
-              style={{ width: '80%', height: '80%', objectFit: 'contain' }}
-            />
-          </div>
+          />
         </div>
 
-        <div className="metadata-stack">
-          <div className="metadata-item">LINK: ARCHIVE.PHOTOS/{kioskId}</div>
-          <div className="metadata-item">TERMINAL: {kioskId}</div>
-          <div className="metadata-item">STATUS: ENCRYPTED & SECURE</div>
+        <div className={styles.metadataStack}>
+          <div className={styles.metadataItem}>LINK: ARCHIVE.PHOTOS/{kioskId}</div>
+          <div className={styles.metadataItem}>TERMINAL: {kioskId}</div>
+          <div className={styles.metadataItem}>STATUS: ENCRYPTED & SECURE</div>
         </div>
 
-        <div className="security-notice-minimal">
+        <div className={styles.securityNotice}>
           <span>SECURITY ADVISORY:</span> PLEASE MANUALLY EXIT TO CLEAR YOUR DATA. LEAVING THIS SCREEN ACTIVE ALLOWS OTHERS TO ACCESS YOUR DOWNLOAD LINK.
         </div>
       </div>
 
       {/* 4. Eksekusi Final: Printer & Exit */}
-      <div className="final-execution-footer">
-        <div className="printer-status-bar">
-          <div className="printer-status-label">
+      <div ref={footerRef} className={styles.footer}>
+        <div className={styles.printerStatusBar}>
+          <div className={styles.printerStatusLabel}>
             <span>MATERIALIZING PHYSICAL PRINTS</span>
             <span>{Math.round(progress)}%</span>
           </div>
-          <div className="printer-progress-track">
-            <div className="printer-progress-fill" style={{ width: `${progress}%` }}></div>
+          <div className={styles.printerProgressTrack}>
+            <div className={styles.printerProgressFill} style={{ width: `${progress}%` }}></div>
           </div>
         </div>
 

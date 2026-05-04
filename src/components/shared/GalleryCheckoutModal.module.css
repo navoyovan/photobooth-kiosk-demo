@@ -1,0 +1,107 @@
+.backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  /* Subtle dark wash */
+  backdrop-filter: blur(25px) brightness(0.7);
+  -webkit-backdrop-filter: blur(25px) brightness(0.7);
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+}
+
+.modal {
+  width: 520px;
+  background: #FFFFFF;
+  padding: 4.5rem 4rem;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  /* Flush-left alignment */
+  box-shadow: 0 30px 60px rgba(0, 0, 0, 0.3);
+  /* Premium depth */
+  position: relative;
+  overflow: hidden;
+  border-radius: 0;
+  /* Sharp corners */
+}
+
+.header {
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 500;
+  font-size: 2rem;
+  color: #111;
+  text-transform: uppercase;
+  letter-spacing: 0.12rem;
+  margin-bottom: 3rem;
+  text-align: left;
+  width: 100%;
+}
+
+.summary {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  /* Flush-left */
+  gap: 0.4rem;
+  margin-top: 2.5rem;
+  margin-bottom: 0.5rem;
+  width: 100%;
+}
+
+.label {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #999;
+  text-transform: uppercase;
+  letter-spacing: 0.05rem;
+}
+
+.value {
+  font-family: 'Syne', sans-serif;
+  font-weight: 800;
+  font-size: 2.8rem;
+  color: #111;
+  letter-spacing: -0.05rem;
+  line-height: 1;
+}
+
+.expiry {
+  font-family: 'Space Grotesk', monospace;
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: #AAA;
+  letter-spacing: 0.1rem;
+  margin-bottom: 4.5rem;
+  text-transform: uppercase;
+}
+
+.successOverlay {
+  position: absolute;
+  inset: 0;
+  background: #FFFFFF;
+  /* Fade to white/clearer success */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 20;
+  opacity: 0;
+}
+
+.checkmark {
+  font-size: 6rem;
+  color: #000;
+  font-weight: 400;
+}
+
+.qrImage {
+  width: 200px;
+  height: 200px;
+  object-fit: contain;
+  mix-blend-mode: multiply;
+  margin: 0;
+  /* Flush left */
+}

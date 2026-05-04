@@ -67,3 +67,48 @@ export const entranceEditorialLayout = (tl, options = {}) => {
 
   return tl;
 };
+
+// export const entranceViewfinderLayout = (tl, options = {}) => {
+//   const { duration = 800, offset = 0 } = options;
+
+//   tl.add('.watermark', {
+//     translateX: [300, 0],
+//     opacity: [0, 0.04],
+//     duration: duration * 1.3,
+//     easing: 'easeOutQuart'
+//   }, offset);
+
+//   return tl;
+// }
+
+export const entranceAqcuisitionLayout = (tl, options = {}) => {
+  const { duration = 800, offset = 0, elements = {} } = options;
+
+  const watermark = elements.watermark || '.ghost-watermark';
+  const qtyEngine = elements.qtyEngine || '.qty-engine-axis';
+  const telemetry = elements.telemetry || '.telemetry-right-axis';
+
+  tl.add(watermark, {
+    translateX: ['-35%', '-50%'],
+    translateY: ['-50%', '-50%'],
+    opacity: [0, 1],
+    duration: duration,
+    easing: 'easeOutQuart'
+  });
+
+  tl.add(qtyEngine, {
+    translateX: [150, 0],
+    translateY: ['-50%', '-50%'],
+    opacity: [0, 1],
+    duration: 650,
+    easing: 'easeOutCubic'
+  }, 150)
+
+  tl.add(telemetry, {
+    translateX: [100, 0],
+    opacity: [0, 1],
+    duration: 800,
+    easing: 'easeOutQuad'
+  }, 200);
+
+}

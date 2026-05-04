@@ -3,7 +3,13 @@ import { animate, createTimeline, stagger } from 'animejs';
 import RunningTimestamp from '../shared/RunningTimestamp';
 import InteractivePhoto from '../shared/InteractivePhoto';
 import CollageComposer from '../shared/CollageComposer';
+import { getFrameLayout } from '../../constants/frame_layouts';
+
 import { exitEditorialLayout } from '../../utils/transitions';
+import { entranceEditorialLayout } from '../../utils/transitions';
+
+import vfStyles from './03a-Viewfinder.module.css';
+import cpStyles from './03b-Compositing.module.css';
 
 const CaptureScreen = React.forwardRef(({
   selectedFrame,
@@ -37,6 +43,13 @@ const CaptureScreen = React.forwardRef(({
   const filterListRef = useRef(null);
   const magneticAnchorRef = useRef(null);
   const timelineRef = useRef(null);
+  const gridSystemRef = useRef(null);
+  const hudTopLeftRef = useRef(null);
+  const hudCenterLeftRef = useRef(null);
+  const hudBottomRightRef = useRef(null);
+  const entranceOverlayRef = useRef(null);
+  const compositingPanelRef = useRef(null);
+  const countdownTextRef = useRef(null);
 
   useEffect(() => {
     if (timelineRef.current) timelineRef.current.pause();
@@ -44,76 +57,51 @@ const CaptureScreen = React.forwardRef(({
     timelineRef.current = tl;
 
     // Background (Subtle scale in)
-    tl.add('.camera-feed-background', {
-      filter: ['blur(20px)', 'blur(0px)'],
-      duration: 900,
-      easing: 'easeOutQuad'
-    }, 0);
+    if (videoRef.current) {
+      tl.add(videoRef.current, {
+        filter: ['blur(20px)', 'blur(0px)'],
+        duration: 900,
+        easing: 'easeOutQuad'
+      }, 0);
+    }
 
-    // Parallax Slide-in from Right to Left
-    // Ghost Watermark (Deepest parallax - starts furthest right)
-    tl.add('.ghost-capture-watermark', {
-      translateX: [300, 0],
-      opacity: [0, 0.2],
-      duration: 1200,
-      easing: 'easeOutQuart'
-    }, 50);
-
-    // Optical Grid (Mid-depth)
-    tl.add('.optical-grid-system', {
-      translateX: [100, 0],
-      opacity: [0, 1],
-      duration: 750,
-      easing: 'easeOutCubic'
-    }, 300);
-
-    // HUD Elements (Foreground parallax)
-    tl.add('.hud-anchor.top-left', {
-      translateX: [150, 0],
-      opacity: [0, 1],
-      duration: 600,
-      easing: 'easeOutQuad'
-    }, 400);
-
-    tl.add('.hud-anchor.center-left', {
-      translateX: [200, 0],
-      translateY: ['-50%', '-50%'],
-      opacity: [0, 1],
-      duration: 650,
-      easing: 'easeOutQuad'
-    }, 500);
-
-    tl.add('.hud-anchor.bottom-right', {
-      translateX: [100, 0],
-      opacity: [0, 1],
-      duration: 550,
-      easing: 'easeOutQuad'
-    }, 600);
+    // Parallax Slide-in from Right to Left (REMOVED)
 
     // Viewfinder Entrance Overlay (Milky Mica Fade-out)
-    tl.add('.viewfinder-entrance-overlay', {
-      opacity: [1, 0],
-      duration: 400,
-      easing: 'easeInOutQuad',
-      onComplete: () => {
-        const el = document.querySelector('.viewfinder-entrance-overlay');
-        if (el) el.style.display = 'none';
-      }
-    }, 0);
+    if (entranceOverlayRef.current) {
+      tl.add(entranceOverlayRef.current, {
+        opacity: [1, 0],
+        duration: 400,
+        easing: 'easeInOutQuad',
+        onComplete: () => {
+          if (entranceOverlayRef.current) entranceOverlayRef.current.style.display = 'none';
+        }
+      }, 0);
+    }
 
     return () => {
       if (tl) tl.pause();
     };
   }, []);
 
+
   const deviceList = cameraDevices || [];
 
   // Status Sesi Capture
   const [timerDelay, setTimerDelay] = useState(devMode ? 0 : 3);
+  const [activeSlots, setActiveSlots] = useState([]);
+
+  // Initialize activeSlots when frame changes
+  useEffect(() => {
+    if (selectedFrame?.slots) {
+      setActiveSlots(new Array(selectedFrame.slots).fill(true));
+    }
+  }, [selectedFrame]);
 
   useEffect(() => {
     setTimerDelay(devMode ? 0 : 3);
   }, [devMode]);
+
   const [isCapturing, setIsCapturing] = useState(false);
   const [countdown, setCountdown] = useState(null);
   const countdownRef = useRef(null);
@@ -125,6 +113,20 @@ const CaptureScreen = React.forwardRef(({
   const [frameRatio, setFrameRatio] = useState(1);
   const [showCamDropdown, setShowCamDropdown] = useState(false);
   const audioRef = useRef(null);
+
+  // Re-animate Viewfinder elements when returning from Compositing
+  useEffect(() => {
+    if (!isFinished && !isCapturing) {
+      // Just ensure opacity is 1 if it was lost
+      if (gridSystemRef.current) {
+        animate(gridSystemRef.current, {
+          opacity: 1,
+          duration: 400,
+          easing: 'linear'
+        });
+      }
+    }
+  }, [isFinished, isCapturing]);
 
   // Pagination Sub-state tracking
   useEffect(() => {
@@ -141,49 +143,23 @@ const CaptureScreen = React.forwardRef(({
       const tl = createTimeline();
 
       // We want the milky-mica-background (compositing-panel) to fade in
-      tl.add('.compositing-panel', {
-        opacity: [0, 1],
-        duration: 800,
-        easing: 'easeOutQuad'
-      }, 0);
+      if (compositingPanelRef.current) {
+        tl.add(compositingPanelRef.current, {
+          opacity: [0, 1],
+          duration: 800,
+          easing: 'easeOutQuad'
+        }, 0);
+      }
 
-      // Parallax slide-in
-      tl.add('.watermark-sideways', {
-        translateX: [300, 0],
-        opacity: [0, 0.04],
-        duration: 1100,
-        easing: 'easeOutQuart'
-      }, 50);
+      entranceEditorialLayout(tl, { duration: 800 });
 
-      tl.add('.panel-left', {
-        translateX: [150, 0],
-        opacity: [0, 1],
-        duration: 650,
-        easing: 'easeOutCubic'
-      }, 150);
-
-      tl.add('.panel-right', {
-        translateX: [80, 0],
-        opacity: [0, 1],
-        duration: 750,
-        easing: 'easeOutCubic'
-      }, 200);
-
-      // Staggered filter buttons
-      tl.add('.btn-filter-editorial', {
-        translateX: [30, 0],
-        opacity: [0, 1],
-        duration: 500,
-        delay: stagger(40),
-        easing: 'easeOutQuad'
-      }, 550);
     }
   }, [isFinished, isCapturing]);
 
   // Magnetic Anchor Movement
   useEffect(() => {
     if (magneticAnchorRef.current && filterListRef.current) {
-      const activeBtn = filterListRef.current.querySelector('.btn-filter-editorial.active');
+      const activeBtn = filterListRef.current.querySelector(`.${cpStyles.filterBtn}.${cpStyles.active}`);
       if (activeBtn) {
         animate(magneticAnchorRef.current, {
           translateY: activeBtn.offsetTop + (activeBtn.offsetHeight / 2) - 12,
@@ -245,17 +221,39 @@ const CaptureScreen = React.forwardRef(({
 
   const isCapturingRef = useRef(false);
   const startSequence = () => {
-    if (isCapturingRef.current || photos.length > 0) return;
+    if (isCapturing) return;
+
+    // If no slots are active, and we have some photos, just proceed to compositing
+    if (activeSlots.every(s => !s) && photos.some(p => !!p)) {
+      setIsFinished(true);
+      return;
+    }
+
     isCapturingRef.current = true;
     setIsCapturing(true);
-    setCurrentSlotIndex(0);
-    setPhotos([]);
+
+    // If photos already exist, we keep them unless replaced.
+    // If no photos exist, we initialize with empty array of correct length.
+    if (photos.length === 0) {
+      setPhotos(new Array(selectedFrame.slots).fill(null));
+    }
+
     captureNext(0);
   };
 
   const captureNext = (slotIdx) => {
     const totalSlots = selectedFrame?.slots || 1;
-    if (slotIdx >= totalSlots) {
+
+    // Find the next active slot
+    let nextIdx = -1;
+    for (let i = slotIdx; i < totalSlots; i++) {
+      if (activeSlots[i]) {
+        nextIdx = i;
+        break;
+      }
+    }
+
+    if (nextIdx === -1) {
       isCapturingRef.current = false;
       setIsCapturing(false);
       setCountdown(null);
@@ -263,20 +261,22 @@ const CaptureScreen = React.forwardRef(({
       return;
     }
 
+    setCurrentSlotIndex(nextIdx);
+
     let timeLeft = timerDelay;
     if (timeLeft === 0) {
-      takeSnapshot(slotIdx);
+      takeSnapshot(nextIdx);
     } else {
       setCountdown(timeLeft);
       if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
-      
+
       timerIntervalRef.current = setInterval(() => {
         timeLeft -= 1;
         if (timeLeft <= 0) {
           clearInterval(timerIntervalRef.current);
           timerIntervalRef.current = null;
           setCountdown(null);
-          takeSnapshot(slotIdx);
+          takeSnapshot(nextIdx);
         } else {
           setCountdown(timeLeft);
         }
@@ -286,8 +286,8 @@ const CaptureScreen = React.forwardRef(({
 
   // Animate countdown "punch" when number changes
   useEffect(() => {
-    if (countdown !== null) {
-      animate('.elegant-countdown-number', {
+    if (countdown !== null && countdownTextRef.current) {
+      animate(countdownTextRef.current, {
         scale: [1.5, 1],
         opacity: [0, 1],
         duration: 400,
@@ -306,7 +306,7 @@ const CaptureScreen = React.forwardRef(({
   const takeSnapshot = (slotIdx) => {
     // Shutter Flash Sequence
     const flash = document.createElement('div');
-    flash.className = 'shutter-flash-overlay';
+    flash.className = vfStyles.shutterFlash;
     document.body.appendChild(flash);
 
     // Flash the Ghost Watermark punch: Fill white then back to ghost
@@ -358,16 +358,29 @@ const CaptureScreen = React.forwardRef(({
         dataUrl = "/taken_pic/default.png";
       }
 
-      setPhotos(prev => [...prev, dataUrl]);
+      setPhotos(prev => {
+        const next = [...prev];
+        next[slotIdx] = dataUrl;
+        return next;
+      });
+
       setLastCapturedPhoto(dataUrl);
       setShowFreezeFrame(true);
-      setCurrentSlotIndex(slotIdx + 1);
 
       setTimeout(() => {
         setShowFreezeFrame(false);
         captureNext(slotIdx + 1);
       }, 1500);
     }
+  };
+
+  const toggleSlot = (idx) => {
+    if (isCapturing) return;
+    setActiveSlots(prev => {
+      const next = [...prev];
+      next[idx] = !next[idx];
+      return next;
+    });
   };
 
   // Telemetry logic
@@ -386,7 +399,8 @@ const CaptureScreen = React.forwardRef(({
   };
 
   React.useImperativeHandle(ref, () => ({
-    retake: handleRetake
+    retake: handleRetake,
+    export: handleExport
   }));
 
   const handleExport = async () => {
@@ -445,18 +459,20 @@ const CaptureScreen = React.forwardRef(({
       // UNIFIED EXPORT LOGIC: Use the photos array for everything
       for (let i = 0; i < comp.photos.length; i++) {
         const photoData = comp.photos[i];
+        if (!photoData.src) continue; // Skip empty slots
+
         const photoSrc = photoImages[i];
-        
+
         const photoImg = new Image();
         photoImg.src = photoSrc;
-        photoImg.crossOrigin = "anonymous"; 
-        
+        photoImg.crossOrigin = "anonymous";
+
         await new Promise((resolve, reject) => {
           const timeout = setTimeout(() => reject(new Error('Image load timeout')), 3000);
           photoImg.onload = () => { clearTimeout(timeout); resolve(); };
           photoImg.onerror = () => { clearTimeout(timeout); reject(new Error('Image load failed')); };
         }).catch(err => console.error("Export Error:", err));
-        
+
         ctx.save();
         // Apply individual slot clipping (if slot data is present)
         if (photoData.sW) {
@@ -485,7 +501,7 @@ const CaptureScreen = React.forwardRef(({
       ctx.drawImage(frameImg, 0, 0, Math.round(comp.cW), Math.round(comp.cH));
 
       const dataUrl = canvas.toDataURL('image/jpeg', 0.95);
-      
+
       // Snappier final transition
       tl.add({
         duration: 50,
@@ -498,14 +514,9 @@ const CaptureScreen = React.forwardRef(({
   };
 
   return (
-    <div ref={screenRef} className="capture-viewport-container">
+    <div ref={screenRef} className={vfStyles.container}>
       {/* VIEW FINDER ENTRANCE OVERLAY (Milky Mica) */}
-      <div className="viewfinder-entrance-overlay milky-mica-background" style={{
-        position: 'absolute',
-        inset: 0,
-        zIndex: 1000,
-        pointerEvents: 'none'
-      }}></div>
+      <div ref={entranceOverlayRef} className={`${vfStyles.entranceOverlay} milky-mica-background`}></div>
 
       {/* EXIT OVERLAY */}
       <div className="page-exit-overlay" style={{
@@ -522,33 +533,29 @@ const CaptureScreen = React.forwardRef(({
       <audio ref={audioRef} src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3" preload="auto"></audio>
 
       {/* THE CAMERA FEED */}
-      <video ref={videoRef} autoPlay playsInline muted className="camera-feed-background" />
+      <video ref={videoRef} autoPlay playsInline muted className={vfStyles.cameraFeed} />
 
       {/* THE OPTICAL GRID */}
-      <div className="optical-grid-system">
-        <div className="grid-quadrant-line horizontal"></div>
-        <div className="grid-quadrant-line vertical"></div>
-        {countdown === null && (
-          <div className="grid-center-crosshair">
-            <div className="crosshair-h"></div>
-            <div className="crosshair-v"></div>
-          </div>
-        )}
+      <div ref={gridSystemRef} className={vfStyles.opticalGrid}>
+        <div className={`${vfStyles.gridLine} ${vfStyles.horizontal1}`}></div>
+        <div className={`${vfStyles.gridLine} ${vfStyles.horizontal2}`}></div>
+        <div className={`${vfStyles.gridLine} ${vfStyles.vertical1}`}></div>
+        <div className={`${vfStyles.gridLine} ${vfStyles.vertical2}`}></div>
       </div>
 
       {/* GHOST WATERMARK: CAPTURE */}
-      <div ref={watermarkRef} className="ghost-capture-watermark">
+      <div ref={watermarkRef} className={vfStyles.watermark}>
         VIEWFINDER
       </div>
 
       {/* MAIN HUD WRAPPER */}
       <div
-        className={`main-hud-wrapper ${!isCapturing && photos.length === 0 ? 'interactive-trigger' : ''}`}
+        className={`${vfStyles.hudWrapper} ${!isCapturing ? vfStyles.interactive : ''}`}
         onClick={startSequence}
       >
         {/* TOP-LEFT: STATUS & TELEMETRY */}
-        <div className="hud-anchor top-left" onClick={e => e.stopPropagation()}>
-          <div className="telemetry-data">
+        <div ref={hudTopLeftRef} className={`${vfStyles.hudAnchor} ${vfStyles.topLeft}`} onClick={e => e.stopPropagation()}>
+          <div className={vfStyles.telemetry}>
             {telemetryString}
             <div className="dslr-status-indicator" style={{ marginTop: '0.5rem', fontSize: '0.7rem', opacity: 0.8 }}>
               DSLR_LINK: <span style={{ color: isProfessionalSource ? 'rgb(var(--theme-accent-rgb))' : "rgba(255,255,255,0.4)" }}>
@@ -558,9 +565,9 @@ const CaptureScreen = React.forwardRef(({
           </div>
 
           {/* MINIMALIST CAMERA SELECTOR */}
-          {!isCapturing && photos.length === 0 && (
-            <div className="viewfinder-selector-minimal" style={{ marginTop: '0.8rem' }}>
-              <div className="telemetry-data" style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.7rem' }}>
+          {!isCapturing && (
+            <div className={vfStyles.selectorMinimal} style={{ marginTop: '0.8rem' }}>
+              <div className={vfStyles.telemetry} style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.7rem' }}>
                 VIEWFINDER_SOURCE:
                 <span
                   className="minimal-dropdown-trigger"
@@ -578,11 +585,11 @@ const CaptureScreen = React.forwardRef(({
               </div>
 
               {showCamDropdown && (
-                <div className="minimal-cam-dropdown-list">
+                <div className={vfStyles.dropdownList}>
                   {deviceList.map((device, idx) => (
                     <div
                       key={device.deviceId}
-                      className={`minimal-dropdown-item ${selectedDeviceId === device.deviceId ? 'active' : ''}`}
+                      className={`${vfStyles.dropdownItem} ${selectedDeviceId === device.deviceId ? vfStyles.active : ''}`}
                       onClick={() => {
                         setSelectedDeviceId(device.deviceId);
                         setShowCamDropdown(false);
@@ -598,9 +605,9 @@ const CaptureScreen = React.forwardRef(({
         </div>
 
         {/* LEFT AXIS: THE GIANT TIMER MENU */}
-        <div className="hud-anchor center-left" onClick={e => e.stopPropagation()}>
+        <div ref={hudCenterLeftRef} className={`${vfStyles.hudAnchor} ${vfStyles.centerLeft}`} onClick={e => e.stopPropagation()}>
           <div
-            className="giant-timer-axis"
+            className={vfStyles.timerAxis}
             style={{ transform: `translateY(${(3 - ['-', '-', 0, 3, 5, '-', '-'].indexOf(timerDelay)) * 5.9}rem)` }}
           >
             {['-', '-', 0, 3, 5, '-', '-'].map((t, idx) => {
@@ -618,7 +625,7 @@ const CaptureScreen = React.forwardRef(({
               return (
                 <div
                   key={idx}
-                  className={`timer-menu-item ${timerDelay === t ? 'active' : ''} ${!isNumeric ? 'unselectable' : ''}`}
+                  className={`${vfStyles.timerItem} ${timerDelay === t ? vfStyles.active : ''} ${!isNumeric ? vfStyles.unselectable : ''}`}
                   onClick={() => isNumeric && setTimerDelay(t)}
                   style={{
                     opacity,
@@ -627,97 +634,176 @@ const CaptureScreen = React.forwardRef(({
                     filter: blurAmount > 0 ? `blur(${blurAmount}px)` : 'none'
                   }}
                 >
-                  <span className="timer-num">{t}</span>
-                  {isNumeric && <span className="timer-unit">SEC</span>}
-                  {timerDelay === t && <div className="timer-dna-accent"></div>}
+                  <span className={vfStyles.timerNum}>{t}</span>
+                  {isNumeric && <span className={vfStyles.timerUnit}>SEC</span>}
+                  {timerDelay === t && <div className={vfStyles.timerDnaAccent}></div>}
                 </div>
               );
             })}
           </div>
         </div>
 
+        <div
+          className={vfStyles.photoWheel}
+          onClick={e => e.stopPropagation()}
+          style={{
+            transform: isCapturing
+              ? `translateY(calc(-50% + ${((activeSlots.length + 4 - 1) * 8 / 2) - ((currentSlotIndex + 2) * 8)}rem))`
+              : 'translateY(-50%)'
+          }}
+        >
+          {[null, null, ...activeSlots, null, null].map((_, rIdx) => {
+            const isSlot = rIdx >= 2 && rIdx < activeSlots.length + 2;
+            const slotIdx = isSlot ? rIdx - 2 : -1;
+            const isCurrent = isSlot && slotIdx === currentSlotIndex && isCapturing;
 
+            // Focus logic
+            const focusIdx = isCapturing ? currentSlotIndex + 2 : -1;
+            const dist = isCapturing ? Math.abs(rIdx - focusIdx) : 0;
 
+            // Blur Logic
+            let blurAmount = 0;
+            if (isCapturing) {
+              blurAmount = dist > 0 ? dist * 2 : 0;
+            } else {
+              // Default state: only dashes are blurred
+              blurAmount = isSlot ? 0 : 4;
+            }
+
+            // Opacity & Scale
+            const opacity = isCapturing
+              ? Math.max(0.1, 1 - dist * 0.4)
+              : (isSlot ? 1 : 0.2);
+
+            const scale = isCurrent ? 1.05 : (isCapturing ? 0.85 : 1);
+
+            // TRANSLATION AXIS
+            let translateX = '0rem';
+            if (isCapturing) {
+              translateX = isCurrent ? '-3rem' : (dist === 1 ? '1.5rem' : '3rem');
+            } else {
+              // Idle state: shift dashes RIGHT (away from center)
+              if (!isSlot) {
+                const distFromSlots = rIdx < 2 ? (1.5 - rIdx) : (rIdx - (activeSlots.length + 1.5));
+                translateX = `${distFromSlots * 1.5}rem`;
+              }
+            }
+
+            return (
+              <div
+                key={rIdx}
+                className={`${vfStyles.wheelItem} ${isCurrent ? vfStyles.active : ''}`}
+                style={{
+                  transform: `translateX(${translateX}) scale(${scale})`,
+                  opacity,
+                  filter: blurAmount > 0 ? `blur(${blurAmount}px)` : 'none'
+                }}
+              >
+                {!isSlot ? (
+                  <div className={vfStyles.wheelDash}></div>
+                ) : (
+                  <>
+                    <div className={vfStyles.wheelToggle} onClick={() => toggleSlot(slotIdx)}>
+                      <div className={`${vfStyles.toggleIndicator} ${activeSlots[slotIdx] ? vfStyles.active : ''}`} />
+                    </div>
+                    <div className={`${vfStyles.wheelThumb} ${!photos[slotIdx] ? vfStyles.empty : ''}`}>
+                      {photos[slotIdx] ? (
+                        <img src={photos[slotIdx]} alt={`Thumb ${slotIdx}`} />
+                      ) : (
+                        <div className={vfStyles.blueprint}>
+                          <div className={`${vfStyles.cropMark} ${vfStyles.cmTl}`} />
+                          <div className={`${vfStyles.cropMark} ${vfStyles.cmTr}`} />
+                          <div className={`${vfStyles.cropMark} ${vfStyles.cmBl}`} />
+                          <div className={`${vfStyles.cropMark} ${vfStyles.cmBr}`} />
+                          <div className={vfStyles.centerCrosshair} />
+                        </div>
+                      )}
+                    </div>
+                  </>
+                )}
+              </div>
+            );
+          })}
+        </div>
 
         {/* BOTTOM-RIGHT: FRAME INDEX */}
-        <div className="hud-anchor bottom-right">
-          <div className="frame-index-display">
-            {Math.min(photos.length + 1, selectedFrame.slots)} / {selectedFrame.slots}
+        <div ref={hudBottomRightRef} className={`${vfStyles.hudAnchor} ${vfStyles.bottomRight}`}>
+          <div className={vfStyles.indexDisplay}>
+            {Math.min((photos.length - 1) + 1, selectedFrame.slots)} / {selectedFrame.slots}
           </div>
-          <div className="session-serial-detail">
+          <div className={vfStyles.serialDetail}>
             SYS.KERN_V4.2 // {kioskId} // {new Date().toLocaleDateString()}
           </div>
         </div>
 
         {/* CENTER: TAP ANYWHERE CTA */}
-        {!isCapturing && photos.length === 0 && countdown === null && (
-          <div className="hud-anchor absolute-center" style={{ opacity: 1 }}>
-            <div className="tap-capture-cta">
-              <span className="cta-default">TAP ANYWHERE TO CAPTURE</span>
-            </div>
+        {!isCapturing && !isFinished && countdown === null && (
+          <div className={`${vfStyles.hudAnchor} ${vfStyles.absoluteCenter}`} style={{ opacity: 1 }}>
+            <span className="ctaLabel">TAP ANYWHERE TO CAPTURE</span>
+
           </div>
         )}
 
         {/* ELEGANT CENTER COUNTDOWN */}
         {countdown !== null && (
-          <div className="hud-anchor absolute-center" style={{ opacity: 1 }}>
-            <div className="elegant-countdown-number">{countdown}</div>
+          <div className={`${vfStyles.hudAnchor} ${vfStyles.absoluteCenter}`} style={{ opacity: 1 }}>
+            <div ref={countdownTextRef} className={vfStyles.countdownNumber}>{countdown}</div>
           </div>
         )}
       </div>
 
       {/* FX OVERLAYS */}
-      <div className="hud-vignette"></div>
-      <div className="hud-scanlines-subtle"></div>
+      <div className={vfStyles.vignette}></div>
+      <div className={vfStyles.scanlines}></div>
 
       {/* MICRO-REVIEW */}
       {
-        showFreezeFrame && lastCapturedPhoto && (
-          <div className="freeze-frame-hud">
-            <img src={lastCapturedPhoto || "/taken_pic/default.png"} alt="Freeze" className="freeze-img-hud" />
-            <div className="freeze-scanline"></div>
-          </div>
-        )
+        // showFreezeFrame && lastCapturedPhoto && (
+        //   <div className={vfStyles.freezeFrame}>
+        //     <img src={lastCapturedPhoto || "/taken_pic/default.png"} alt="Freeze" className={vfStyles.freezeImg} />
+        //     <div className={vfStyles.freezeScanline}></div>
+        //   </div>
+        // )
       }
 
       {/* RESULT OVERLAY */}
       {
-        isFinished && !isCapturing && photos.length > 0 && (() => {
+        isFinished && !isCapturing && photos.some(p => !!p) && (() => {
 
 
           const FILTERS = [
             { label: 'RAW', value: 'none' },
             { label: 'MONO', value: 'grayscale(100%) contrast(1.1)' },
             { label: 'NOIR', value: 'grayscale(100%) brightness(0.85) contrast(1.4)' },
-            { label: 'FADE', value: 'brightness(1.15) contrast(0.8) saturate(0.7)' },
+            // { label: 'FADE', value: 'brightness(1.15) contrast(0.8) saturate(0.7)' },
             { label: 'COLD', value: 'hue-rotate(200deg) saturate(1.2) brightness(1.05)' },
             { label: 'WARM', value: 'hue-rotate(-20deg) saturate(1.4) brightness(1.05)' },
             { label: 'VIVID', value: 'saturate(2) contrast(1.1)' },
-            { label: 'CYBER', value: 'hue-rotate(180deg) saturate(3) contrast(1.2) brightness(1.1)' },
+            // { label: 'CYBER', value: 'hue-rotate(180deg) saturate(3) contrast(1.2) brightness(1.1)' },
             { label: 'SEPIA', value: 'sepia(80%) contrast(1.05)' },
           ];
 
           return (
-            <div className="milky-mica-background compositing-panel">
+            <div ref={compositingPanelRef} className={`milky-mica-background ${cpStyles.panel}`}>
               <div className="panel-left">
                 {/* Vertical Watermark — separate ref for deepest parallax */}
                 <h2 className="watermark-sideways">CURATE</h2>
 
                 <div style={{ width: '100%', marginTop: '8rem', zIndex: 20 }}>
                   {/* Hero Title with Cyan Overlap */}
-                  <div className="hero-h1-container">
-                    <div className="hero-bullet">▌</div>
-                    <h2 className="hero-h1">COMPOSITING</h2>
+                  <div className="side-display-container">
+                    <div className="side-display-bullet">▌</div>
+                    <h2 className="side-display-h1">COMPOSITING</h2>
                   </div>
 
-                  <div className="instructions-list">
+                  <div className={cpStyles.instructionsList}>
                     {/* Step 1 */}
-                    <div className="comp-instruction-step">
-                      <span className="comp-instruction-num">01.</span>
-                      <div className="comp-instruction-content">
-                        <span className="comp-section-label">CHOOSE YOUR LENS PROFILE.</span>
-                        <div className="filter-list-editorial" ref={filterListRef}>
-                          <div className="magnetic-anchor-cyan" ref={magneticAnchorRef}>▌</div>
+                    <div className={cpStyles.instructionStep}>
+                      <span className={cpStyles.instructionNum}>01.</span>
+                      <div className={cpStyles.instructionContent}>
+                        <span className={cpStyles.sectionLabel}>CHOOSE YOUR LENS PROFILE.</span>
+                        <div className={cpStyles.filterList} ref={filterListRef}>
+                          <div className={cpStyles.magneticAnchor} ref={magneticAnchorRef}>▌</div>
                           {FILTERS.map(f => (
                             <button
                               key={f.label}
@@ -731,7 +817,7 @@ const CaptureScreen = React.forwardRef(({
                                   setIsProcessingFilter(false);
                                 }, 500);
                               }}
-                              className={`btn-filter-editorial ${selectedFilter === f.value ? 'active' : ''} ${isProcessingFilter ? 'processing' : ''}`}
+                              className={`${cpStyles.filterBtn} ${selectedFilter === f.value ? cpStyles.active : ''} ${isProcessingFilter ? cpStyles.processing : ''}`}
                               disabled={isProcessingFilter}
                             >
                               {f.label}
@@ -742,30 +828,30 @@ const CaptureScreen = React.forwardRef(({
                     </div>
 
                     {/* Step 2 */}
-                    <div className="comp-instruction-step">
-                      <span className="comp-instruction-num">02.</span>
-                      <div className="comp-instruction-content">
-                        <span className="comp-section-label">ADJUST FRAME ORIENTATION.</span>
+                    <div className={cpStyles.instructionStep}>
+                      <span className={cpStyles.instructionNum}>02.</span>
+                      <div className={cpStyles.instructionContent}>
+                        <span className={cpStyles.sectionLabel}>ADJUST FRAME ORIENTATION.</span>
                         <div
-                          className="btn-transform-minimal"
+                          className={cpStyles.transformToggle}
                           onClick={() => setIsMirrored(!isMirrored)}
                         >
-                          <span className="transform-label">MIRRORED</span>
-                          <div className={`minimal-switch ${isMirrored ? 'active' : ''}`}>
-                            <div className="switch-line"></div>
-                            <div className="switch-dot"></div>
+                          <span className={cpStyles.transformLabel}>MIRRORED</span>
+                          <div className={`${cpStyles.switch} ${isMirrored ? cpStyles.active : ''}`}>
+                            <div className={cpStyles.switchLine}></div>
+                            <div className={cpStyles.switchDot}></div>
                           </div>
                         </div>
                       </div>
                     </div>
 
                     {/* Step 3 */}
-                    {photos.length > 1 && (
-                      <div className="comp-instruction-step">
-                        <span className="payment-instruction-num">03.</span>
-                        <div className="comp-instruction-content">
-                          <span className="comp-section-label">MANAGE COMPOSITION LAYERS.</span>
-                          <p className="payment-instruction-text">
+                    {photos.some(p => !!p) && (
+                      <div className={cpStyles.instructionStep}>
+                        <span className={cpStyles.instructionNum}>03.</span>
+                        <div className={cpStyles.instructionContent}>
+                          <span className={cpStyles.sectionLabel}>MANAGE COMPOSITION LAYERS.</span>
+                          <p className={cpStyles.instructionText}>
                             USE THE LAYER SELECTOR ON THE LEFT OF THE CANVAS TO SWITCH BETWEEN CAPTURES.
                           </p>
                         </div>
@@ -776,13 +862,13 @@ const CaptureScreen = React.forwardRef(({
               </div>
 
               <div className="panel-right panel-center-content">
-                <div className="canvas-greebles-right">RENDER_SIZE: 14.2MB // PRINT_QUEUE: READY // DPI: 300</div>
-                <div className="canvas-status-footer">
+                <div className={cpStyles.greebles}>RENDER_SIZE: 14.2MB // PRINT_QUEUE: READY // DPI: 300</div>
+                <div className={cpStyles.statusFooter}>
                   <span>SYS.KERN_v4.2.1-EX</span>
                   <RunningTimestamp />
                   <span>BUFFER_LOADED: 100%</span>
                 </div>
-                <div className="frame-floating-container">
+                <div className={cpStyles.floatingContainer}>
                   {selectedFrame.slots > 1 ? (
                     <CollageComposer
                       ref={composerRef}

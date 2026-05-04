@@ -1,0 +1,571 @@
+.container {
+  position: absolute;
+  inset: 0;
+  background-color: #000;
+  overflow: hidden;
+  z-index: 30;
+}
+
+.cameraFeed {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scaleX(-1);
+  z-index: 0;
+}
+
+/* THE OPTICAL GRID */
+.opticalGrid {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  pointer-events: none;
+  opacity: 1;
+}
+
+.gridLine {
+  position: absolute;
+  background-color: rgba(255, 255, 255, 0.25);
+}
+
+.gridLine.horizontal1 {
+  top: 38.2%;
+  left: 0;
+  right: 0;
+  height: 1px;
+}
+
+.gridLine.horizontal2 {
+  top: 61.8%;
+  left: 0;
+  right: 0;
+  height: 1px;
+}
+
+.gridLine.vertical1 {
+  left: 38.2%;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+}
+
+.gridLine.vertical2 {
+  left: 61.8%;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+}
+
+
+/* GHOST WATERMARK: CAPTURE */
+.watermark {
+  position: absolute;
+  bottom: 8%;
+  left: 0;
+  width: 100vw;
+  text-align: center;
+  font-family: 'Syne', sans-serif;
+  font-size: 20vw;
+  font-weight: 800;
+  color: transparent;
+  -webkit-text-stroke: 2px rgba(255, 255, 255, 0.35);
+  line-height: 0.7;
+  pointer-events: none;
+  z-index: 5;
+  text-transform: uppercase;
+  user-select: none;
+  opacity: 0.4;
+}
+
+/* MAIN HUD WRAPPER */
+.hudWrapper {
+  position: absolute;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.hudWrapper.interactive {
+  pointer-events: auto;
+  cursor: crosshair;
+}
+
+.hudAnchor {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  pointer-events: auto;
+  opacity: 1;
+}
+
+.hudAnchor.topLeft {
+  top: 3rem;
+  left: 4rem;
+  gap: 0.5rem;
+}
+
+.hudAnchor.centerLeft {
+  top: 50%;
+  left: 4rem;
+  transform: translateY(-50%);
+  z-index: 20;
+}
+
+.hudAnchor.bottomRight {
+  bottom: 3rem;
+  right: 4rem;
+  text-align: right;
+  align-items: flex-end;
+}
+
+.hudAnchor.absoluteCenter {
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.telemetry {
+  font-family: 'Space Grotesk', monospace;
+  font-size: 0.6rem;
+  letter-spacing: 0.1em;
+  color: rgba(255, 255, 255, 0.4);
+  text-transform: uppercase;
+}
+
+/* LEFT AXIS: GIANT TIMER MENU */
+.timerAxis {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+
+  transition: transform 0.6s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.timerItem {
+  position: relative;
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  color: rgba(255, 255, 255, 0.35);
+  cursor: pointer;
+  transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+  font-family: 'Syne', sans-serif;
+  transform: translateX(0);
+}
+
+.timerItem.active {
+  color: #FFFFFF;
+}
+
+.timerNum {
+  font-size: 5.5rem;
+  font-weight: 800;
+  line-height: 0.8;
+}
+
+.timerUnit {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 0.8rem;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+}
+
+.timerDnaAccent {
+  position: absolute;
+  width: 4rem;
+  height: 4rem;
+  background-color: var(--accent);
+  mix-blend-mode: difference;
+  z-index: 10;
+  top: 50%;
+  left: 2rem;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+/* MINIMALIST CAMERA DROPDOWN (VIEWFINDER) */
+.selectorMinimal {
+  position: relative;
+  z-index: 50;
+}
+
+.dropdownList {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  margin-top: 0.5rem;
+  background: #000;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  width: 15rem;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+.dropdownItem {
+  font-family: 'Space Grotesk', monospace;
+  font-size: 0.65rem;
+  padding: 0.6rem 1rem;
+  color: rgba(255, 255, 255, 0.4);
+  cursor: pointer;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  transition: all 0.2s;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.dropdownItem:last-child {
+  border-bottom: none;
+}
+
+.dropdownItem:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: #fff;
+}
+
+.dropdownItem.active {
+  color: var(--accent-color);
+  font-weight: 800;
+}
+
+.dropdownItem.active::before {
+  content: "»";
+  margin-right: 0.5rem;
+}
+
+/* PAGINATION & INDEX */
+.indexDisplay {
+  font-family: 'Syne', sans-serif;
+  font-size: 4rem;
+  line-height: 1;
+  color: #FFFFFF;
+  font-weight: 800;
+}
+
+.serialDetail {
+  font-family: 'Space Grotesk', monospace;
+  font-size: 0.5rem;
+  color: rgba(255, 255, 255, 0.3);
+  margin-top: 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* ELEGANT COUNTDOWN */
+.countdownNumber {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 15rem;
+  font-weight: 200;
+  color: #FFFFFF;
+  line-height: 1;
+  opacity: 0.8;
+}
+
+/* FX OVERLAYS */
+.vignette {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle, rgba(0, 0, 0, 0) 40%, rgba(0, 0, 0, 0.6) 100%);
+  pointer-events: none;
+  z-index: 15;
+}
+
+.scanlines {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.02), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.02));
+  background-size: 100% 4px, 3px 100%;
+  pointer-events: none;
+  z-index: 15;
+  opacity: 0.4;
+}
+
+/* MICRO-REVIEW */
+/* .freezeFrame {
+  position: absolute;
+  top: 4rem;
+  right: 4rem;
+  width: 250px;
+  height: 350px;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  background: #000;
+  z-index: 100;
+  overflow: hidden;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+  transform: scaleX('-1');
+
+}
+
+.freezeImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.freezeScanline {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: var(--accent-color);
+  box-shadow: 0 0 10px var(--accent-color);
+  animation: scanline-move 1.5s linear infinite;
+} 
+
+@keyframes scanline-move {
+  0% {
+    top: 0;
+  }
+
+  100% {
+    top: 100%;
+  }
+}*/
+
+.entranceOverlay {
+  position: absolute;
+  inset: 0;
+  z-index: 1000;
+  pointer-events: none;
+}
+
+.shutterFlash {
+  position: fixed;
+  inset: 0;
+  background-color: #FFFFFF;
+  z-index: 9999;
+  pointer-events: none;
+}
+
+/* PHOTO WHEEL */
+.photoWheel {
+  position: absolute;
+  right: 4rem;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  z-index: 30;
+  pointer-events: auto;
+  transition: transform 0.6s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.wheelItem {
+  display: flex;
+  align-items: center;
+  gap: 1.2rem;
+  width: 100%;
+  justify-content: flex-end;
+  height: 6.5rem;
+  transition: all 0.6s cubic-bezier(0.23, 1, 0.32, 1);
+  position: relative;
+
+
+}
+
+.wheelDash {
+  width: 130px;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+
+
+}
+
+.wheelDash::after {
+  content: "-";
+  font-family: 'Syne', sans-serif;
+  font-size: 6rem;
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.35);
+  transform: translateX(3rem);
+  line-height: 0.1;
+  display: block;
+}
+
+.wheelThumb {
+  width: 130px;
+  /* TWEAK THIS FOR OVERALL SIZE */
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+  position: relative;
+  transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex;
+  flex-direction: column;
+}
+
+.wheelItem.active .wheelThumb {
+  border-color: var(--accent-color);
+  box-shadow: 0 0 25px rgba(var(--theme-accent-rgb), 0.4);
+  transform: scale(1.05);
+}
+
+.wheelThumb.empty {
+  aspect-ratio: 4 / 3;
+  /* HORIZONTAL SKELETON */
+}
+
+/* BLUEPRINT SKELETON */
+.blueprint {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.03);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: opticalPulse 3s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+@keyframes opticalPulse {
+
+  0%,
+  100% {
+    opacity: 0.3;
+  }
+
+  50% {
+    opacity: 0.8;
+  }
+}
+
+.cropMark {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border-color: rgba(255, 255, 255, 0.2);
+  border-style: solid;
+}
+
+.cmTl {
+  top: 4px;
+  left: 4px;
+  border-width: 1px 0 0 1px;
+}
+
+.cmTr {
+  top: 4px;
+  right: 4px;
+  border-width: 1px 1px 0 0;
+}
+
+.cmBl {
+  bottom: 4px;
+  left: 4px;
+  border-width: 0 0 1px 1px;
+}
+
+.cmBr {
+  bottom: 4px;
+  right: 4px;
+  border-width: 0 1px 1px 0;
+}
+
+.centerCrosshair {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 10px;
+  height: 10px;
+  transform: translate(-50%, -50%);
+}
+
+.centerCrosshair::before,
+.centerCrosshair::after {
+  content: "";
+  position: absolute;
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.centerCrosshair::before {
+  width: 100%;
+  height: 1px;
+  top: 50%;
+  left: 0;
+}
+
+.centerCrosshair::after {
+  height: 100%;
+  width: 1px;
+  left: 50%;
+  top: 0;
+}
+
+.wheelThumb img {
+  width: 100%;
+  height: auto;
+  display: block;
+  transform: scaleX(-1);
+}
+
+.thumbPlaceholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 0.6rem;
+  color: rgba(255, 255, 255, 0.2);
+}
+
+.wheelToggle {
+  width: 40px;
+  height: 24px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  position: relative;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+.toggleIndicator {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  width: 16px;
+  height: 16px;
+  background: #666;
+  border-radius: 50%;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.toggleIndicator.active {
+  background: var(--accent-color);
+  left: 20px;
+}
+
+.wheelItem.active .wheelThumb {
+  border-color: var(--accent-color);
+  box-shadow: 0 0 15px rgba(var(--theme-accent-rgb), 0.3);
+}
+
+/* FX OVERLAYS */
+.vignette {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+  background: radial-gradient(circle, transparent 30%, rgba(0, 0, 0, 0.45) 100%);
+}
+
+.scanlines {
+  position: absolute;
+  inset: 0;
+  z-index: 50;
+  pointer-events: none;
+  background: linear-gradient(to bottom,
+      rgba(18, 16, 16, 0) 50%,
+      rgba(0, 0, 0, 0.04) 50%);
+  background-size: 100% 4px;
+}

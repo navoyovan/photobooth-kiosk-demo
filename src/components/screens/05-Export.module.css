@@ -1,0 +1,74 @@
+.telemetryTitle {
+  font-family: 'Syne', sans-serif;
+  font-weight: 800;
+  font-size: 3.5rem;
+  color: #FFFFFF;
+  margin: 0;
+  line-height: 1;
+}
+
+.metadataStack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.metadataItem {
+  font-family: 'Space Grotesk', monospace;
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.5);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+
+.securityNotice {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.4);
+  letter-spacing: 0.05em;
+  margin-top: 1rem;
+}
+
+.securityNotice span {
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.footer {
+  position: absolute;
+  bottom: 4rem;
+  right: 6rem;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  z-index: 30;
+  opacity: 0;
+}
+
+.printerStatusBar {
+  width: 100%;
+}
+
+.printerStatusLabel {
+  display: flex;
+  justify-content: space-between;
+  font-family: 'Space Grotesk', monospace;
+  font-size: 0.65rem;
+  color: rgba(255, 255, 255, 0.6);
+  margin-bottom: 0.8rem;
+  letter-spacing: 0.1em;
+}
+
+.printerProgressTrack {
+  height: 1px;
+  width: 100%;
+  background: rgba(255, 255, 255, 0.2);
+  position: relative;
+}
+
+.printerProgressFill {
+  height: 100%;
+  background: #FFFFFF;
+  transition: width 0.3s ease;
+}

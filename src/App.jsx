@@ -14,7 +14,7 @@ import OutroScreen from './components/screens/06-Outro';
 
 import KineticPagination from './components/shared/KineticPagination';
 import KioskIdentitySetup from './components/shared/KioskIdentitySetup';
-import { DEFAULT_FRAME } from './constants/frames';
+import { FRAME_TYPES, DEFAULT_FRAME } from './constants/frames';
 import { getKioskId, getMachineUUID, syncKioskConfig } from './utils/kioskId';
 
 // --- OTAK STATE MACHINE ---
@@ -34,7 +34,25 @@ export default function App() {
   const [isSetupOpen, setIsSetupOpen] = useState(false);
 
   // Telemetry HUD Animation Logic
-  const isTelemetryVisible = currentStep >= 2 && currentStep <= 5;
+  // Telemetry HUD Animation Logic (Visible from Selection to Checkout, hidden in Export/Outro)
+  const isTelemetryVisible = currentStep >= 2 && currentStep <= 4;
+
+  // Global Asset Preloading
+  useEffect(() => {
+    const frameAssets = [...FRAME_TYPES.map(f => f.thumbnail), DEFAULT_FRAME.thumbnail];
+    const uiAssets = ['/hero.png', '/icons.svg', '/favicon.svg'];
+    const starfieldAssets = Array.from({ length: 30 }, (_, i) => `/starfield/${i + 1}.webp`);
+
+    const assetsToPreload = [...frameAssets, ...uiAssets, ...starfieldAssets];
+
+    assetsToPreload.forEach(src => {
+      if (!src) return;
+      const img = new Image();
+      img.src = src;
+    });
+
+    console.log(`[Preloader] ${assetsToPreload.length} assets queued for caching.`);
+  }, []);
 
   useEffect(() => {
     if (isTelemetryVisible) {
@@ -62,6 +80,7 @@ export default function App() {
     }
   }, [isTelemetryVisible]);
   const [printCopies, setPrintCopies] = useState(1);
+  const [initialCopies, setInitialCopies] = useState(1);
   const [capturedPhotos, setCapturedPhotos] = useState([]);
   const [isCaptureFinished, setIsCaptureFinished] = useState(false);
   const [captureFilter, setCaptureFilter] = useState('none');
@@ -85,9 +104,31 @@ export default function App() {
     let timer;
     if (currentStep >= 2 && currentStep <= 3) {
       if (sessionTime <= 0) {
-        setOutroType('TIMEOUT');
-        setCurrentStep(6);
-        setFinalImage(null);
+        if (capturedPhotos.some(p => !!p)) {
+          // Force to checkout instead of timeout by triggering export
+          if (currentStep === 3 && !isTimerPaused) {
+            setIsTimerPaused(true);
+            if (!isCaptureFinished) {
+              setIsCaptureFinished(true);
+              setTransactionTime(180); // Reset for checkout
+              setIsTimerPaused(false);
+              setTimeout(() => captureRef.current?.export(), 500);
+            } else {
+              setTransactionTime(180); // Reset for checkout
+              setIsTimerPaused(false);
+              captureRef.current?.export();
+            }
+          } else if (currentStep === 2) {
+            // If in selection (step 2), we don't have an export yet
+            setOutroType('TIMEOUT');
+            setCurrentStep(6);
+            setFinalImage(null);
+          }
+        } else {
+          setOutroType('TIMEOUT');
+          setCurrentStep(6);
+          setFinalImage(null);
+        }
         return;
       }
       timer = setInterval(() => {
@@ -264,7 +305,7 @@ export default function App() {
       <FloatingPhotos
         previousImage={outroType === 'NORMAL' ? finalImage : null}
         isOutro={currentStep >= 3}
-        isVisible={currentStep !== 2}
+        isVisible={currentStep < 2 || currentStep >= 5}
         showPhotos={currentStep < 2 || currentStep >= 5}
         isTransformed={isTunneling || currentStep === 1 || (currentStep >= 3 && !isOutroExiting)}
       />
@@ -277,15 +318,15 @@ export default function App() {
         backLabel={
           currentStep === 1 ? '← CANCEL SESSION' :
             currentStep === 3 ? (captureSubState === 'compositing' ? '← RETAKE SESSION' : '← CHANGE LAYOUT') :
-              currentStep === 4 ? (isCheckoutModalOpen ? null : '← BACK TO COMPOSITING') : null
+              currentStep === 4 ? ((isCheckoutModalOpen || sessionTime <= 0) ? null : '← BACK TO COMPOSITING') : null
         }
-        onBack={(currentStep === 1 || currentStep === 3 || (currentStep === 4 && !isCheckoutModalOpen)) ? () => {
+        onBack={(currentStep === 1 || currentStep === 3 || (currentStep === 4 && !isCheckoutModalOpen && sessionTime > 0)) ? () => {
           if (currentStep === 1) {
             paymentRef.current?.exit();
           }
           if (currentStep === 3) {
             if (captureSubState === 'compositing') {
-              captureRef.current?.retake();
+              setIsCaptureFinished(false);
             } else {
               setCurrentStep(2);
             }
@@ -331,6 +372,7 @@ export default function App() {
               setTransactionTime(180);
               setCurrentStep(prev => prev + 1);
             }}>SKIP</button>
+            <button className="telemetry-dev-skip-minimal" onClick={() => setSessionTime(1)} style={{ color: '#FF4444', borderColor: '#FF4444' }}>FORCE_TIMEOUT</button>
             {isCheckoutModalOpen && (
               <button
                 className="telemetry-dev-skip-minimal"
@@ -370,10 +412,11 @@ export default function App() {
           onBack={() => setCurrentStep(0)}
           onSuccess={(paid) => {
             setAmountPaid(paid);
+            setInitialCopies(printCopies);
             startPageTransition(() => setCurrentStep(2));
           }}
-          printCopies={1}
-          setPrintCopies={() => { }}
+          printCopies={printCopies}
+          setPrintCopies={setPrintCopies}
           timerDisplay={formatTime(transactionTime)}
           devMode={devMode}
           setIsTimerPaused={setIsTimerPaused}
@@ -409,7 +452,16 @@ export default function App() {
           setIsMirrored={setCaptureMirrored}
           currentSlotIndex={captureSlotIndex}
           setCurrentSlotIndex={setCaptureSlotIndex}
-          onBack={() => setCurrentStep(2)}
+          onBack={() => {
+            // Disable back if timeout happened (sessionTime <= 0)
+            if (sessionTime <= 0) return; 
+
+            if (isCaptureFinished) {
+              setIsCaptureFinished(false);
+            } else {
+              setCurrentStep(2);
+            }
+          }}
           onFinish={(img) => startPageTransition(() => {
             setFinalImage(img);
             setOutroType('NORMAL');
@@ -438,12 +490,14 @@ export default function App() {
           finalImage={finalImage}
           printCopies={printCopies}
           setPrintCopies={setPrintCopies}
+          initialCopies={initialCopies}
           isCheckoutOpen={isCheckoutModalOpen}
           setIsCheckoutOpen={setIsCheckoutModalOpen}
           transactionTime={transactionTime}
           amountPaid={amountPaid}
           onNext={() => setCurrentStep(5)}
           devFreeFlow={devFreeFlow}
+          setIsTimerPaused={setIsTimerPaused}
         />
       )}
 

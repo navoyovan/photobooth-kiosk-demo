@@ -12,7 +12,7 @@ const OutroScreen = ({ finalImage, type = 'NORMAL', onReset, onExitStart }) => {
       easing: 'easeOutQuad'
     });
 
-    animate('.outro-text', {
+    animate('.hero-display-text', {
       opacity: [0, 1],
       scale: [0.5, 1],
       filter: ['blur(20px)', 'blur(0px)'],
@@ -30,7 +30,7 @@ const OutroScreen = ({ finalImage, type = 'NORMAL', onReset, onExitStart }) => {
         easing: 'easeInQuad'
       });
 
-      animate('.outro-text', {
+      animate('.hero-display-text', {
         opacity: 0,
         scale: 0.4, // Zoom Out (settling into distance) as requested
         filter: 'blur(30px)',
@@ -53,10 +53,11 @@ const OutroScreen = ({ finalImage, type = 'NORMAL', onReset, onExitStart }) => {
   const currentMsg = messages[type] || messages.NORMAL;
 
   return (
-    <div ref={screenRef} className="outro-layout">
-      <div className="outro-center">
-        <h1 className="outro-text main">{currentMsg[0]}</h1>
-        <p className="outro-text sub">{currentMsg[1]}</p>
+    <div ref={screenRef} className="hero-display-layout outro">
+      <div className="hero-display-content">
+        <div className="hero-display-halo" />
+        <h1 className="hero-display-main hero-display-text">{currentMsg[0]}</h1>
+        <p className="hero-display-sub hero-display-text">{currentMsg[1]}</p>
       </div>
     </div>
   );

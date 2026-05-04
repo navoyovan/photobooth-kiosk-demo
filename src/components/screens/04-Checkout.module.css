@@ -1,0 +1,186 @@
+.qtyEngineAxis {
+  position: absolute;
+  left: 6rem;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+  z-index: 20;
+  opacity: 0;
+}
+
+.qtyStepperBtn {
+  font-family: 'Syne', sans-serif;
+  font-size: 4rem;
+  color: rgba(255, 255, 255, 0.2);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  line-height: 1;
+  transition: color 0.2s, transform 0.2s;
+  padding: 0.5rem;
+}
+
+.qtyStepperBtn:active {
+  color: var(--accent-color);
+  transform: scale(1.1);
+}
+
+.qtyOdometerWindow {
+  height: 140px;
+  width: 300px;
+  overflow: hidden;
+  position: relative;
+  display: flex;
+  justify-content: center;
+}
+
+.qtyOdometerTape {
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.6s cubic-bezier(0.23, 1, 0.32, 1);
+  width: 100%;
+}
+
+.qtyOdometerDigit {
+  font-family: 'Syne', sans-serif;
+  font-weight: 800;
+  font-size: 8rem;
+  color: #FFFFFF;
+  line-height: 140px;
+  height: 140px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  mix-blend-mode: difference;
+  animation: pulse-soft-local 2s infinite ease-in-out;
+  padding: 0;
+  margin: 0;
+}
+
+@keyframes pulse-soft-local {
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.4;
+  }
+}
+
+.unoVisualAxis {
+  opacity: 0;
+}
+
+.unoVisualFloat {
+  animation: floating-uno 6s ease-in-out infinite;
+}
+
+@keyframes floating-uno {
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-20px);
+  }
+}
+
+.noFloat {
+  animation: none !important;
+  transform: translateY(0) !important;
+}
+
+.unoStackContainer {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.unoCard {
+  position: absolute;
+  height: 75vh;
+  width: auto;
+  background: transparent;
+  border: none;
+  box-shadow: 0 50px 120px rgba(0, 0, 0, 0.25);
+  transform-origin: center center;
+  transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1), filter 0.4s ease;
+}
+
+.unoCard img {
+  height: 100%;
+  width: auto;
+  display: block;
+}
+
+.manifestRightPanel {
+  position: relative;
+  width: 40rem;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  text-align: right;
+  z-index: 100;
+  color: #FFFFFF;
+}
+
+.manifestTitleGroup {
+  margin-bottom: 4rem;
+}
+
+.manifestHugeTitle {
+  font-family: 'Syne', sans-serif;
+  font-weight: 900;
+  font-size: 6rem;
+  line-height: 0.8;
+  letter-spacing: -0.3rem;
+  margin: 0;
+}
+
+.manifestCyanSub {
+  font-family: 'Syne', sans-serif;
+  font-weight: 700;
+  font-size: 0.8rem;
+  color: var(--accent-color);
+  letter-spacing: 0.4rem;
+  text-transform: uppercase;
+  margin-top: 1rem;
+  display: block;
+}
+
+.manifestDataStack {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  margin-bottom: 5rem;
+  width: 100%;
+}
+
+.dataRow {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.dataLabel {
+  font-family: 'Space Grotesk', monospace;
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.4);
+  text-transform: uppercase;
+  letter-spacing: 0.15rem;
+}
+
+.dataValue {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: #E0E0E0;
+}

@@ -2,18 +2,24 @@ import React, { useState, useRef, useEffect, forwardRef, useImperativeHandle } f
 import { animate, createTimeline, stagger } from 'animejs';
 import { exitEditorialLayout } from '../../utils/transitions';
 import { entranceEditorialLayout } from '../../utils/transitions';
+import styles from './01-Payment.module.css';
 
 const PaymentScreen = forwardRef(({ onBack, onSuccess, printCopies, setPrintCopies, timerDisplay, devMode = false, setIsTimerPaused, kioskId, devFreeFlow }, ref) => {
   const screenRef = useRef();
   const leftPanelRef = useRef();
   const rightPanelRef = useRef();
+  const successOverlayRef = useRef();
+  const failedOverlayRef = useRef();
+  const qrPlaceholderRef = useRef();
+  const odoDigitRef = useRef();
 
   // State
+  const [paymentPhase, setPaymentPhase] = useState('checkout'); // 'checkout', 'payment'
   const [coupon, setCoupon] = useState("");
   const [promoStatus, setPromoStatus] = useState("idle"); // idle, checking, success, failed
   const [price, setPrice] = useState(40000);
   const [originalPrice, setOriginalPrice] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [qrData, setQrData] = useState(null);
   const [paymentStatus, setPaymentStatus] = useState("pending"); // pending, success, failed
@@ -35,31 +41,6 @@ const PaymentScreen = forwardRef(({ onBack, onSuccess, printCopies, setPrintCopi
     //fade in watermark, panel kiri, panel kanan
     entranceEditorialLayout(tl, { duration: 800 });
 
-    // Parallax Slide-in from Right to Left
-    // Giant Watermark (Deepest parallax)
-    // tl.add('.watermark-sideways', {
-    //   translateX: [300, 0],
-    //   opacity: [0, 0.04],
-    //   duration: 1100,
-    //   easing: 'easeOutQuart'
-    // }, 50);
-
-    // // Left Panel UI Elements
-    // tl.add(leftPanelRef.current, {
-    //   translateX: [150, 0],
-    //   opacity: [0, 1],
-    //   duration: 650,
-    //   easing: 'easeOutCubic'
-    // }, 150);
-
-    // // Right Panel (QR & Price)
-    // tl.add(rightPanelRef.current, {
-    //   translateX: [100, 0],
-    //   opacity: [0, 1],
-    //   duration: 750,
-    //   easing: 'easeOutCubic'
-    // }, 200);
-
     return () => {
       if (tl) tl.pause();
     };
@@ -76,40 +57,42 @@ const PaymentScreen = forwardRef(({ onBack, onSuccess, printCopies, setPrintCopi
     }
   }, [printCopies, promoStatus]);
 
-  useEffect(() => {
-    const fetchQr = async () => {
-      try {
-        setIsLoading(true);
-        setError(null);
+  const fetchQr = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
 
-        const response = await fetch('http://localhost:8000/api/qris/mock-generate', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
-          },
-          body: JSON.stringify({
-            "kiosk_id": "HYPEBOX-DEV-01",
-            "package_id": "premium_grid"
-          })
-        });
+      const response = await fetch('http://localhost:8000/api/qris/mock-generate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+          "kiosk_id": "HYPEBOX-DEV-01",
+          "package_id": "premium_grid"
+        })
+      });
 
-        if (!response.ok) {
-          throw new Error('Hardware Network Error');
-        }
-
-        const data = await response.json();
-        setQrData(data);
-      } catch (err) {
-        console.error('Fetch error:', err);
-        setError('Hardware Network Error');
-      } finally {
-        setIsLoading(false);
+      if (!response.ok) {
+        throw new Error('Hardware Network Error');
       }
-    };
 
+      const data = await response.json();
+      setQrData(data);
+      setPaymentPhase('payment');
+    } catch (err) {
+      console.error('Fetch error:', err);
+      setError('Hardware Network Error');
+      setPaymentPhase('payment'); // Go to payment phase to show error
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleConfirmCheckout = () => {
     fetchQr();
-  }, []);
+  };
 
   const handleCancel = () => {
     animate(screenRef.current, {
@@ -134,9 +117,7 @@ const PaymentScreen = forwardRef(({ onBack, onSuccess, printCopies, setPrintCopi
     // 2. Set local success status
     setPaymentStatus("success");
 
-    // 3. Status animation handled by useEffect below
-
-    // 4. Delay before transitioning to next screen - TIGHT HANDSHAKE
+    // 3. Delay before transitioning to next screen - TIGHT HANDSHAKE
     setTimeout(() => {
       const exitTl = createTimeline({
         onComplete: () => {
@@ -158,12 +139,7 @@ const PaymentScreen = forwardRef(({ onBack, onSuccess, printCopies, setPrintCopi
 
   const handlePaymentRetry = () => {
     setPaymentStatus("pending");
-    // Animation for returning to QR state
-    animate('.qr-placeholder-text', {
-      opacity: [0, 1],
-      duration: 500,
-      easing: 'linear'
-    });
+    fetchQr();
   };
 
   const [showNumpad, setShowNumpad] = useState(false);
@@ -171,15 +147,15 @@ const PaymentScreen = forwardRef(({ onBack, onSuccess, printCopies, setPrintCopi
 
   // Status Animations
   useEffect(() => {
-    if (paymentStatus === "success") {
-      animate('.payment-status-overlay.success', {
+    if (paymentStatus === "success" && successOverlayRef.current) {
+      animate(successOverlayRef.current, {
         scale: [0.8, 1],
         opacity: [0, 1],
         duration: 300,
         easing: 'easeOutBack(1.7)'
       });
-    } else if (paymentStatus === "failed") {
-      animate('.payment-status-overlay.failed', {
+    } else if (paymentStatus === "failed" && failedOverlayRef.current) {
+      animate(failedOverlayRef.current, {
         translateY: [20, 0],
         opacity: [0, 1],
         duration: 300,
@@ -229,26 +205,36 @@ const PaymentScreen = forwardRef(({ onBack, onSuccess, printCopies, setPrintCopi
     }, 1500);
   };
 
+  const handleSetCopies = (val) => {
+    if (val < 1 || val > 10) return;
+    setPrintCopies(val);
+  };
+
+  // Punchy QTY Animation
+  useEffect(() => {
+    if (odoDigitRef.current) {
+      animate(odoDigitRef.current, {
+        scale: [0.8, 1],
+        opacity: [0, 1],
+        duration: 400,
+        easing: 'easeOutBack(1.7)'
+      });
+    }
+  }, [printCopies]);
+
+  const getRotation = (i) => {
+    const seeds = [1.2, -0.8, 1.9, -1.5, 0.5, -1.2, 1.7, -0.3, 0.9, -1.8];
+    return seeds[i % seeds.length];
+  };
+
   return (
     <div
       ref={screenRef}
-      className="milky-mica-background screen-container payment-screen"
+      className={`milky-mica-background screen-container ${styles.screen}`}
       style={{
         zIndex: 10
       }}
     >
-      {/* EXIT OVERLAY */}
-      {/* <div className="page-exit-white-overlay" style={{
-        position: 'absolute',
-        inset: 0,
-        backgroundColor: 'white',
-        opacity: 0,
-        zIndex: 10000,
-        pointerEvents: 'none'
-      }}></div> */}
-
-      {/* PAGE ENTRANCE OVERLAY - Removed to prevent white flash */}
-
 
       {/* PANEL KIRI: Kendali & Instruksi */}
       <div ref={leftPanelRef} className="panel-left">
@@ -257,46 +243,60 @@ const PaymentScreen = forwardRef(({ onBack, onSuccess, printCopies, setPrintCopi
 
         <div style={{ width: '100%', marginTop: 'auto', marginBottom: 'auto', zIndex: 20 }}>
           {/* The Hero Overlap Title */}
-          <div className="hero-h1-container">
-            <div className="hero-title-halo" />
-            <div className="hero-bullet">▌</div>
-            <h2 className="hero-h1">PAYMENT</h2>
+          <div className="side-display-container">
+            <div className="side-display-bullet">▌</div>
+            <h2 className="side-display-h1">PAYMENT</h2>
           </div>
 
-          <div className="instruction-list">
-            <div className="instruction-step">
-              <span className="instruction-num">01.</span>
-              <p className="instruction-text">SCAN QR CODE USING YOUR E-WALLET APP.</p>
-            </div>
-            <div className="instruction-step">
-              <span className="instruction-num">02.</span>
-              <p className="instruction-text">CONFIRM THE NOMINAL ON YOUR DEVICE.</p>
-            </div>
-            <div className="instruction-step">
-              <span className="instruction-num">03.</span>
-              <p className="instruction-text">WAIT FOR SYSTEM TO VERIFY (DO NOT CLOSE).</p>
-            </div>
+          <div className={styles.instructionList}>
+            {paymentPhase === 'checkout' ? (
+              <>
+                <div className={styles.instructionStep}>
+                  <span className={styles.instructionNum}>01.</span>
+                  <p className={styles.instructionText}>CHOOSE HOW MANY COPIES YOU NEED.</p>
+                </div>
+                <div className={styles.instructionStep}>
+                  <span className={styles.instructionNum}>02.</span>
+                  <p className={styles.instructionText}>CONFIRM THE SELECTION TO GENERATE QR.</p>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className={styles.instructionStep}>
+                  <span className={styles.instructionNum}>01.</span>
+                  <p className={styles.instructionText}>SCAN QR CODE USING YOUR E-WALLET APP.</p>
+                </div>
+                <div className={styles.instructionStep}>
+                  <span className={styles.instructionNum}>02.</span>
+                  <p className={styles.instructionText}>CONFIRM THE NOMINAL ON YOUR DEVICE.</p>
+                </div>
+                <div className={styles.instructionStep}>
+                  <span className={styles.instructionNum}>03.</span>
+                  <p className={styles.instructionText}>WAIT FOR SYSTEM TO VERIFY (DO NOT CLOSE).</p>
+                </div>
+              </>
+            )}
           </div>
 
-          <div className="promo-container">
-            <span className="promo-label">HAVE A PROMO CODE?</span>
+          <div className={styles.promoContainer}>
+            <span className={styles.promoLabel}>HAVE A PROMO CODE?</span>
             <div
-              className={`promo-input-clean ${promoStatus} ${showNumpad ? 'focused' : ''}`}
+              className={`${styles.promoInput} ${promoStatus === 'checking' ? styles.statusChecking : ''} ${promoStatus === 'success' ? styles.statusSuccess : ''} ${promoStatus === 'failed' ? styles.statusFailed : ''} ${showNumpad ? styles.focused : ''}`}
               onClick={() => setShowNumpad(!showNumpad)}
             >
               {coupon || (showNumpad ? "" : <span style={{ color: "rgba(var(--theme-text-muted-rgb), 0.5)" }}>TAP TO ENTER CODE</span>)}
-              {showNumpad && <span className="blinking-cursor">|</span>}
+              {showNumpad && <span className={styles.blinkingCursor}>|</span>}
             </div>
-            {promoStatus === "checking" && <span className="coupon-status-msg status-checking">VERIFYING...</span>}
-            {promoStatus === "success" && <span className="coupon-status-msg status-success">CODE APPLIED</span>}
-            {promoStatus === "failed" && <span className="coupon-status-msg status-failed">INVALID CODE</span>}
+            {promoStatus === "checking" && <span className={`${styles.couponStatusMsg} ${styles.statusChecking}`}>VERIFYING...</span>}
+            {promoStatus === "success" && <span className={`${styles.couponStatusMsg} ${styles.statusSuccess}`}>CODE APPLIED</span>}
+            {promoStatus === "failed" && <span className={`${styles.couponStatusMsg} ${styles.statusFailed}`}>INVALID CODE</span>}
 
             {promoStatus !== "success" && showNumpad && (
-              <div ref={numpadRef} className="numpad-editorial">
+              <div ref={numpadRef} className={styles.numpad}>
                 {["1", "2", "3", "4", "5", "6", "7", "8", "9", "DEL", "0", "OK"].map(key => (
                   <button
                     key={key}
-                    className={`numpad-btn-clean ${key === "OK" ? "action-ok" : ""} ${key === "DEL" ? "action-del" : ""}`}
+                    className={`${styles.numpadBtn} ${key === "OK" ? styles.actionOk : ""} ${key === "DEL" ? styles.actionDel : ""}`}
                     onClick={() => {
                       if (key === "OK") validateCoupon();
                       else handleNumpadPress(key);
@@ -316,94 +316,153 @@ const PaymentScreen = forwardRef(({ onBack, onSuccess, printCopies, setPrintCopi
       {/* PANEL KANAN: Transaksi */}
       <div ref={rightPanelRef} className="panel-right panel-center-content">
 
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
+        <div className={styles.checkoutPhase}>
 
-          <div style={{ marginBottom: '2rem', display: 'flex', justifyContent: 'center' }}>
-            <img
-              src="https://upload.wikimedia.org/wikipedia/commons/a/a2/Logo_QRIS.svg"
-              alt="QRIS Logo"
-              style={{ width: '160px', height: 'auto', opacity: 0.9 }}
-            />
+          {/* INTERCHANGEABLE CONTENT */}
+          <div className={`${styles.phaseWrapper} ${styles.fadePhase}`} key={paymentPhase}>
+            {paymentPhase === 'checkout' ? (
+              <div className={styles.checkoutBody}>
+
+                <div className={styles.qtyEngineAxis} style={{ marginRight: '5rem' }}>
+                  <button className={styles.qtyStepperBtn} onClick={() => handleSetCopies(printCopies + 1)}>+</button>
+                  <div className={styles.qtyOdometerWindow}>
+                    <div
+                      className={styles.qtyOdometerTape}
+                      style={{ transform: `translateY(${(1 - printCopies) * 100}px)` }}
+                    >
+                      {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => (
+                        <div key={n} ref={printCopies === n ? odoDigitRef : null} className={styles.qtyOdometerDigit}>
+                          {n.toString().padStart(2, '0')}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <button className={styles.qtyStepperBtn} onClick={() => handleSetCopies(printCopies - 1)}>-</button>
+                </div>
+
+                <div className={styles.unoVisualAxis}>
+                  <div className={styles.unoStackContainer}>
+                    {Array.from({ length: printCopies }).map((_, index) => {
+                      const mid = (printCopies - 1) / 2;
+                      const targetX = (index - mid) * -10;
+                      const targetY = (index - mid) * 10;
+                      const targetRotate = getRotation(index);
+                      return (
+                        <div
+                          key={index}
+                          className={styles.unoCard}
+                          style={{
+                            zIndex: index,
+                            transform: `translate(${targetX}px, ${targetY}px) rotate(${targetRotate}deg)`,
+                            filter: `brightness(${100 - (printCopies - index - 1) * 1.1}%)`,
+                          }}
+                        >
+                          <img src="/taken_pic/default.png" alt={`Placeholder ${index + 1}`} />
+                          <div className="boundary-dashed-line-visual"></div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+
+              </div>
+            ) : (
+              <div className={styles.paymentPhase}>
+                <div style={{ marginBottom: '2rem', display: 'flex', justifyContent: 'center' }}>
+                  <img
+                    src="https://upload.wikimedia.org/wikipedia/commons/a/a2/Logo_QRIS.svg"
+                    alt="QRIS Logo"
+                    style={{ width: '160px', height: 'auto', opacity: 0.9 }}
+                  />
+                </div>
+
+                <div
+                  className="qr-scanner-monument"
+                  style={{
+                    width: '450px',
+                    height: '450px',
+                    background: '#FFFFFF',
+                    position: 'relative'
+                  }}
+                  onClick={(e) => {
+                    if (devFreeFlow && e.detail === 2) {
+                      console.log("[DevFreeFlow] Double-tap QR skip triggered.");
+                      handlePaymentSuccess();
+                    }
+                  }}
+                >
+                  <div className="vf-corner tl"></div>
+                  <div className="vf-corner tr"></div>
+                  <div className="vf-corner bl"></div>
+                  <div className="vf-corner br"></div>
+                  <div className="boundary-dashed-line-visual"></div>
+
+                  {isLoading && (
+                    <div className="payment-loading-state" style={{ textAlign: 'center', position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                      <div className="spinner-sleek animate-spin" style={{
+                        width: '40px',
+                        height: '40px',
+                        border: '3px solid rgba(0,0,0,0.1)',
+                        borderTopColor: '#111',
+                        borderRadius: '50%',
+                        margin: '0 auto 1.5rem'
+                      }}></div>
+                      <span ref={qrPlaceholderRef} className="qr-placeholder-text" style={{ fontSize: '0.75rem', fontWeight: 600, color: "rgba(0,0,0,0.4)", letterSpacing: '0.1rem', fontFamily: 'Space Grotesk' }}>
+                        GENERATING QR CODE...
+                      </span>
+                    </div>
+                  )}
+
+                  {!isLoading && error && (
+                    <div className="payment-error-state" style={{ textAlign: 'center', padding: '2rem', position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                      <div style={{ fontSize: '2.5rem', marginBottom: '1.5rem' }}>⚠️</div>
+                      <span ref={qrPlaceholderRef} className="qr-placeholder-text" style={{ fontSize: '0.75rem', fontWeight: 600, color: "#ff4444", letterSpacing: '0.1rem', fontFamily: 'Space Grotesk' }}>
+                        {error.toUpperCase()}
+                      </span>
+                      <button className={styles.retryButton} onClick={handlePaymentRetry} style={{ marginTop: '1rem' }}>RETRY</button>
+                    </div>
+                  )}
+
+                  {!isLoading && !error && qrData && paymentStatus === "pending" && (
+                    <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <img
+                        src={qrData.qr_url}
+                        alt="QRIS Payment"
+                        style={{ width: '350px', height: '350px', objectFit: 'contain' }}
+                      />
+                    </div>
+                  )}
+
+                  {paymentStatus === "success" && (
+                    <div ref={successOverlayRef} className={`${styles.statusOverlay} ${styles.success}`}>
+                      <div className={styles.statusIcon}>✓</div>
+                      <div className={styles.statusText}>PAYMENT VERIFIED</div>
+                      <div className={styles.statusSub}>PREPARING YOUR SESSION</div>
+                    </div>
+                  )}
+
+                  {paymentStatus === "failed" && (
+                    <div ref={failedOverlayRef} className={`${styles.statusOverlay} ${styles.failed}`}>
+                      <div className={styles.statusIcon}>✕</div>
+                      <div className={styles.statusText}>TRANSACTION FAILED</div>
+                      <button className={styles.retryButton} onClick={handlePaymentRetry}>RETRY TRANSACTION</button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
 
-          <div
-            style={{
-              width: '450px',
-              height: '450px',
-              background: 'transparent',
-              border: '2px dashed #999',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              position: 'relative',
-              overflow: 'hidden'
-            }}
-            onClick={(e) => {
-              if (devFreeFlow && e.detail === 2) {
-                console.log("[DevFreeFlow] Double-tap QR skip triggered.");
-                handlePaymentSuccess();
-              }
-            }}
-          >
-            {isLoading && (
-              <div className="payment-loading-state" style={{ textAlign: 'center' }}>
-                <div className="spinner-sleek animate-spin" style={{
-                  width: '40px',
-                  height: '40px',
-                  border: '3px solid rgba(0,0,0,0.1)',
-                  borderTopColor: '#111',
-                  borderRadius: '50%',
-                  margin: '0 auto 1.5rem'
-                }}></div>
-                <span className="qr-placeholder-text" style={{ fontSize: '0.75rem', fontWeight: 600, color: "rgba(0,0,0,0.4)", letterSpacing: '0.1rem', fontFamily: 'Space Grotesk' }}>
-                  GENERATING QR CODE...
-                </span>
-              </div>
-            )}
+          {paymentPhase === 'checkout' && (
+            <button className={`btn-tier-1 ${styles.confirmBtn}`} onClick={handleConfirmCheckout} disabled={isLoading}>
+              {isLoading ? "BNTAR YH.." : "NEXT"}
+            </button>
+          )}
 
-            {!isLoading && error && (
-              <div className="payment-error-state" style={{ textAlign: 'center', padding: '2rem' }}>
-                <div style={{ fontSize: '2.5rem', marginBottom: '1.5rem' }}>⚠️</div>
-                <span className="qr-placeholder-text" style={{ fontSize: '0.75rem', fontWeight: 600, color: "#ff4444", letterSpacing: '0.1rem', fontFamily: 'Space Grotesk' }}>
-                  {error.toUpperCase()}
-                </span>
-              </div>
-            )}
-
-            {!isLoading && !error && qrData && paymentStatus === "pending" && (
-              <img
-                src={qrData.qr_url}
-                alt="QRIS Payment"
-                style={{ width: '350px', height: '350px', objectFit: 'contain' }}
-              />
-            )}
-
-            {paymentStatus === "success" && (
-              <div className="payment-status-overlay success">
-                <div className="status-icon">✓</div>
-                <div className="status-text">PAYMENT VERIFIED</div>
-                <div className="status-sub">PREPARING YOUR SESSION</div>
-              </div>
-            )}
-
-            {paymentStatus === "failed" && (
-              <div className="payment-status-overlay failed">
-                <div className="status-icon">✕</div>
-                <div className="status-text">TRANSACTION FAILED</div>
-                <button className="btn-retry-payment" onClick={handlePaymentRetry}>RETRY TRANSACTION</button>
-              </div>
-            )}
-
-            {/* Decorative corners */}
-            <div style={{ position: 'absolute', top: '-2px', left: '-2px', width: '32px', height: '32px', borderTop: '6px solid #111', borderLeft: '6px solid #111' }}></div>
-            <div style={{ position: 'absolute', top: '-2px', right: '-2px', width: '32px', height: '32px', borderTop: '6px solid #111', borderRight: '6px solid #111' }}></div>
-            <div style={{ position: 'absolute', bottom: '-2px', left: '-2px', width: '32px', height: '32px', borderBottom: '6px solid #111', borderLeft: '6px solid #111' }}></div>
-            <div style={{ position: 'absolute', bottom: '-2px', right: '-2px', width: '32px', height: '32px', borderBottom: '6px solid #111', borderRight: '6px solid #111' }}></div>
-          </div>
-
-          <div className="payment-price-display" style={{ marginTop: '3rem', textAlign: 'center' }}>
-            {originalPrice && <span className="original-price" style={{ fontSize: '2rem' }}>Rp {originalPrice.toLocaleString()}</span>}
-            <div className="price-monument" style={{ fontSize: '6rem', marginTop: '0' }}>Rp {price.toLocaleString()}</div>
+          <div className={styles.priceDisplay} style={{ textAlign: 'center' }}>
+            {originalPrice && <span className={styles.originalPrice} style={{ fontSize: '2rem' }}>Rp {originalPrice.toLocaleString()}</span>}
+            <div className={styles.priceMonument}>Rp {price.toLocaleString()}</div>
           </div>
 
           {timerDisplay && (
@@ -443,16 +502,6 @@ const PaymentScreen = forwardRef(({ onBack, onSuccess, printCopies, setPrintCopi
               console.log("Mock WebSocket: Paid!");
               handlePaymentSuccess();
             }}
-          // style={{
-          //   position: 'fixed',
-          //   bottom: '0',
-          //   left: '0',
-          //   width: '40px',
-          //   height: '40px',
-          //   opacity: 1,
-          //   cursor: 'default',
-          //   zIndex: 9999
-          // }}
           >
             [DEV] Websocket TEST-PAYMENT-SUCCESS
           </button>
@@ -462,5 +511,6 @@ const PaymentScreen = forwardRef(({ onBack, onSuccess, printCopies, setPrintCopi
     </div>
   );
 });
+
 
 export default PaymentScreen;

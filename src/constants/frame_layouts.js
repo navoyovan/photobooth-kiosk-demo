@@ -28,9 +28,23 @@ export const DEFAULT_LAYOUTS = {
  * Helper to get the correct layout based on frame data
  */
 export const getFrameLayout = (frame) => {
+  if (!frame) return DEFAULT_LAYOUTS.SINGLE;
+
   // 1. Check if frame has slots_config from API
-  if (frame.slots_config && Array.isArray(frame.slots_config)) {
-    return frame.slots_config;
+  if (frame.slots_config) {
+    // Handle stringified JSON from backend
+    if (typeof frame.slots_config === 'string') {
+      try {
+        const parsed = JSON.parse(frame.slots_config);
+        if (Array.isArray(parsed)) return parsed;
+      } catch (e) {
+        console.error("[getFrameLayout] Failed to parse slots_config string:", e);
+      }
+    }
+    
+    if (Array.isArray(frame.slots_config)) {
+      return frame.slots_config;
+    }
   }
 
   // 2. Fallback to hardcoded defaults based on slot count

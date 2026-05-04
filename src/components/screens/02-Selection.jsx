@@ -6,12 +6,15 @@ import { useKioskBoot } from '../../hooks/useKioskBoot';
 import KioskIdentitySetup from '../shared/KioskIdentitySetup';
 import { exitEditorialLayout } from '../../utils/transitions';
 import { entranceEditorialLayout } from '../../utils/transitions';
+import styles from './02-Selection.module.css';
 
 
 const SelectionScreenInner = ({ onFinish, onPrepareCamera, kioskData, loading }) => {
   const screenRef = useRef(null);
   const rightPanelRef = useRef(null);
   const colRefs = useRef([]);
+  const watermarkRef = useRef(null);
+  const leftPanelRef = useRef(null);
   const [activeCategory, setActiveCategory] = useState("SPACE"); // SPACE or GRID
   const [activeFrame, setActiveFrame] = useState(null); // Nothing selected on mount
 
@@ -48,10 +51,10 @@ const SelectionScreenInner = ({ onFinish, onPrepareCamera, kioskData, loading })
 
     // Right Panel Fade-in
     animate(rightPanelRef.current, {
-      translateY: [10, 0],
+      translateY: [15, 0],
       opacity: [0, 1],
-      duration: 500,
-      easing: 'easeOutCubic'
+      duration: 800,
+      easing: 'easeOutQuart'
     });
   }, [activeCategory]);
 
@@ -141,7 +144,7 @@ const SelectionScreenInner = ({ onFinish, onPrepareCamera, kioskData, loading })
     // }, 100);
 
     // Individual Columns stagger - Removed redundant opacity to prevent blinking
-    tl.add('.scroll-col', {
+    tl.add(`.${styles.scrollCol}`, {
       translateX: [50, 0],
       duration: 600,
       delay: stagger(50),
@@ -172,7 +175,8 @@ const SelectionScreenInner = ({ onFinish, onPrepareCamera, kioskData, loading })
       category: f.category || 'SPACE',
       thumbnail: f.asset_path,
       name: f.name,
-      slots: f.slots || 1
+      slots: f.slots || 1,
+      slots_config: f.slots_config // Preserve punchhole config from backend
     })) || [];
 
     // 2. Add Hardcoded "Bonus" Frames (Dev / Basic)
@@ -181,14 +185,14 @@ const SelectionScreenInner = ({ onFinish, onPrepareCamera, kioskData, loading })
         id: 'bonus-basic',
         category: 'SPACE',
         thumbnail: '/frames/default.png',
-        name: 'HYPEBOX BASIC',
+        name: 'polaroid',
         slots: 1
       },
       {
         id: 'bonus-collage',
         category: 'GRID',
         thumbnail: '/collage/default.png',
-        name: 'HYPEBOX GRID',
+        name: 'pinterest style',
         slots: 4
       }
     ];
@@ -197,25 +201,25 @@ const SelectionScreenInner = ({ onFinish, onPrepareCamera, kioskData, loading })
     const combined = [...backendFrames, ...bonusFrames];
     const filtered = combined.filter(f => f.category === activeCategory);
 
-    const minItems = 6;
-    if (filtered.length < minItems) {
-      const placeholders = Array.from({ length: minItems - filtered.length }).map((_, i) => ({
-        id: `placeholder-${i}`,
-        isPlaceholder: true,
-        thumbnail: null,
-        name: "Coming Soon",
-        slots: 1
-      }));
-      return [...filtered, ...placeholders];
-    }
-    return filtered;
+    // 4. Always add a few placeholders for "Marketing Gimmick" 
+    // and ensure we have at least 6 items for the infinite loop stability
+    const placeholderCount = Math.max(2, 6 - filtered.length);
+    const placeholders = Array.from({ length: placeholderCount }).map((_, i) => ({
+      id: `placeholder-${i}`,
+      isPlaceholder: true,
+      thumbnail: null,
+      name: "Coming Soon",
+      slots: 1
+    }));
+
+    return [...filtered, ...placeholders];
   }, [activeCategory, kioskData, loading]);
 
   const infiniteCols = React.useMemo(() => {
     const cols = Array.from({ length: 4 }).map((_, colIndex) => {
       const base = [...filteredFrames.slice(colIndex), ...filteredFrames.slice(0, colIndex)];
       let massiveArray = [];
-      for (let i = 0; i < 10; i++) massiveArray = massiveArray.concat(base);
+      for (let i = 0; i < 6; i++) massiveArray = massiveArray.concat(base);
       return massiveArray;
     });
     return cols;
@@ -278,16 +282,31 @@ const SelectionScreenInner = ({ onFinish, onPrepareCamera, kioskData, loading })
 
       scrollState.current.current += (scrollState.current.target - scrollState.current.current) * 0.08;
 
+      // WARP LOOP: Only snap after 2 full sets to make it infrequent
+      const firstCol = colRefs.current[0];
+      if (firstCol && firstCol.scrollHeight > 0) {
+        const singleSetHeight = firstCol.scrollHeight / 6;
+        const currentPx = scrollState.current.current * 0.6;
+        //tweak the snap
+        const threshold = singleSetHeight * 2;
+        if (Math.abs(currentPx) > threshold) {
+          const snapAmount = singleSetHeight / 0.6;
+          const direction = Math.sign(scrollState.current.current);
+          scrollState.current.current -= direction * snapAmount;
+          scrollState.current.target -= direction * snapAmount;
+        }
+      }
+
       colRefs.current.forEach((col, index) => {
         if (!col) return;
         const direction = index % 2 === 0 ? 1 : -1;
-        
-        // BASE CENTER: Start every stick at its own middle
+
+        // BASE CENTER: Start every stick at its own middle (set 3 of 6)
         const baseMiddle = -(col.scrollHeight / 2);
-        
+
         // APPLY DELTA: Add or subtract based on direction
         const delta = scrollState.current.current * 0.6 * direction;
-        
+
         col.style.transform = `translateY(${baseMiddle + delta}px)`;
       });
 
@@ -320,33 +339,41 @@ const SelectionScreenInner = ({ onFinish, onPrepareCamera, kioskData, loading })
 
 
   return (
-    <div ref={screenRef} className="milky-mica-background selection-layout" >
+    <div ref={screenRef} className={styles.layout} >
       {/* EXIT OVERLAY */}
 
 
       {/* KIRI: Informasi & Kontrol */}
-      <div className="panel-left">
+      <div ref={leftPanelRef} className="panel-left">
         {/* Giant Rotated Bleeding Title */}
-        <h2 className="watermark-sideways">SELECT YOUR CANVAS</h2>
+        <h2 ref={watermarkRef} className="watermark-sideways">SELECT YOUR CANVAS</h2>
 
         <div style={{ display: 'flex', flexDirection: 'column', flexGrow: 1, justifyItems: 'flex-start', justifyContent: 'center', zIndex: 20 }}>
-          <div className="hero-h1-container">
-            <div className="hero-title-halo" />
-            <div ref={indicatorRef} className="hero-bullet">{'▌'}</div>
+          <div className="side-display-container">
+            <div ref={indicatorRef} className="side-display-bullet">{'▌'}</div>
             <div
-              ref={frameRefText}
-              className={`mode-toggle-option ${activeCategory === 'SPACE' ? 'active' : ''}`}
+              className={styles.modeToggleHitbox}
               onClick={() => setActiveCategory('SPACE')}
             >
-              FRAME
+              <div
+                ref={frameRefText}
+                className={`${styles.modeToggleOption} ${activeCategory === 'SPACE' ? styles.active : ''}`}
+              >
+                FRAME
+              </div>
             </div>
+
             <div
-              ref={collageRefText}
-              className={`mode-toggle-option ${activeCategory === 'GRID' ? 'active' : ''}`}
+              className={styles.modeToggleHitbox}
               onClick={() => setActiveCategory('GRID')}
               style={{ marginTop: '1rem' }}
             >
-              COLLAGE
+              <div
+                ref={collageRefText}
+                className={`${styles.modeToggleOption} ${activeCategory === 'GRID' ? styles.active : ''}`}
+              >
+                COLLAGE
+              </div>
             </div>
           </div>
         </div>
@@ -354,11 +381,11 @@ const SelectionScreenInner = ({ onFinish, onPrepareCamera, kioskData, loading })
 
       {/* KANAN: Grid Alternating Scroll */}
       <div className="panel-right" style={{ zIndex: 1 }} ref={rightPanelRef}>
-        <div className="grid-wrapper">
+        <div className={styles.gridWrapper}>
           {infiniteCols.map((colData, colIndex) => (
             <div
               key={colIndex}
-              className="scroll-col"
+              className={styles.scrollCol}
               ref={el => colRefs.current[colIndex] = el}
               style={{ marginTop: colIndex % 2 !== 0 ? '-150px' : '0' }}
             >
@@ -370,7 +397,7 @@ const SelectionScreenInner = ({ onFinish, onPrepareCamera, kioskData, loading })
                 return (
                   <div
                     key={uniqueId}
-                    className={`frame-card ${isHero ? 'hero' : ''} ${isDimmed ? 'dimmed' : ''} ${frame.isPlaceholder ? 'placeholder' : ''}`}
+                    className={`${styles.frameCard} ${isHero ? styles.hero : ''} ${isDimmed ? styles.dimmed : ''} ${frame.isPlaceholder ? styles.placeholder : ''}`}
                     onClick={() => {
                       if (frame.isPlaceholder) return;
                       activeFrameRef.current = frame.id;
@@ -397,27 +424,31 @@ const SelectionScreenInner = ({ onFinish, onPrepareCamera, kioskData, loading })
         if (!selected) return null;
         return (
           <div
-            className="frame-preview-overlay"
+            className={`${styles.selectionModal} milky-mica-background`}
             ref={modalOverlayRef}
             onClick={() => { activeFrameRef.current = null; setActiveFrame(null); }}
           >
             <div
-              className="frame-preview-content"
+              className={styles.modalContent}
               ref={modalContentRef}
               onClick={e => e.stopPropagation()}
             >
-
-              <div className="frame-preview-artifact">
+              <div className={styles.artifactWrapper}>
                 <EditorialSkeletonFrame
                   src={selected.thumbnail}
                   alt={selected.name}
                 />
+                <div className="vf-corner tl"></div>
+                <div className="vf-corner tr"></div>
+                <div className="vf-corner bl"></div>
+                <div className="vf-corner br"></div>
+                <div className="boundary-dashed-line-visual"></div>
               </div>
 
-              <div className="curator-note">[ PREVIEW ] — TAP OUTSIDE TO DISMISS</div>
+              <div className={styles.note}>[ PREVIEW ] — TAP OUTSIDE TO DISMISS</div>
 
               <button
-                className="btn-tier-1 "
+                className="btn-tier-1"
                 onClick={() => {
                   onPrepareCamera?.();
                   handleFinish(activeFrame);

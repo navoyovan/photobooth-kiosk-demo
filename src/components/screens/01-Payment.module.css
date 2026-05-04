@@ -1,0 +1,372 @@
+.screen {
+  padding: 0;
+  display: flex;
+  flex-direction: row;
+  justify-content: stretch;
+  align-items: stretch;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.statusOverlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  text-align: center;
+  background: rgba(247, 247, 246, 0.95);
+}
+
+.statusOverlay.success {
+  background: rgba(var(--theme-accent-rgb), 0.1);
+  backdrop-filter: blur(8px);
+}
+
+.statusIcon {
+  font-size: 5rem;
+  line-height: 1;
+  margin-bottom: 1rem;
+}
+
+.statusChecking {
+  color: #555;
+}
+
+.statusSuccess {
+  color: #008000;
+}
+
+.statusFailed {
+  color: #ff0000;
+}
+
+.statusOverlay.success .statusIcon {
+  color: #00d26a;
+}
+
+.statusOverlay.failed .statusIcon {
+  color: #ff3232;
+}
+
+.statusText {
+  font-family: 'Syne', sans-serif;
+  font-weight: 900;
+  font-size: 1.5rem;
+  letter-spacing: 0.1rem;
+  color: #111;
+}
+
+.statusSub {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 0.7rem;
+  font-weight: 700;
+  margin-top: 0.5rem;
+  opacity: 0.6;
+  letter-spacing: 0.2rem;
+}
+
+.retryButton {
+  margin-top: 2rem;
+  background: #111;
+  color: #fff;
+  border: none;
+  padding: 0.8rem 1.5rem;
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 800;
+  font-size: 0.8rem;
+  letter-spacing: 0.1rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.retryButton:hover {
+  background: #333;
+  transform: translateY(-2px);
+}
+
+.instructionList {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  margin-left: 3.5rem;
+}
+
+.instructionStep {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.instructionNum {
+  font-family: 'Syne', sans-serif;
+  font-weight: 800;
+  color: #A0A0A0;
+  font-size: 0.85rem;
+  padding-top: 0.1rem;
+}
+
+.instructionText {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 0.85rem;
+  line-height: 1.6;
+  letter-spacing: 0.05em;
+  color: #666666;
+  display: flex;
+  flex-direction: column;
+}
+
+.promoContainer {
+  margin-top: 3rem;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  padding-left: 3.5rem;
+}
+
+.promoLabel {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 0.65rem;
+  letter-spacing: 0.1em;
+  color: #888888;
+  text-transform: uppercase;
+  margin-bottom: 0.5rem;
+  display: block;
+}
+
+.promoInput {
+  border: none;
+  border-bottom: 2px solid #111111;
+  background: transparent;
+  padding: 0.5rem 0;
+  border-radius: 0;
+  outline: none;
+  font-family: 'Syne', sans-serif;
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #111111;
+  width: 100%;
+  display: flex;
+  align-items: center;
+}
+
+.promoInput.focused {
+  border-bottom-color: var(--accent-color);
+}
+
+.blinkingCursor {
+  width: 3px;
+  height: 24px;
+  background: #000;
+  margin-left: 4px;
+  animation: pulse-soft 0.8s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.couponStatusMsg {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  margin-top: 0.5rem;
+  display: block;
+}
+
+.numpad {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+  width: 100%;
+}
+
+.numpadBtn {
+  height: 3.5rem;
+  background: rgba(0, 0, 0, 0.03);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  font-family: 'Syne', sans-serif;
+  font-weight: 800;
+  font-size: 1.1rem;
+  color: #111;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.numpadBtn:hover {
+  background: rgba(0, 0, 0, 0.06);
+  border-color: rgba(0, 0, 0, 0.2);
+}
+
+.numpadBtn:active {
+  background: #000;
+  color: var(--accent-color);
+  transform: scale(0.96);
+}
+
+.numpadBtn.actionDel {
+  color: #888;
+  font-weight: 400;
+  font-size: 0.8rem;
+  letter-spacing: 0.05rem;
+}
+
+.numpadBtn.actionOk {
+  background: #111;
+  color: var(--accent-color);
+  border-color: #111;
+}
+
+.numpadBtn.actionOk:hover {
+  background: #222;
+}
+
+.priceDisplay {
+  margin-top: 2rem;
+}
+
+.originalPrice {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #888;
+  text-decoration: line-through;
+  margin-bottom: -1rem;
+  display: block;
+}
+
+.priceMonument {
+  font-family: 'Syne', sans-serif;
+  font-size: 5.5rem;
+  font-weight: 800;
+  color: #111111;
+  margin-top: 2rem;
+  line-height: 1;
+}
+
+/* MINI CHECKOUT UI */
+.checkoutPhase {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+
+.checkoutBody {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 6rem;
+  width: 100%;
+  margin-bottom: 2rem;
+}
+
+.qtyEngineAxis {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.qtyStepperBtn {
+  font-family: 'Syne', sans-serif;
+  font-size: 3rem;
+  color: rgba(0, 0, 0, 0.1);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  line-height: 1;
+  transition: color 0.2s, transform 0.2s;
+}
+
+.qtyStepperBtn:active {
+  color: var(--accent-color);
+  transform: scale(1.1);
+}
+
+.qtyOdometerWindow {
+  height: 100px;
+  width: 250px;
+  overflow: hidden;
+  position: relative;
+  display: flex;
+  justify-content: center;
+}
+
+.qtyOdometerTape {
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.6s cubic-bezier(0.23, 1, 0.32, 1);
+  width: 100%;
+}
+
+.qtyOdometerDigit {
+  font-family: 'Syne', sans-serif;
+  font-weight: 800;
+  font-size: 6rem;
+  color: #111;
+  line-height: 100px;
+  height: 100px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.unoVisualAxis {
+  height: 45vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.unoStackContainer {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.unoCard {
+  position: absolute;
+  height: 35vh;
+  width: auto;
+  background: #FFF;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.05);
+  transform-origin: center center;
+  transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1), filter 0.4s ease;
+}
+
+.unoCard img {
+  height: 100%;
+  width: auto;
+  display: block;
+}
+
+.confirmBtn {
+  margin-top: 2rem;
+  width: 100%;
+  max-width: 350px;
+}
+
+/* TRANSITIONS */
+.fadePhase {
+  animation: phaseFadeIn 0.5s ease-out forwards;
+}
+
+@keyframes phaseFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

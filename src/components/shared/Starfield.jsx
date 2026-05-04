@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useMemo } from 'react';
-import { animate } from 'animejs';
+import { animate, cubicBezier } from 'animejs';
 
 const FloatingPhotos = ({ previousImage, isOutro, isVisible, isTransformed, showPhotos = true }) => {
   const canvasRef = useRef(null);
@@ -8,6 +8,7 @@ const FloatingPhotos = ({ previousImage, isOutro, isVisible, isTransformed, show
   const isOutroRef = useRef(isOutro);
   const showPhotosRef = useRef(showPhotos);
   const globalPhotosOpacity = useRef({ value: showPhotos ? 1 : 0 });
+
 
   // Pre-load all collage images
   const loadedImages = useMemo(() => {
@@ -32,6 +33,7 @@ const FloatingPhotos = ({ previousImage, isOutro, isVisible, isTransformed, show
 
     if (showPhotos !== showPhotosRef.current) {
       showPhotosRef.current = showPhotos;
+
       animate(globalPhotosOpacity.current, {
         value: showPhotos ? 1 : 0,
         duration: 1500,
@@ -228,8 +230,9 @@ const FloatingPhotos = ({ previousImage, isOutro, isVisible, isTransformed, show
         height: '100%',
         zIndex: 0,
         pointerEvents: 'none',
-        background: isOutro ? '#000' : 'var(--mica-light)',
-        transition: 'background 2s ease-in-out, opacity 1s ease-in-out',
+        background: isOutro ? '#000' : 'transparent',
+
+        transition: 'background 2s ease-in-out, opacity 0.5s ease-out',
         opacity: isVisible ? 1 : 0,
       }}
     />

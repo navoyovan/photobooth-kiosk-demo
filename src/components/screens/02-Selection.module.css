@@ -1,0 +1,229 @@
+.layout {
+  display: flex;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  position: relative;
+  z-index: 20;
+}
+
+.modeToggleOption {
+  font-family: 'Syne', sans-serif;
+  font-size: 6rem;
+  font-weight: 800;
+  line-height: 0.85;
+  color: #A0A0A0;
+  text-transform: uppercase;
+  position: relative;
+  z-index: 2;
+  margin-left: 0;
+  transition: color 0.3s ease;
+  pointer-events: none;
+  /* Let clicks pass through to the grid behind the bleed */
+}
+
+.modeToggleOption:not(.active) {
+  animation: unfocused-pulse 2s infinite ease-in-out;
+  mix-blend-mode: screen;
+}
+
+.modeToggleHitbox {
+  cursor: pointer;
+  position: relative;
+  z-index: 50;
+  /* Above everything in panel-left */
+  width: 100%;
+  /* Stays within the 35% panel width */
+  display: flex;
+  flex-direction: column;
+}
+
+@keyframes unfocused-pulse {
+
+  0%,
+  100% {
+    color: #A0A0A0;
+  }
+
+  50% {
+    color: #D0D0D0;
+  }
+}
+
+.modeToggleOption.active {
+  color: #111111;
+}
+
+/* NORMAL GRID */
+.gridWrapper {
+  display: flex;
+  flex-direction: row;
+  gap: 2rem;
+  padding: 2rem 3rem;
+  height: 100%;
+  width: 102%;
+  box-sizing: border-box;
+  align-items: stretch;
+  transform: rotate(-2deg);
+  transform-origin: center center;
+  will-change: transform;
+}
+
+.scrollCol {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1.8rem;
+  will-change: transform;
+}
+
+/* FORMER STYLING REFERENCE OVERSIZED GRID
+.scrollCol {
+  flex: 1 0 25%;
+  min-width: 250px;
+  display: flex;
+  flex-direction: column;
+  gap: 1.8rem;
+  will-change: transform;
+}
+.gridWrapper {
+  display: flex;
+  flex-direction: row;
+  gap: 2rem;
+  padding: 2rem;
+  height: 100%;
+  align-items: stretch;
+  transform: rotate(-2deg);
+  transform-origin: center center;
+  will-change: transform;
+}
+*/
+
+.frameCard {
+  width: 100%;
+  background-color: #ffffff;
+  border: 1px solid #2b2927;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  transition: transform 0.35s cubic-bezier(0.22, 0.61, 0.36, 1),
+    opacity 0.35s cubic-bezier(0.22, 0.61, 0.36, 1),
+    filter 0.35s cubic-bezier(0.22, 0.61, 0.36, 1),
+    box-shadow 0.35s cubic-bezier(0.22, 0.61, 0.36, 1);
+  overflow: visible;
+  position: relative;
+  backface-visibility: hidden;
+  transform: translateZ(0);
+  cursor: pointer;
+}
+
+.frameCard.dimmed {
+  opacity: 0.35;
+  transform: scale(0.96) translateZ(0);
+  filter: grayscale(90%);
+}
+
+.frameCard.hero {
+  z-index: 100;
+  transform: scale(1.04) translateZ(0);
+  box-shadow: 0 30px 60px rgba(0, 0, 0, 0.15), 0 10px 20px rgba(0, 0, 0, 0.05);
+}
+
+.frameCard.hero::after {
+  content: "";
+  position: absolute;
+  top: -12px;
+  left: -12px;
+  right: -12px;
+  bottom: -12px;
+  border: 2px solid var(--accent-color);
+  pointer-events: none;
+  mix-blend-mode: multiply;
+  z-index: 101;
+}
+
+
+/* --- REWRITTEN SELECTION MODAL SYSTEM --- */
+.selectionModal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 99999;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  opacity: 0;
+  animation: modal-fade-in 0.4s ease forwards;
+}
+
+.modalContent {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3rem;
+  width: 100%;
+  pointer-events: none;
+}
+
+.modalContent>* {
+  pointer-events: auto;
+}
+
+.artifactWrapper {
+  position: relative;
+  max-height: 55vh;
+  max-width: 80vw;
+  box-shadow: 0 40px 40px rgba(0, 0, 0, 0.1);
+  animation: modal-slide-up 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.artifactWrapper img {
+  display: block;
+  max-height: 55vh;
+  max-width: 100%;
+  width: auto;
+  height: auto;
+  /* border: 1px solid #2b2927; */
+}
+
+.note {
+  font-family: 'Space Grotesk', monospace;
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: #000;
+  letter-spacing: 0.1rem;
+  text-transform: uppercase;
+  opacity: 0.6;
+  animation: pulse-soft 2.5s ease-in-out infinite;
+}
+
+@keyframes modal-fade-in {
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes modal-slide-up {
+  from {
+    transform: translateY(40px) scale(0.95);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+}
+
+.previewArtifact {
+  width: 100%;
+  max-height: 60vh;
+  display: block;
+}
