@@ -1,6 +1,7 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { animate, createTimeline } from 'animejs';
 import { entranceAqcuisitionLayout } from '../../utils/transitions';
+import { convertToWebP, saveToLocalStarfield } from '../../utils/imageProcessor';
 import styles from './05-Export.module.css';
 
 const ExportScreen = ({ finalImage, printCopies, onFinish, kioskId, devFreeFlow }) => {
@@ -11,6 +12,8 @@ const ExportScreen = ({ finalImage, printCopies, onFinish, kioskId, devFreeFlow 
   const watermarkRef = useRef(null);
 
   const timelineRef = useRef(null);
+  const [isDonating, setIsDonating] = useState(false);
+  const [isProcessingDonation, setIsProcessingDonation] = useState(false);
 
   useEffect(() => {
     if (timelineRef.current) timelineRef.current.pause();
@@ -80,7 +83,18 @@ const ExportScreen = ({ finalImage, printCopies, onFinish, kioskId, devFreeFlow 
     return () => clearInterval(interval);
   }, [printCopies]);
 
-  const handleManualExit = () => {
+  const handleManualExit = async () => {
+    if (isDonating && finalImage) {
+      setIsProcessingDonation(true);
+      try {
+        const webpBlob = await convertToWebP(finalImage);
+        await saveToLocalStarfield(webpBlob);
+      } catch (err) {
+        console.error("[Export] Donation failed:", err);
+      }
+      setIsProcessingDonation(false);
+    }
+
     animate(screenRef.current, {
       opacity: 0,
       scale: 0.95,
@@ -161,11 +175,28 @@ const ExportScreen = ({ finalImage, printCopies, onFinish, kioskId, devFreeFlow 
           </div>
         </div>
 
-        {progress >= 100 && (
-          <button className="btn-tier-1" onClick={handleManualExit}>
-            COMPLETE SESSION ✕
+        <div className={styles.finalActions}>
+          <label className={styles.donateToggle}>
+            <input 
+              type="checkbox" 
+              checked={isDonating} 
+              onChange={(e) => setIsDonating(e.target.checked)} 
+              disabled={isProcessingDonation}
+            />
+            <span className={styles.donateLabel}>
+              {isProcessingDonation ? 'PROCESING_DONATION...' : 'DONATE_TO_COMMUNITY_STARFIELD'}
+            </span>
+          </label>
+          
+          <button 
+            className="btn-tier-1" 
+            onClick={handleManualExit}
+            disabled={isProcessingDonation || progress < 100}
+            style={{ opacity: progress < 100 ? 0.3 : 1, cursor: progress < 100 ? 'not-allowed' : 'pointer' }}
+          >
+            {isProcessingDonation ? 'WAIT...' : (progress < 100 ? 'PRINTING_IN_PROGRESS...' : 'COMPLETE SESSION ✕')}
           </button>
-        )}
+        </div>
       </div>
     </div>
   );

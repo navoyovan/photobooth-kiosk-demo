@@ -28,27 +28,31 @@ export const DEFAULT_LAYOUTS = {
  * Helper to get the correct layout based on frame data
  */
 export const getFrameLayout = (frame) => {
-  if (!frame) return DEFAULT_LAYOUTS.SINGLE;
+  let layout = DEFAULT_LAYOUTS.SINGLE;
 
-  // 1. Check if frame has slots_config from API
-  if (frame.slots_config) {
-    // Handle stringified JSON from backend
+  if (frame && frame.slots_config) {
+    let raw = [];
     if (typeof frame.slots_config === 'string') {
-      try {
-        const parsed = JSON.parse(frame.slots_config);
-        if (Array.isArray(parsed)) return parsed;
-      } catch (e) {
-        console.error("[getFrameLayout] Failed to parse slots_config string:", e);
-      }
+      try { raw = JSON.parse(frame.slots_config); } catch (e) { console.error(e); }
+    } else if (Array.isArray(frame.slots_config)) {
+      raw = frame.slots_config;
     }
-    
-    if (Array.isArray(frame.slots_config)) {
-      return frame.slots_config;
+
+    if (Array.isArray(raw) && raw.length > 0) {
+      layout = raw;
     }
+  } else if (frame && frame.slots === 4) {
+    layout = DEFAULT_LAYOUTS.GRID_4;
   }
 
-  // 2. Fallback to hardcoded defaults based on slot count
-  if (frame.slots === 4) return DEFAULT_LAYOUTS.GRID_4;
-  
-  return DEFAULT_LAYOUTS.SINGLE;
+  if (!Array.isArray(layout)) layout = DEFAULT_LAYOUTS.SINGLE;
+
+  // Normalize: Ensure x, y, w, h exist and handle common aliases (width, height, left, top)
+  return layout.map((s, idx) => ({
+    id: s.id ?? idx,
+    x: Number(s.x ?? s.left ?? 0),
+    y: Number(s.y ?? s.top ?? 0),
+    w: Number(s.w ?? s.width ?? 100),
+    h: Number(s.h ?? s.height ?? 100),
+  }));
 };

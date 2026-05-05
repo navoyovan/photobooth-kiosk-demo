@@ -114,8 +114,8 @@ body {
   background: linear-gradient(135deg,
       rgba(255, 255, 255, 0.78) 0%,
       rgba(252, 250, 245, 0.65) 100%);
-  backdrop-filter: blur(20px) saturate(140%) brightness(1.05);
-  -webkit-backdrop-filter: blur(20px) saturate(140%) brightness(1.05);
+  backdrop-filter: blur(40px) saturate(140%) brightness(1.05);
+  -webkit-backdrop-filter: blur(40px) saturate(140%) brightness(1.05);
 
   /* Specular Highlight & Soft Shadow */
   border: 1px solid rgba(255, 255, 255, 0.2);
@@ -170,7 +170,7 @@ body {
 .panel-left {
   width: 35%;
   height: 100%;
-  padding: 4rem 0rem 4rem 2rem;
+  padding: 4rem 0rem 4rem 7.5rem;
 
   display: flex;
 
@@ -377,7 +377,7 @@ body {
   position: relative;
   display: flex;
   flex-direction: column;
-  margin-left: 3.5rem;
+  margin-left: 0;
   margin-bottom: 3rem;
 }
 
@@ -1639,14 +1639,23 @@ body {
 
 
 /* Layer Switcher Square Style */
-.layer-switcher-vertical {
-  position: absolute;
-  left: -6rem;
-  top: 0;
+.layer-switch.dev-mode-indicator-group {
+  position: fixed;
+  top: 2rem;
+  left: 2rem;
   display: flex;
   flex-direction: column;
-  gap: 1rem;
-  z-index: 100;
+  gap: 0.8rem;
+  z-index: 2147483647; /* Absolute maximum z-index */
+  pointer-events: none; /* Allow clicks through to children */
+}
+
+.dev-mode-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  pointer-events: auto; /* Re-enable for the buttons themselves */
 }
 
 .layer-label-micro {
@@ -2032,27 +2041,54 @@ body {
   pointer-events: auto;
 }
 
-.telemetry-pulse-dot {
-  width: 14px;
-  height: 14px;
-  background: var(--accent-color);
-  border-radius: 50%;
-  /* box-shadow: 0 0 15px var(--accent-color); */
-  animation: telemetry-pulse-smooth 2s infinite ease-in-out;
+.telemetry-pulse-container {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
-@keyframes telemetry-pulse-smooth {
+.telemetry-pulse-label {
+  font-family: 'Neue Machina', sans-serif;
+  font-size: 0.6rem;
+  color: #00FF00;
+  letter-spacing: 0.05em;
+  opacity: 0.8;
+  font-weight: 900;
+}
 
-  0%,
-  100% {
-    opacity: 1;
-    transform: scale(1);
-  }
+.telemetry-pulse-dot {
+  width: 8px;
+  height: 8px;
+  background-color: #00FF00;
+  border-radius: 50%;
+  box-shadow: 0 0 12px rgba(0, 255, 0, 0.6);
+  animation: telemetry-pulse 1.5s infinite;
+}
 
-  50% {
-    opacity: 0.3;
-    transform: scale(0.8);
-  }
+@keyframes telemetry-pulse {
+  0% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.4); opacity: 0.4; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.dev-mode-indicator.status-tag {
+  font-size: 0.6rem;
+  padding: 4px 8px;
+  border-radius: 2px;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+}
+
+.dev-mode-indicator.status-tag.registered {
+  background-color: #00FF0015;
+  color: #00FF00;
+  border: 1px solid #00FF0030;
+}
+
+.dev-mode-indicator.status-tag.pending {
+  background-color: #FFD70015;
+  color: #FFD700;
+  border: 1px solid #FFD70030;
 }
 
 .telemetry-massive-time {
@@ -2523,3 +2559,56 @@ body {
 /* ---------------------------------
    GALLERY ACQUISITION CERTIFICATE (White Card Variant)
    --------------------------------- */
+@keyframes modal-enter { from { opacity: 0; transform: scale(0.98) translateY(10px); } to { opacity: 1; transform: scale(1) translateY(0); } } .animate-modal-enter { animation: modal-enter 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; } @keyframes scan-line { 0% { top: 0; opacity: 0; } 5% { opacity: 1; } 95% { opacity: 1; } 100% { top: 100%; opacity: 0; } } .animate-scan-line { animation: scan-line 4s linear infinite; }
+
+/* ---------------------------------
+   DEV MODE HUD (Absolute Priority)
+   --------------------------------- */
+.dev-mode-indicator-group {
+  position: fixed !important;
+  top: 2rem !important;
+  left: 2rem !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 0.8rem !important;
+  z-index: 2147483647 !important;
+  pointer-events: none !important;
+}
+
+.dev-mode-controls {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 0.5rem !important;
+  margin-top: 0.5rem !important;
+  pointer-events: auto !important;
+}
+
+.hud-button {
+  background: #111 !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  color: #666 !important;
+  padding: 0.5rem 1rem !important;
+  font-family: 'Space Grotesk', monospace !important;
+  font-size: 0.65rem !important;
+  font-weight: 900 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.1em !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+}
+
+.hud-button:hover {
+  background: #222 !important;
+  color: #FFF !important;
+  border-color: #00FFFF !important;
+}
+
+.telemetry-dev-skip-minimal {
+  pointer-events: auto !important;
+  z-index: 2147483647 !important;
+  position: relative !important;
+}
+
+.dev-mode-indicator-group button {
+  pointer-events: auto !important;
+}

@@ -113,6 +113,8 @@ const CaptureScreen = React.forwardRef(({
   const [frameRatio, setFrameRatio] = useState(1);
   const [showCamDropdown, setShowCamDropdown] = useState(false);
   const audioRef = useRef(null);
+  const freezeTimeoutRef = useRef(null);
+  const exportTimeoutRef = useRef(null);
 
   // Re-animate Viewfinder elements when returning from Compositing
   useEffect(() => {
@@ -163,6 +165,7 @@ const CaptureScreen = React.forwardRef(({
       if (activeBtn) {
         animate(magneticAnchorRef.current, {
           translateY: activeBtn.offsetTop + (activeBtn.offsetHeight / 2) - 12,
+          translateX: activeBtn.offsetLeft - 16,
           duration: 600,
           easing: 'easeOutElastic(1, .7)'
         });
@@ -300,6 +303,8 @@ const CaptureScreen = React.forwardRef(({
   useEffect(() => {
     return () => {
       if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+      if (freezeTimeoutRef.current) clearTimeout(freezeTimeoutRef.current);
+      if (exportTimeoutRef.current) clearTimeout(exportTimeoutRef.current);
     };
   }, []);
 
@@ -367,7 +372,8 @@ const CaptureScreen = React.forwardRef(({
       setLastCapturedPhoto(dataUrl);
       setShowFreezeFrame(true);
 
-      setTimeout(() => {
+      if (freezeTimeoutRef.current) clearTimeout(freezeTimeoutRef.current);
+      freezeTimeoutRef.current = setTimeout(() => {
         setShowFreezeFrame(false);
         captureNext(slotIdx + 1);
       }, 1500);
@@ -468,9 +474,10 @@ const CaptureScreen = React.forwardRef(({
         photoImg.crossOrigin = "anonymous";
 
         await new Promise((resolve, reject) => {
-          const timeout = setTimeout(() => reject(new Error('Image load timeout')), 3000);
-          photoImg.onload = () => { clearTimeout(timeout); resolve(); };
-          photoImg.onerror = () => { clearTimeout(timeout); reject(new Error('Image load failed')); };
+          if (exportTimeoutRef.current) clearTimeout(exportTimeoutRef.current);
+          exportTimeoutRef.current = setTimeout(() => reject(new Error('Image load timeout')), 3000);
+          photoImg.onload = () => { clearTimeout(exportTimeoutRef.current); resolve(); };
+          photoImg.onerror = () => { clearTimeout(exportTimeoutRef.current); reject(new Error('Image load failed')); };
         }).catch(err => console.error("Export Error:", err));
 
         ctx.save();
@@ -789,7 +796,7 @@ const CaptureScreen = React.forwardRef(({
                 {/* Vertical Watermark — separate ref for deepest parallax */}
                 <h2 className="watermark-sideways">CURATE</h2>
 
-                <div style={{ width: '100%', marginTop: '8rem', zIndex: 20 }}>
+                <div style={{ width: '100%', marginTop: '12rem', zIndex: 20 }}>
                   {/* Hero Title with Cyan Overlap */}
                   <div className="side-display-container">
                     <div className="side-display-bullet">▌</div>

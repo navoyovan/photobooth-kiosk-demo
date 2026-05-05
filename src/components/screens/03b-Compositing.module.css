@@ -7,10 +7,8 @@
 }
 
 .instructionStep {
-  display: flex;
-  align-items: flex-start;
-  gap: 1.5rem;
-  margin-bottom: 2rem;
+  display: block;
+  margin-bottom: 60px;
 }
 
 .instructionNum {
@@ -18,7 +16,8 @@
   font-weight: 800;
   color: #A0A0A0;
   font-size: 0.85rem;
-  padding-top: 0.1rem;
+  margin-right: 0.8rem;
+  display: inline-block;
 }
 
 .instructionContent {
@@ -33,7 +32,7 @@
   text-transform: uppercase;
   margin-bottom: 0.8rem;
   letter-spacing: 0.02rem;
-  display: block;
+  display: inline-block;
 }
 
 .instructionText {
@@ -43,19 +42,23 @@
   letter-spacing: 0.05em;
   color: #666666;
   max-width: 280px;
+  padding-left: 2.5rem;
+  margin-top: 0.5rem;
 }
 
 .filterList {
   position: relative;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  flex-wrap: wrap;
   gap: 0.5rem;
-  margin-top: 1rem;
+  margin-top: 0.5rem;
+  padding-left: 2.5rem;
 }
 
 .magneticAnchor {
   position: absolute;
-  left: -0.1rem;
+  left: 2.2rem;
   top: 0;
   color: var(--accent-color, #32ffe7);
   font-family: 'Syne', sans-serif;
@@ -65,7 +68,6 @@
   z-index: 10;
   pointer-events: none;
   mix-blend-mode: multiply;
-  transform: translateX(1rem);
 }
 
 .filterBtn {
@@ -91,16 +93,17 @@
   color: var(--charcoal, #151515);
   font-family: 'Syne', sans-serif;
   font-weight: 800;
-  padding-left: 0;
 }
 
 .transformToggle {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-start;
   align-items: center;
   width: 100%;
-  padding: 1.5rem 0;
+  padding: 1rem 0;
   cursor: pointer;
+  padding-left: 2.5rem;
+  gap: 2rem;
 }
 
 .transformLabel {

@@ -14,6 +14,7 @@ import OutroScreen from './components/screens/06-Outro';
 
 import KineticPagination from './components/shared/KineticPagination';
 import KioskIdentitySetup from './components/shared/KioskIdentitySetup';
+import CommunityGalleryModal from './components/shared/CommunityGalleryModal';
 import { FRAME_TYPES, DEFAULT_FRAME } from './constants/frames';
 import { getKioskId, getMachineUUID, syncKioskConfig } from './utils/kioskId';
 
@@ -32,6 +33,7 @@ export default function App() {
   const [amountPaid, setAmountPaid] = useState(0);
   const [isOutroExiting, setIsOutroExiting] = useState(false);
   const [isSetupOpen, setIsSetupOpen] = useState(false);
+  const [showGallery, setShowGallery] = useState(false);
 
   // Telemetry HUD Animation Logic
   // Telemetry HUD Animation Logic (Visible from Selection to Checkout, hidden in Export/Outro)
@@ -102,6 +104,8 @@ export default function App() {
 
   useEffect(() => {
     let timer;
+    let exportTimeout;
+
     if (currentStep >= 2 && currentStep <= 3) {
       if (sessionTime <= 0) {
         if (capturedPhotos.some(p => !!p)) {
@@ -112,7 +116,7 @@ export default function App() {
               setIsCaptureFinished(true);
               setTransactionTime(180); // Reset for checkout
               setIsTimerPaused(false);
-              setTimeout(() => captureRef.current?.export(), 500);
+              exportTimeout = setTimeout(() => captureRef.current?.export(), 500);
             } else {
               setTransactionTime(180); // Reset for checkout
               setIsTimerPaused(false);
@@ -159,8 +163,11 @@ export default function App() {
       setIsTimerPaused(false);
     }
 
-    return () => clearInterval(timer);
-  }, [currentStep, sessionTime, transactionTime, isTimerPaused]);
+    return () => {
+      clearInterval(timer);
+      if (exportTimeout) clearTimeout(exportTimeout);
+    };
+  }, [currentStep, sessionTime, transactionTime, isTimerPaused, isCaptureFinished, capturedPhotos]);
 
   const [devMode, setDevMode] = useState(false);
   const [devFreeFlow, setDevFreeFlow] = useState(false);
@@ -285,22 +292,51 @@ export default function App() {
     startCamera();
   }, [currentStep, selectedDeviceId, isCameraRequested, cameraDevices, cameraStream]);
 
+  const transitionTimeout1 = React.useRef(null);
+  const transitionTimeout2 = React.useRef(null);
+  const ensureTimeout = React.useRef(null);
+
+  const onEnsureCamera = useCallback(() => {
+    // Force re-start stream if it died
+    setSelectedDeviceId(prev => {
+      return ""; // trigger effect
+    });
+    if (ensureTimeout.current) clearTimeout(ensureTimeout.current);
+    ensureTimeout.current = setTimeout(() => setSelectedDeviceId(selectedDeviceId), 50);
+  }, [selectedDeviceId]);
+
+  useEffect(() => {
+    return () => {
+      if (ensureTimeout.current) clearTimeout(ensureTimeout.current);
+    };
+  }, []);
+
   // GLOBAL TRANSITION HANDLER
   const startPageTransition = (callback) => {
     setIsGlobalTransitioning(true);
     // Short delay to allow the white overlay to cover the screen
-    setTimeout(() => {
+    if (transitionTimeout1.current) clearTimeout(transitionTimeout1.current);
+    transitionTimeout1.current = setTimeout(() => {
       callback();
       // Keep it white for a moment for the new screen to mount
-      setTimeout(() => {
+      if (transitionTimeout2.current) clearTimeout(transitionTimeout2.current);
+      transitionTimeout2.current = setTimeout(() => {
         setIsGlobalTransitioning(false);
       }, 100);
     }, 300);
   };
 
+  useEffect(() => {
+    return () => {
+      if (transitionTimeout1.current) clearTimeout(transitionTimeout1.current);
+      if (transitionTimeout2.current) clearTimeout(transitionTimeout2.current);
+    };
+  }, []);
+
   return (
     <div ref={appRef} className="app-wrapper" style={{ position: 'relative', width: '100vw', height: '100vh' }}>
       <KioskIdentitySetup forceShow={isSetupOpen} onClose={() => setIsSetupOpen(false)} />
+      <CommunityGalleryModal isOpen={showGallery} onClose={() => setShowGallery(false)} />
 
       <FloatingPhotos
         previousImage={outroType === 'NORMAL' ? finalImage : null}
@@ -348,7 +384,10 @@ export default function App() {
         </div>
 
         <div className="telemetry-main-row">
-          <div className="telemetry-pulse-dot"></div>
+          <div className="telemetry-pulse-container">
+            <div className="telemetry-pulse-dot"></div>
+            <span className="telemetry-pulse-label">STATION_ONLINE</span>
+          </div>
           <div className="telemetry-massive-time">
             {currentStep <= 3 ? formatTime(sessionTime) : formatTime(transactionTime)}
           </div>
@@ -357,11 +396,14 @@ export default function App() {
 
       {/* DEV MODE GLOBAL INDICATOR */}
       {devMode && (
-        <div className="dev-mode-indicator-group">
-          <div className="dev-mode-indicator">DEV_MODE_ACTIVE</div>
-          <div className="dev-mode-indicator" style={{ color: '#FFD700' }}>KIOSK-ID: {kioskId}</div>
-          <div className="dev-mode-indicator" style={{ color: '#00FFFF', fontSize: '0.6rem', opacity: 0.7 }}>UUID: {machineUUID}</div>
-          <div className="dev-mode-controls">
+        <div className="dev-mode-indicator-group" style={{ pointerEvents: 'none', zIndex: 2147483647, position: 'fixed', top: '2rem', left: '2rem' }}>
+          <div className="dev-mode-indicator">SYSTEM_DIAGNOSTICS_ACTIVE</div>
+          {localStorage.getItem('machine_token') ? (
+            <div className="dev-mode-indicator status-tag registered">REGISTRATION_STATUS: AUTHORIZED</div>
+          ) : (
+            <div className="dev-mode-indicator status-tag pending">REGISTRATION_STATUS: PENDING_ACTIVATION</div>
+          )}
+          <div className="dev-mode-controls" style={{ pointerEvents: 'auto', display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
             <button className="telemetry-dev-skip-minimal" onClick={() => {
               setSessionTime(300);
               setTransactionTime(180);
@@ -390,6 +432,7 @@ export default function App() {
               FREE_FLOW: {devFreeFlow ? 'ON' : 'OFF'}
             </button>
             <button className="telemetry-dev-skip-minimal" onClick={() => setIsSetupOpen(true)}>SETUP</button>
+            <button className="telemetry-dev-skip-minimal" onClick={() => setShowGallery(true)} style={{ color: '#00FFFF', borderColor: '#00FFFF' }}>GALLERY</button>
             <button className="telemetry-dev-skip-minimal exit" onClick={handleAbort}>END</button>
           </div>
         </div>
@@ -474,14 +517,7 @@ export default function App() {
           cameraDevices={cameraDevices}
           selectedDeviceId={selectedDeviceId}
           setSelectedDeviceId={setSelectedDeviceId}
-          onEnsureCamera={() => {
-            // Force re-start stream if it died
-            setSelectedDeviceId(prev => {
-              const current = prev;
-              return ""; // trigger effect
-            });
-            setTimeout(() => setSelectedDeviceId(selectedDeviceId), 50);
-          }}
+          onEnsureCamera={onEnsureCamera}
         />
       )}
 

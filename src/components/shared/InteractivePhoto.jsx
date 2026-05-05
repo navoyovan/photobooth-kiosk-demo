@@ -4,14 +4,16 @@ import { getFrameLayout } from '../../constants/frame_layouts';
 
 const InteractivePhoto = forwardRef(({ photos = [], frame, photoFilter = 'none', isMirrored = false, isProcessing = false }, ref) => {
   const photoRef = useRef(null);
-  const boundaryRef = useRef(null); // renamed from handleWrapperRef — tracks photo bounds
+  const boundaryRef = useRef(null); // tracks photo bounds
   const frameRef = useRef(null);
   const containerRef = useRef(null);
   const state = useRef({ x: 0, y: 0, w: 300, h: 300 });
   const [ready, setReady] = useState(false);
+  const [pedestalSize, setPedestalSize] = useState({ w: 0, h: 0 });
   const [metrics, setMetrics] = useState({ x: 0, y: 0, w: 0, h: 0 });
   const photoNaturalDims = useRef(null);
   const containerDims = useRef(null);
+  const dragHandlers = useRef({ onMove: null, onUp: null });
 
   const src = photos[0];
 
@@ -38,7 +40,6 @@ const InteractivePhoto = forwardRef(({ photos = [], frame, photoFilter = 'none',
           y: absY,
           w: state.current.w,
           h: state.current.h,
-          // Provide clipping slot data to the backend
           sX, sY, sW, sH
         }],
         cW: cW,
@@ -63,7 +64,6 @@ const InteractivePhoto = forwardRef(({ photos = [], frame, photoFilter = 'none',
     const layout = getFrameLayout(frame);
     const slot = layout[0] || { x: 0, y: 0, w: 100, h: 100 };
 
-    // Convert percentage to pixels for the slot window
     const slotX = (slot.x / 100) * cW;
     const slotY = (slot.y / 100) * cH;
     const slotW = (slot.w / 100) * cW;
@@ -76,15 +76,12 @@ const InteractivePhoto = forwardRef(({ photos = [], frame, photoFilter = 'none',
 
     let initW, initH, initX, initY;
 
-    // "Object-Fit: Cover" logic relative to the slot
     if (aspect > slotAspect) {
-      // Photo is wider than slot
       initH = slotH;
       initW = slotH * aspect;
       initX = (slotW - initW) / 2;
       initY = 0;
     } else {
-      // Photo is taller than slot
       initW = slotW;
       initH = slotW / aspect;
       initX = 0;
@@ -98,7 +95,6 @@ const InteractivePhoto = forwardRef(({ photos = [], frame, photoFilter = 'none',
     }
 
     if (boundaryRef.current) {
-      // Boundary tracker follows the photo relative to the pedestal
       const globalX = slotX + initX;
       const globalY = slotY + initY;
       set(boundaryRef.current, { translateX: globalX, translateY: globalY, width: initW, height: initH });
@@ -110,23 +106,15 @@ const InteractivePhoto = forwardRef(({ photos = [], frame, photoFilter = 'none',
 
   const handleFrameLoad = () => {
     if (!frameRef.current || !containerRef.current) return;
-    const img = frameRef.current;
-    const natW = img.naturalWidth;
-    const natH = img.naturalHeight;
+    const { naturalWidth: natW, naturalHeight: natH } = frameRef.current;
 
     const maxH = window.innerHeight * 0.55;
     const maxW = 500;
-    let cW, cH;
-    if (natW / natH > maxW / maxH) {
-      cW = maxW;
-      cH = maxW * (natH / natW);
-    } else {
-      cH = maxH;
-      cW = maxH * (natW / natH);
-    }
+    
+    const cW = natW / natH > maxW / maxH ? maxW : maxH * (natW / natH);
+    const cH = natW / natH > maxW / maxH ? maxW * (natH / natW) : maxH;
 
-    containerRef.current.style.width = cW + 'px';
-    containerRef.current.style.height = cH + 'px';
+    setPedestalSize({ w: cW, h: cH });
     containerDims.current = { cW, cH };
 
     if (photoNaturalDims.current) {
@@ -142,7 +130,6 @@ const InteractivePhoto = forwardRef(({ photos = [], frame, photoFilter = 'none',
     }
   };
 
-  // Re-init if frame changes (even if images are already loaded)
   useEffect(() => {
     if (ready && containerDims.current && photoNaturalDims.current) {
       initPhotoPlacement(containerDims.current.cW, containerDims.current.cH);
@@ -190,55 +177,41 @@ const InteractivePhoto = forwardRef(({ photos = [], frame, photoFilter = 'none',
     const onUp = () => {
       window.removeEventListener('pointermove', onMove);
       window.removeEventListener('pointerup', onUp);
+      dragHandlers.current = { onMove: null, onUp: null };
     };
 
+    dragHandlers.current = { onMove, onUp };
     window.addEventListener('pointermove', onMove);
     window.addEventListener('pointerup', onUp);
   };
 
   useEffect(() => {
-    if (!ready || !photoRef.current) return;
+    return () => {
+      if (dragHandlers.current.onMove) {
+        window.removeEventListener('pointermove', dragHandlers.current.onMove);
+      }
+      if (dragHandlers.current.onUp) {
+        window.removeEventListener('pointerup', dragHandlers.current.onUp);
+      }
+    };
+  }, []);
 
+  useEffect(() => {
+    if (!ready || !photoRef.current) return;
     const wrapper = photoRef.current.querySelector('.lens-refocus-wrapper');
     if (!wrapper) return;
 
     if (isProcessing) {
-      animate(wrapper, {
-        filter: 'blur(12px)',
-        scale: 1.04,
-        duration: 200,
-        easing: 'easeOutQuad'
-      });
+      animate(wrapper, { filter: 'blur(12px)', scale: 1.04, duration: 200, easing: 'easeOutQuad' });
     } else {
-      animate(wrapper, {
-        filter: 'blur(0px)',
-        scale: 1,
-        duration: 400,
-        easing: 'easeOutBack(2)'
-      });
+      animate(wrapper, { filter: 'blur(0px)', scale: 1, duration: 400, easing: 'easeOutBack(2)' });
     }
   }, [isProcessing, ready]);
 
   return (
     <div className="composer-gallery-wrapper">
-      {/* INTERNAL HUD LAYER: Viewfinder lines that sit on top but stay relative to the pedestal */}
-      <div 
-        className="viewfinder-hud-layer"
-        style={{
-          position: 'absolute',
-          inset: 0,
-          pointerEvents: 'none',
-          zIndex: 1000 
-        }}
-      >
-        <div
-          style={{
-            position: 'absolute',
-            transform: `translate(${metrics.x}px, ${metrics.y}px)`,
-            width: `${metrics.w}px`,
-            height: `${metrics.h}px`,
-          }}
-        >
+      <div className="viewfinder-hud-layer" style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 1000 }}>
+        <div style={{ position: 'absolute', transform: `translate(${metrics.x}px, ${metrics.y}px)`, width: `${metrics.w}px`, height: `${metrics.h}px` }}>
           <div className="viewfinder-crosshair"></div>
           <div className="vf-corner tl"></div>
           <div className="vf-corner tr"></div>
@@ -248,28 +221,22 @@ const InteractivePhoto = forwardRef(({ photos = [], frame, photoFilter = 'none',
         </div>
       </div>
 
-      {/*
-        gallery-pedestal: overflow VISIBLE so the boundary+handle
-        can hang outside without being clipped.
-      */}
       <div
         ref={containerRef}
         className="gallery-pedestal"
-        style={{ position: 'relative', width: '400px', height: '400px', overflow: 'visible' }}
+        style={{ 
+          position: 'relative', 
+          width: pedestalSize.w ? `${pedestalSize.w}px` : '400px', 
+          height: pedestalSize.h ? `${pedestalSize.h}px` : '400px', 
+          overflow: 'visible' 
+        }}
       >
-        {/* DATA HUD BOXES */}
         <div className="hud-data-box top-left">POS_X: {metrics.x}PX</div>
         <div className="hud-data-box top-right">POS_Y: {metrics.y}PX</div>
         <div className="hud-data-box bottom-left">WIDTH: {metrics.w}PX</div>
         <div className="hud-data-box bottom-right">HEIGHT: {metrics.h}PX</div>
 
-        {/*
-          photo-clip-layer: the actual overflow:hidden clipping zone.
-          Only photos and the frame live here — so they stay masked
-          inside the frame bounds, while the boundary/handle float above.
-        */}
         <div className="photo-clip-layer">
-          {/* PHOTO SLOT WINDOW */}
           {(() => {
             const layout = getFrameLayout(frame);
             const slot = layout[0] || { x: 0, y: 0, w: 100, h: 100 };
@@ -290,12 +257,7 @@ const InteractivePhoto = forwardRef(({ photos = [], frame, photoFilter = 'none',
               >
                 <div
                   ref={photoRef}
-                  style={{
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    touchAction: 'none',
-                  }}
+                  style={{ position: 'absolute', top: 0, left: 0, touchAction: 'none' }}
                   onPointerDown={(e) => handlePointerDown(e, false)}
                 >
                   <div className="lens-refocus-wrapper" style={{ width: '100%', height: '100%' }}>
@@ -320,25 +282,14 @@ const InteractivePhoto = forwardRef(({ photos = [], frame, photoFilter = 'none',
             );
           })()}
 
-          {/* FRAME OVERLAY */}
           <img
             ref={frameRef}
             src={frame.thumbnail}
             onLoad={handleFrameLoad}
-            style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              width: '100%',
-              height: '100%',
-              objectFit: 'fill',
-              pointerEvents: 'none',
-              zIndex: 3
-            }}
+            style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'fill', pointerEvents: 'none', zIndex: 3 }}
             alt="Frame overlay"
           />
 
-          {/* CROP MARKS */}
           <div className="crop-marks-container" style={{ position: 'absolute', inset: 0, zIndex: 4, pointerEvents: 'none' }}>
             <div className="crop-mark top-left"></div>
             <div className="crop-mark top-right"></div>
@@ -347,30 +298,11 @@ const InteractivePhoto = forwardRef(({ photos = [], frame, photoFilter = 'none',
           </div>
         </div>
 
-        {/*
-          PHOTO BOUNDARY + RESIZE BTN
-          Lives OUTSIDE photo-clip-layer so it's never clipped by overflow:hidden.
-          Tracks the photo's position and size via GSAP.
-        */}
-        <div
-          ref={boundaryRef}
-          className={`photo-boundary-tracker${isProcessing ? ' hidden' : ''}`}
-          style={{ position: 'absolute', top: 0, left: 0 }}
-        >
-          {/* Dashed border — inner div, never clipped by overflow:hidden */}
-          <div
-            className="boundary-dashed-line"
-            onPointerDown={(e) => handlePointerDown(e, false)}
-          />
-
-          {/* Resize button — bottom-right corner */}
-          <div
-            className="photo-resize-btn"
-            onPointerDown={(e) => handlePointerDown(e, true)}
-          >
+        <div ref={boundaryRef} className={`photo-boundary-tracker${isProcessing ? ' hidden' : ''}`} style={{ position: 'absolute', top: 0, left: 0 }}>
+          <div className="boundary-dashed-line" onPointerDown={(e) => handlePointerDown(e, false)} />
+          <div className="photo-resize-btn" onPointerDown={(e) => handlePointerDown(e, true)}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="square">
-              <path d="M15 3h6v6" />
-              <path d="M9 21H3v-6" />
+              <path d="M15 3h6v6" /><path d="M9 21H3v-6" />
             </svg>
           </div>
         </div>

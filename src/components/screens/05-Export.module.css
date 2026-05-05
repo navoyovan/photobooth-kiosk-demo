@@ -72,3 +72,59 @@
   background: #FFFFFF;
   transition: width 0.3s ease;
 }
+
+.finalActions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 3rem;
+}
+
+.donateToggle {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  cursor: pointer;
+  user-select: none;
+}
+
+.donateToggle input[type="checkbox"] {
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  background: transparent;
+  cursor: pointer;
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+.donateToggle input[type="checkbox"]:checked {
+  background: #00FFFF;
+  border-color: #00FFFF;
+  box-shadow: 0 0 10px rgba(0, 255, 255, 0.4);
+}
+
+.donateToggle input[type="checkbox"]:checked::after {
+  content: '✕';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 8px;
+  color: #000;
+  font-weight: 900;
+}
+
+.donateLabel {
+  font-family: 'Space Grotesk', monospace;
+  font-size: 0.65rem;
+  color: rgba(255, 255, 255, 0.4);
+  letter-spacing: 0.15em;
+  font-weight: 600;
+  transition: color 0.2s ease;
+}
+
+.donateToggle:hover .donateLabel {
+  color: rgba(255, 255, 255, 0.8);
+}
