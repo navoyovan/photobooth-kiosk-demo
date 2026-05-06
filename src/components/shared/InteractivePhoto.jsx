@@ -110,7 +110,7 @@ const InteractivePhoto = forwardRef(({ photos = [], frame, photoFilter = 'none',
 
     const maxH = window.innerHeight * 0.55;
     const maxW = 500;
-    
+
     const cW = natW / natH > maxW / maxH ? maxW : maxH * (natW / natH);
     const cH = natW / natH > maxW / maxH ? maxW * (natH / natW) : maxH;
 
@@ -224,11 +224,11 @@ const InteractivePhoto = forwardRef(({ photos = [], frame, photoFilter = 'none',
       <div
         ref={containerRef}
         className="gallery-pedestal"
-        style={{ 
-          position: 'relative', 
-          width: pedestalSize.w ? `${pedestalSize.w}px` : '400px', 
-          height: pedestalSize.h ? `${pedestalSize.h}px` : '400px', 
-          overflow: 'visible' 
+        style={{
+          position: 'relative',
+          width: pedestalSize.w ? `${pedestalSize.w}px` : '400px',
+          height: pedestalSize.h ? `${pedestalSize.h}px` : '400px',
+          overflow: 'visible'
         }}
       >
         <div className="hud-data-box top-left">POS_X: {metrics.x}PX</div>

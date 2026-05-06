@@ -2,19 +2,17 @@ import React, { useState, useRef, useEffect, forwardRef, useImperativeHandle } f
 import { animate, createTimeline, stagger } from 'animejs';
 import { exitEditorialLayout } from '../../utils/transitions';
 import { entranceEditorialLayout } from '../../utils/transitions';
+import GalleryCheckoutModal from '../shared/GalleryCheckoutModal';
+import SessionRecoveryModal from '../shared/SessionRecoveryModal';
 import styles from './01-Payment.module.css';
 
-const PaymentScreen = forwardRef(({ onBack, onSuccess, printCopies, setPrintCopies, timerDisplay, devMode = false, setIsTimerPaused, kioskId, devFreeFlow }, ref) => {
+const PaymentScreen = forwardRef(({ onBack, onSuccess, printCopies, setPrintCopies, timerDisplay, devMode = false, setIsTimerPaused, kioskId, devFreeFlow, onRestoreSession, selectedFrame }, ref) => {
   const screenRef = useRef();
   const leftPanelRef = useRef();
   const rightPanelRef = useRef();
-  const successOverlayRef = useRef();
-  const failedOverlayRef = useRef();
-  const qrPlaceholderRef = useRef();
   const odoDigitRef = useRef();
 
   // State
-  const [paymentPhase, setPaymentPhase] = useState('checkout'); // 'checkout', 'payment'
   const [coupon, setCoupon] = useState("");
   const [promoStatus, setPromoStatus] = useState("idle"); // idle, checking, success, failed
   const [price, setPrice] = useState(40000);
@@ -23,6 +21,41 @@ const PaymentScreen = forwardRef(({ onBack, onSuccess, printCopies, setPrintCopi
   const [error, setError] = useState(null);
   const [qrData, setQrData] = useState(null);
   const [paymentStatus, setPaymentStatus] = useState("pending"); // pending, success, failed
+  const [isCheckoutModalOpen, setIsCheckoutModalOpen] = useState(false);
+  const [showRecoveryModal, setShowRecoveryModal] = useState(false);
+  const [savedSession, setSavedSession] = useState(null);
+
+  // Check for saved session on mount
+  useEffect(() => {
+    const rawSession = localStorage.getItem('photobooth_session');
+    if (rawSession) {
+      try {
+        const session = JSON.parse(rawSession);
+        // Only show if it's not too old (e.g., last 30 minutes) and amountPaid > 0
+        if (Date.now() - session.timestamp < 30 * 60 * 1000 && (session.amountPaid || 0) > 0) {
+          setSavedSession(session);
+          setShowRecoveryModal(true);
+        } else {
+          localStorage.removeItem('photobooth_session');
+        }
+      } catch (e) {
+        console.error("Failed to parse saved session", e);
+      }
+    }
+  }, []);
+
+  const handleContinueSession = () => {
+    if (savedSession) {
+      onRestoreSession(savedSession);
+      setShowRecoveryModal(false);
+    }
+  };
+
+  const handleDiscardSession = () => {
+    localStorage.removeItem('photobooth_session');
+    setShowRecoveryModal(false);
+    setSavedSession(null);
+  };
 
   const timelineRef = useRef(null);
   useEffect(() => {
@@ -57,41 +90,9 @@ const PaymentScreen = forwardRef(({ onBack, onSuccess, printCopies, setPrintCopi
     }
   }, [printCopies, promoStatus]);
 
-  const fetchQr = async () => {
-    try {
-      setIsLoading(true);
-      setError(null);
-
-      const response = await fetch('http://localhost:8000/api/qris/mock-generate', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
-        body: JSON.stringify({
-          "kiosk_id": "HYPEBOX-DEV-01",
-          "package_id": "premium_grid"
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error('Hardware Network Error');
-      }
-
-      const data = await response.json();
-      setQrData(data);
-      setPaymentPhase('payment');
-    } catch (err) {
-      console.error('Fetch error:', err);
-      setError('Hardware Network Error');
-      setPaymentPhase('payment'); // Go to payment phase to show error
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const handleConfirmCheckout = () => {
-    fetchQr();
+    setIsCheckoutModalOpen(true);
   };
 
   const handleCancel = () => {
@@ -138,31 +139,12 @@ const PaymentScreen = forwardRef(({ onBack, onSuccess, printCopies, setPrintCopi
   };
 
   const handlePaymentRetry = () => {
-    setPaymentStatus("pending");
-    fetchQr();
+    setIsCheckoutModalOpen(true);
   };
 
   const [showNumpad, setShowNumpad] = useState(false);
   const numpadRef = useRef();
 
-  // Status Animations
-  useEffect(() => {
-    if (paymentStatus === "success" && successOverlayRef.current) {
-      animate(successOverlayRef.current, {
-        scale: [0.8, 1],
-        opacity: [0, 1],
-        duration: 300,
-        easing: 'easeOutBack(1.7)'
-      });
-    } else if (paymentStatus === "failed" && failedOverlayRef.current) {
-      animate(failedOverlayRef.current, {
-        translateY: [20, 0],
-        opacity: [0, 1],
-        duration: 300,
-        easing: 'easeOutQuad'
-      });
-    }
-  }, [paymentStatus]);
 
   // Animation for numpad appearance (Pushing Input Up)
   useEffect(() => {
@@ -239,43 +221,24 @@ const PaymentScreen = forwardRef(({ onBack, onSuccess, printCopies, setPrintCopi
       {/* PANEL KIRI: Kendali & Instruksi */}
       <div ref={leftPanelRef} className="panel-left">
         {/* The Giant Watermark */}
-        <h2 className="watermark-sideways">SECURE</h2>
+        <h2 className="watermark-sideways">Secure</h2>
 
         <div style={{ width: '100%', marginTop: 'auto', marginBottom: 'auto', zIndex: 20 }}>
           {/* The Hero Overlap Title */}
           <div className="side-display-container">
             <div className="side-display-bullet">▌</div>
-            <h2 className="side-display-h1">PAYMENT</h2>
+            <h2 className="side-display-h1">Payment</h2>
           </div>
 
           <div className={styles.instructionList}>
-            {paymentPhase === 'checkout' ? (
-              <>
-                <div className={styles.instructionStep}>
-                  <span className={styles.instructionNum}>01.</span>
-                  <p className={styles.instructionText}>CHOOSE HOW MANY COPIES YOU NEED.</p>
-                </div>
-                <div className={styles.instructionStep}>
-                  <span className={styles.instructionNum}>02.</span>
-                  <p className={styles.instructionText}>CONFIRM THE SELECTION TO GENERATE QR.</p>
-                </div>
-              </>
-            ) : (
-              <>
-                <div className={styles.instructionStep}>
-                  <span className={styles.instructionNum}>01.</span>
-                  <p className={styles.instructionText}>SCAN QR CODE USING YOUR E-WALLET APP.</p>
-                </div>
-                <div className={styles.instructionStep}>
-                  <span className={styles.instructionNum}>02.</span>
-                  <p className={styles.instructionText}>CONFIRM THE NOMINAL ON YOUR DEVICE.</p>
-                </div>
-                <div className={styles.instructionStep}>
-                  <span className={styles.instructionNum}>03.</span>
-                  <p className={styles.instructionText}>WAIT FOR SYSTEM TO VERIFY (DO NOT CLOSE).</p>
-                </div>
-              </>
-            )}
+            <div className={styles.instructionStep}>
+              <span className={styles.instructionNum}>01.</span>
+              <p className={styles.instructionText}>Choose how many copies you need.</p>
+            </div>
+            <div className={styles.instructionStep}>
+              <span className={styles.instructionNum}>02.</span>
+              <p className={styles.instructionText}>Confirm the selection to generate QR.</p>
+            </div>
           </div>
 
           <div className={styles.promoContainer}>
@@ -292,11 +255,12 @@ const PaymentScreen = forwardRef(({ onBack, onSuccess, printCopies, setPrintCopi
             {promoStatus === "failed" && <span className={`${styles.couponStatusMsg} ${styles.statusFailed}`}>INVALID CODE</span>}
 
             {promoStatus !== "success" && showNumpad && (
-              <div ref={numpadRef} className={styles.numpad}>
-                {["1", "2", "3", "4", "5", "6", "7", "8", "9", "DEL", "0", "OK"].map(key => (
+              <div ref={numpadRef} className={styles.numpad} style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
+                {["1", "2", "3", "A", "4", "5", "6", "B", "7", "8", "9", "C", "D", "E", "F", "0", "DEL", "OK"].map(key => (
                   <button
                     key={key}
                     className={`${styles.numpadBtn} ${key === "OK" ? styles.actionOk : ""} ${key === "DEL" ? styles.actionDel : ""}`}
+                    style={{ gridColumn: (key === "OK" || key === "DEL") ? 'span 2' : 'span 1' }}
                     onClick={() => {
                       if (key === "OK") validateCoupon();
                       else handleNumpadPress(key);
@@ -317,13 +281,16 @@ const PaymentScreen = forwardRef(({ onBack, onSuccess, printCopies, setPrintCopi
       <div ref={rightPanelRef} className="panel-right panel-center-content">
 
         <div className={styles.checkoutPhase}>
+          <div className={styles.checkoutBody}>
+            <div className="qr-box" style={{ width: '600px', height: '250px', position: 'relative', overflow: 'visible', background: '#fff' }}>
+              <div className="vf-corner tl"></div>
+              <div className="vf-corner tr"></div>
+              <div className="vf-corner bl"></div>
+              <div className="vf-corner br"></div>
+              <div className="boundary-dashed-line-visual"></div>
 
-          {/* INTERCHANGEABLE CONTENT */}
-          <div className={`${styles.phaseWrapper} ${styles.fadePhase}`} key={paymentPhase}>
-            {paymentPhase === 'checkout' ? (
-              <div className={styles.checkoutBody}>
-
-                <div className={styles.qtyEngineAxis} style={{ marginRight: '5rem' }}>
+              <div className={styles.qrBoxContent}>
+                <div className={styles.qtyEngineAxis}>
                   <button className={styles.qtyStepperBtn} onClick={() => handleSetCopies(printCopies + 1)}>+</button>
                   <div className={styles.qtyOdometerWindow}>
                     <div
@@ -357,134 +324,45 @@ const PaymentScreen = forwardRef(({ onBack, onSuccess, printCopies, setPrintCopi
                             filter: `brightness(${100 - (printCopies - index - 1) * 1.1}%)`,
                           }}
                         >
-                          <img src="/taken_pic/default.png" alt={`Placeholder ${index + 1}`} />
+                          <img src={selectedFrame?.thumbnail || "/taken_pic/default.png"} alt={`Placeholder ${index + 1}`} />
                           <div className="boundary-dashed-line-visual"></div>
                         </div>
                       );
                     })}
                   </div>
                 </div>
-
-
               </div>
-            ) : (
-              <div className={styles.paymentPhase}>
-                <div style={{ marginBottom: '2rem', display: 'flex', justifyContent: 'center' }}>
-                  <img
-                    src="https://upload.wikimedia.org/wikipedia/commons/a/a2/Logo_QRIS.svg"
-                    alt="QRIS Logo"
-                    style={{ width: '160px', height: 'auto', opacity: 0.9 }}
-                  />
-                </div>
-
-                <div
-                  className="qr-scanner-monument"
-                  style={{
-                    width: '450px',
-                    height: '450px',
-                    background: '#FFFFFF',
-                    position: 'relative'
-                  }}
-                  onClick={(e) => {
-                    if (devFreeFlow && e.detail === 2) {
-                      console.log("[DevFreeFlow] Double-tap QR skip triggered.");
-                      handlePaymentSuccess();
-                    }
-                  }}
-                >
-                  <div className="vf-corner tl"></div>
-                  <div className="vf-corner tr"></div>
-                  <div className="vf-corner bl"></div>
-                  <div className="vf-corner br"></div>
-                  <div className="boundary-dashed-line-visual"></div>
-
-                  {isLoading && (
-                    <div className="payment-loading-state" style={{ textAlign: 'center', position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-                      <div className="spinner-sleek animate-spin" style={{
-                        width: '40px',
-                        height: '40px',
-                        border: '3px solid rgba(0,0,0,0.1)',
-                        borderTopColor: '#111',
-                        borderRadius: '50%',
-                        margin: '0 auto 1.5rem'
-                      }}></div>
-                      <span ref={qrPlaceholderRef} className="qr-placeholder-text" style={{ fontSize: '0.75rem', fontWeight: 600, color: "rgba(0,0,0,0.4)", letterSpacing: '0.1rem', fontFamily: 'Space Grotesk' }}>
-                        GENERATING QR CODE...
-                      </span>
-                    </div>
-                  )}
-
-                  {!isLoading && error && (
-                    <div className="payment-error-state" style={{ textAlign: 'center', padding: '2rem', position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-                      <div style={{ fontSize: '2.5rem', marginBottom: '1.5rem' }}>⚠️</div>
-                      <span ref={qrPlaceholderRef} className="qr-placeholder-text" style={{ fontSize: '0.75rem', fontWeight: 600, color: "#ff4444", letterSpacing: '0.1rem', fontFamily: 'Space Grotesk' }}>
-                        {error.toUpperCase()}
-                      </span>
-                      <button className={styles.retryButton} onClick={handlePaymentRetry} style={{ marginTop: '1rem' }}>RETRY</button>
-                    </div>
-                  )}
-
-                  {!isLoading && !error && qrData && paymentStatus === "pending" && (
-                    <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <img
-                        src={qrData.qr_url}
-                        alt="QRIS Payment"
-                        style={{ width: '350px', height: '350px', objectFit: 'contain' }}
-                      />
-                    </div>
-                  )}
-
-                  {paymentStatus === "success" && (
-                    <div ref={successOverlayRef} className={`${styles.statusOverlay} ${styles.success}`}>
-                      <div className={styles.statusIcon}>✓</div>
-                      <div className={styles.statusText}>PAYMENT VERIFIED</div>
-                      <div className={styles.statusSub}>PREPARING YOUR SESSION</div>
-                    </div>
-                  )}
-
-                  {paymentStatus === "failed" && (
-                    <div ref={failedOverlayRef} className={`${styles.statusOverlay} ${styles.failed}`}>
-                      <div className={styles.statusIcon}>✕</div>
-                      <div className={styles.statusText}>TRANSACTION FAILED</div>
-                      <button className={styles.retryButton} onClick={handlePaymentRetry}>RETRY TRANSACTION</button>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {paymentPhase === 'checkout' && (
-            <button className={`btn-tier-1 ${styles.confirmBtn}`} onClick={handleConfirmCheckout} disabled={isLoading}>
-              {isLoading ? "BNTAR YH.." : "NEXT"}
-            </button>
-          )}
-
-          <div className={styles.priceDisplay} style={{ textAlign: 'center' }}>
-            {originalPrice && <span className={styles.originalPrice} style={{ fontSize: '2rem' }}>Rp {originalPrice.toLocaleString()}</span>}
-            <div className={styles.priceMonument}>Rp {price.toLocaleString()}</div>
-          </div>
-
-          {timerDisplay && (
-            <div className={`timer-sleek pulse ${paymentStatus !== 'pending' ? 'paused' : ''}`} style={{ fontSize: '2rem', marginTop: '1rem' }}>
-              {timerDisplay}
             </div>
-          )}
-
-          <div style={{
-            marginTop: '3rem',
-            fontFamily: 'Space Grotesk',
-            fontSize: '0.8rem',
-            fontWeight: 700,
-            color: "rgb(var(--theme-surface-dark-rgb))",
-            textTransform: 'uppercase',
-            letterSpacing: '0.1rem',
-            textAlign: 'center',
-            opacity: 0.4
-          }}>
-            SYSTEM ID: {kioskId} / TERMINAL: LIVE
           </div>
 
+          <button className={`btn-tier-1 ${styles.confirmBtn}`} onClick={handleConfirmCheckout} disabled={isLoading}>
+            {isLoading ? "Please wait..." : "Generate Payment QR"}
+          </button>
+        </div>
+
+        <div className={styles.priceDisplay} style={{ textAlign: 'center' }}>
+          {originalPrice && <span className={styles.originalPrice} style={{ fontSize: '2rem' }}>Rp {originalPrice.toLocaleString()}</span>}
+          <div className={styles.priceMonument}>Rp {price.toLocaleString()}</div>
+        </div>
+
+        {timerDisplay && (
+          <div className={`timer-sleek pulse ${paymentStatus !== 'pending' ? 'paused' : ''}`} style={{ fontSize: '2rem', marginTop: '1rem' }}>
+            {timerDisplay}
+          </div>
+        )}
+
+        <div style={{
+          marginTop: '3rem',
+          fontFamily: 'Space Grotesk',
+          fontSize: '0.8rem',
+          fontWeight: 700,
+          color: "rgb(var(--theme-surface-dark-rgb))",
+          textTransform: 'uppercase',
+          letterSpacing: '0.1rem',
+          textAlign: 'center',
+          opacity: 0.4
+        }}>
+          SYSTEM ID: {kioskId} / TERMINAL: LIVE
         </div>
 
       </div>
@@ -507,6 +385,28 @@ const PaymentScreen = forwardRef(({ onBack, onSuccess, printCopies, setPrintCopi
           </button>
         </div>
       )}
+
+      {/* PAYMENT MODAL */}
+      <GalleryCheckoutModal
+        isOpen={isCheckoutModalOpen}
+        onClose={() => setIsCheckoutModalOpen(false)}
+        onSuccess={handlePaymentSuccess}
+        totalPrice={price}
+        initialPayment={0}
+        orderId={`PHB-${Math.floor(Date.now() / 1000)}`}
+        timeLeft={180} // Mock time, actual timer handled by App
+        devFreeFlow={devFreeFlow}
+        setIsTimerPaused={setIsTimerPaused}
+        mode="PAYMENT"
+      />
+
+      {/* RECOVERY MODAL */}
+      <SessionRecoveryModal
+        isOpen={showRecoveryModal}
+        onContinue={handleContinueSession}
+        onDiscard={handleDiscardSession}
+        sessionData={savedSession || {}}
+      />
 
     </div>
   );

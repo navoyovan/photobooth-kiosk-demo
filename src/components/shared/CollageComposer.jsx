@@ -123,7 +123,7 @@ const CollageComposer = forwardRef(({ photos = [], frame, photoFilter = 'none', 
 
     const maxH = window.innerHeight * 0.55;
     const maxW = 500;
-    
+
     const cW = natW / natH > maxW / maxH ? maxW : maxH * (natW / natH);
     const cH = natW / natH > maxW / maxH ? maxW * (natH / natW) : maxH;
 
@@ -232,17 +232,6 @@ const CollageComposer = forwardRef(({ photos = [], frame, photoFilter = 'none', 
 
   return (
     <div className="composer-gallery-wrapper">
-      <div className="viewfinder-hud-layer" style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 1000 }}>
-        <div style={{ position: 'absolute', transform: `translate(${metrics.x}px, ${metrics.y}px)`, width: `${metrics.w}px`, height: `${metrics.h}px` }}>
-          <div className="viewfinder-crosshair"></div>
-          <div className="vf-corner tl"></div>
-          <div className="vf-corner tr"></div>
-          <div className="vf-corner bl"></div>
-          <div className="vf-corner br"></div>
-          <div className="boundary-dashed-line-visual"></div>
-        </div>
-      </div>
-
       {photos.length > 1 && (
         <div className="layer-switcher-vertical">
           <div className="layer-label-micro">SLOT_INDEX</div>
@@ -257,13 +246,24 @@ const CollageComposer = forwardRef(({ photos = [], frame, photoFilter = 'none', 
       <div
         ref={containerRef}
         className="gallery-pedestal"
-        style={{ 
-          position: 'relative', 
-          width: pedestalSize.w ? `${pedestalSize.w}px` : '400px', 
-          height: pedestalSize.h ? `${pedestalSize.h}px` : '400px', 
-          overflow: 'visible' 
+        style={{
+          position: 'relative',
+          width: pedestalSize.w ? `${pedestalSize.w}px` : '400px',
+          height: pedestalSize.h ? `${pedestalSize.h}px` : '400px',
+          overflow: 'visible'
         }}
       >
+        <div className="viewfinder-hud-layer" style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 1000 }}>
+          <div style={{ position: 'absolute', transform: `translate(${metrics.x}px, ${metrics.y}px)`, width: `${metrics.w}px`, height: `${metrics.h}px` }}>
+            <div className="viewfinder-crosshair"></div>
+            <div className="vf-corner tl"></div>
+            <div className="vf-corner tr"></div>
+            <div className="vf-corner bl"></div>
+            <div className="vf-corner br"></div>
+            <div className="boundary-dashed-line-visual"></div>
+          </div>
+        </div>
+
         <div className="hud-data-box top-left">LNS_X: {metrics.x}PX</div>
         <div className="hud-data-box top-right">LNS_Y: {metrics.y}PX</div>
         <div className="hud-data-box bottom-left">W_SCALE: {metrics.w}PX</div>

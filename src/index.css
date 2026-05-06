@@ -2,7 +2,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Space+Grotesk:wght@300;400;700;800&family=Syne:wght@400;500;600;700;800&display=swap');
 
 :root {
-  --accent-color: #04e7dc;
+  --accent-color: #ec5a00;
 
   --mica-light: rgba(247, 247, 247, 0.70);
   --mica-dark: rgba(5, 5, 5, 0.70);
@@ -483,24 +483,28 @@ body {
 
 /* TOMBOL UTAMA */
 .btn-primary {
-  margin-top: 3rem;
-  padding: 1.2rem 3.5rem;
-  background-color: transparent;
-  color: #2b2927;
-  border: 1.5px solid #2b2927;
-  /* Outline dibuat sedikit lebih tipis (1.5px) agar seimbang dengan font Medium */
-  border-radius: 0;
+  background: #111111;
+  color: #FFFFFF;
+  border: none;
+  padding: 1.2rem 4rem;
+  font-family: 'Syne', sans-serif;
+  font-weight: 900;
   font-size: 1.2rem;
-  font-weight: 600;
-  /* Tombol butuh sedikit lebih tebal agar kontras */
-  letter-spacing: 0.05rem;
   text-transform: uppercase;
-  transition: all 0.3s ease;
+  border-radius: 0;
+  cursor: pointer;
+  box-shadow: none;
+  transition: background 0.15s ease-out, color 0.15s ease-out;
+  letter-spacing: 0.15rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
 }
 
 .btn-primary:active {
-  background-color: #2b2927;
-  color: #f4f2ef;
+  background: var(--accent-color);
+  color: #111111;
 }
 
 /* REMOVED DUPLICATE BUTTON STYLE */
@@ -1646,8 +1650,10 @@ body {
   display: flex;
   flex-direction: column;
   gap: 0.8rem;
-  z-index: 2147483647; /* Absolute maximum z-index */
-  pointer-events: none; /* Allow clicks through to children */
+  z-index: 2147483647;
+  /* Absolute maximum z-index */
+  pointer-events: none;
+  /* Allow clicks through to children */
 }
 
 .dev-mode-controls {
@@ -1655,7 +1661,28 @@ body {
   flex-wrap: wrap;
   gap: 0.5rem;
   margin-top: 0.5rem;
-  pointer-events: auto; /* Re-enable for the buttons themselves */
+  pointer-events: auto;
+  /* Re-enable for the buttons themselves */
+}
+
+/* COMPOSER GALLERY (Interactive/Collage Wrapper) */
+.composer-gallery-wrapper {
+  position: relative;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 3rem;
+  width: 100%;
+  height: 100%;
+}
+
+.layer-switcher-vertical {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  z-index: 100;
 }
 
 .layer-label-micro {
@@ -2066,9 +2093,20 @@ body {
 }
 
 @keyframes telemetry-pulse {
-  0% { transform: scale(1); opacity: 1; }
-  50% { transform: scale(1.4); opacity: 0.4; }
-  100% { transform: scale(1); opacity: 1; }
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+
+  50% {
+    transform: scale(1.4);
+    opacity: 0.4;
+  }
+
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
 .dev-mode-indicator.status-tag {
@@ -2559,7 +2597,45 @@ body {
 /* ---------------------------------
    GALLERY ACQUISITION CERTIFICATE (White Card Variant)
    --------------------------------- */
-@keyframes modal-enter { from { opacity: 0; transform: scale(0.98) translateY(10px); } to { opacity: 1; transform: scale(1) translateY(0); } } .animate-modal-enter { animation: modal-enter 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; } @keyframes scan-line { 0% { top: 0; opacity: 0; } 5% { opacity: 1; } 95% { opacity: 1; } 100% { top: 100%; opacity: 0; } } .animate-scan-line { animation: scan-line 4s linear infinite; }
+@keyframes modal-enter {
+  from {
+    opacity: 0;
+    transform: scale(0.98) translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.animate-modal-enter {
+  animation: modal-enter 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes scan-line {
+  0% {
+    top: 0;
+    opacity: 0;
+  }
+
+  5% {
+    opacity: 1;
+  }
+
+  95% {
+    opacity: 1;
+  }
+
+  100% {
+    top: 100%;
+    opacity: 0;
+  }
+}
+
+.animate-scan-line {
+  animation: scan-line 4s linear infinite;
+}
 
 /* ---------------------------------
    DEV MODE HUD (Absolute Priority)

@@ -5,7 +5,7 @@ import styles from './04-Checkout.module.css';
 
 import { entranceAqcuisitionLayout } from '../../utils/transitions';
 
-const PrintManifestScreen = ({ finalImage, printCopies, setPrintCopies, initialCopies, isCheckoutOpen, setIsCheckoutOpen, transactionTime, amountPaid, onNext, devFreeFlow, setIsTimerPaused }) => {
+const PrintManifestScreen = ({ finalImage, printCopies, setPrintCopies, initialCopies, isCheckoutOpen, setIsCheckoutOpen, transactionTime, amountPaid, onNext, devFreeFlow, setIsTimerPaused, checkoutMode, setCheckoutMode, onTimeout }) => {
   const screenRef = useRef();
   const stackContainerRef = useRef();
   const audioRef = useRef();
@@ -25,7 +25,7 @@ const PrintManifestScreen = ({ finalImage, printCopies, setPrintCopies, initialC
     const tl = createTimeline();
     timelineRef.current = tl;
 
-    entranceAqcuisitionLayout(tl, { 
+    entranceAqcuisitionLayout(tl, {
       duration: 1400,
       elements: {
         watermark: watermarkRef.current,
@@ -34,24 +34,7 @@ const PrintManifestScreen = ({ finalImage, printCopies, setPrintCopies, initialC
       }
     });
 
-
     // 1. Master Entrance
-    // tl.add('.ghost-watermark', {
-    //   translateX: ['-35%', '-50%'],
-    //   translateY: ['-50%', '-50%'],
-    //   opacity: [0, 1],
-    //   duration: 1400,
-    //   easing: 'easeOutQuart'
-    // }, 50);
-
-    // tl.add('.qty-engine-axis', {
-    //   translateX: [150, 0],
-    //   translateY: ['-50%', '-50%'],
-    //   opacity: [0, 1],
-    //   duration: 650,
-    //   easing: 'easeOutCubic'
-    // }, 150);
-
     // Subtle entrance that settles at 5vw rightward offset
     if (visualAxisRef.current) {
       tl.add(visualAxisRef.current, {
@@ -61,13 +44,6 @@ const PrintManifestScreen = ({ finalImage, printCopies, setPrintCopies, initialC
         easing: 'easeOutCubic'
       }, 100);
     }
-
-    // tl.add('.telemetry-right-axis', {
-    //   translateX: [100, 0],
-    //   opacity: [0, 1],
-    //   duration: 800,
-    //   easing: 'easeOutQuad'
-    // }, 200);
 
     return () => {
       if (tl) tl.pause();
@@ -108,7 +84,9 @@ const PrintManifestScreen = ({ finalImage, printCopies, setPrintCopies, initialC
     setPrintCopies(val);
   };
 
-  const totalPrice = 40000 + (printCopies - 1) * 20000;
+  // Guard against non-number printCopies
+  const safeCopies = Number(printCopies) || 1;
+  const totalPrice = amountPaid + (safeCopies - initialCopies) * 20000;
 
   const getRotation = (i) => {
     const seeds = [1.2, -0.8, 1.9, -1.5, 0.5, -1.2, 1.7, -0.3, 0.9, -1.8];
@@ -177,8 +155,7 @@ const PrintManifestScreen = ({ finalImage, printCopies, setPrintCopies, initialC
     }
   };
 
-  // Guard against non-number printCopies
-  const safeCopies = Number(printCopies) || 1;
+
 
   return (
     <div ref={screenRef} className="panel-whole panel-center-content charcoal-mica-background">
@@ -251,7 +228,7 @@ const PrintManifestScreen = ({ finalImage, printCopies, setPrintCopies, initialC
             </div>
             <div className={styles.dataRow}>
               <span className={styles.dataLabel}>TOTAL AMOUNT</span>
-              <span className={styles.dataValue}>Rp {(40000 + (safeCopies - 1) * 20000).toLocaleString()}</span>
+              <span className={styles.dataValue}>Rp {totalPrice.toLocaleString()}</span>
             </div>
             <div className={styles.dataRow}>
               <span className={styles.dataLabel}>SESSION REFERENCE</span>
@@ -260,9 +237,13 @@ const PrintManifestScreen = ({ finalImage, printCopies, setPrintCopies, initialC
           </div>
 
           <button className="btn-tier-1" onClick={() => {
-            // Only open payment modal if user added MORE prints than initially paid
-            if (safeCopies > initialCopies) setIsCheckoutOpen(true);
-            else handleCheckoutSuccess();
+            if (safeCopies > initialCopies) {
+              setCheckoutMode('PAYMENT');
+              setIsCheckoutOpen(true);
+            } else {
+              setCheckoutMode('CONFIRM');
+              setIsCheckoutOpen(true);
+            }
           }}>
             {safeCopies > initialCopies ? "CONFIRM PRINT & PAY" : "CONFIRM PRINT"}
           </button>
@@ -276,12 +257,14 @@ const PrintManifestScreen = ({ finalImage, printCopies, setPrintCopies, initialC
           setIsCheckoutOpen(false);
           handleCheckoutSuccess();
         }}
-        totalPrice={40000 + (safeCopies - 1) * 20000}
+        totalPrice={totalPrice}
         initialPayment={amountPaid}
         orderId={`PHB-${Math.floor(Date.now() / 1000)}`}
         timeLeft={transactionTime}
         devFreeFlow={devFreeFlow}
         setIsTimerPaused={setIsTimerPaused}
+        mode={checkoutMode}
+        onTimeout={onTimeout}
       />
     </div>
   );

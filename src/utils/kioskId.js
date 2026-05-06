@@ -4,10 +4,12 @@
 
 const STORAGE_KEY_ALIAS = 'PHOTOBOOTH_KIOSK_ALIAS';
 const STORAGE_KEY_UUID = 'PHOTOBOOTH_MACHINE_UUID';
+const STORAGE_KEY_BACKEND = 'PHOTOBOOTH_BACKEND_URL';
 
 // --- CONFIGURATION ---
 // Change this to set the default name before the backend is connected
 const DEFAULT_KIOSK_ID = "PATIENT-ZER0"; 
+const DEFAULT_BACKEND_URL = "http://localhost:8000";
 
 /**
  * Gets the Human-Readable name of this kiosk.
@@ -61,4 +63,18 @@ export async function syncKioskConfig() {
  */
 export function setKioskId(newId) {
     localStorage.setItem(STORAGE_KEY_ALIAS, newId);
+}
+
+/**
+ * Gets the current configured backend API endpoint.
+ */
+export function getBackendUrl() {
+    return localStorage.getItem(STORAGE_KEY_BACKEND) || DEFAULT_BACKEND_URL;
+}
+
+/**
+ * Updates the backend API endpoint.
+ */
+export function setBackendUrl(newUrl) {
+    localStorage.setItem(STORAGE_KEY_BACKEND, newUrl);
 }

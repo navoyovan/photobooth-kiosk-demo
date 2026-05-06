@@ -1,0 +1,162 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(20px) saturate(180%);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+}
+
+.modal {
+  width: 100%;
+  max-width: 800px;
+  background: #FFFFFF;
+  border: none;
+  border-radius: 0;
+  padding: 64px;
+  position: relative;
+  overflow: visible;
+  box-shadow: none;
+  color: #111111;
+  display: flex;
+  flex-direction: column;
+}
+
+.header {
+  margin-bottom: 48px;
+  text-align: center;
+}
+
+.title {
+  font-family: 'Syne', sans-serif;
+  font-size: 2.5rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  margin: 0;
+  line-height: 1.1;
+  color: #111111;
+  text-transform: uppercase;
+}
+
+.subtitle {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 0.85rem;
+  color: #666666;
+  margin-top: 8px;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.previewContainer {
+  display: flex;
+  gap: 64px;
+  margin-bottom: 48px;
+  align-items: center;
+  width: 100%;
+}
+
+.previewMeta {
+  width: 250px;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.metaItem {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.metaLabel {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 0.7rem;
+  color: #888888;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-weight: 600;
+}
+
+.metaValue {
+  font-family: 'Syne', sans-serif;
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: #111111;
+}
+
+.visualStack {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.framePreview {
+  position: relative;
+  display: inline-flex;
+  max-width: 100%;
+  border: none;
+  box-shadow: none;
+}
+
+.frameImg {
+  max-height: 350px;
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  display: block;
+  object-fit: contain;
+}
+
+.photosGrid {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.photoSlot {
+  flex: 1;
+  background: #f8f8f8;
+  overflow: hidden;
+  position: relative;
+}
+
+.capturedImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.actions {
+  display: flex;
+  gap: 20px;
+  margin-top: 24px;
+}
+
+.actions button {
+  flex: 1;
+  height: 42px !important; /* Thinner */
+  padding: 0 24px !important;
+  font-size: 0.7rem !important;
+  text-transform: uppercase;
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 700;
+  border-radius: 0;
+}
+
+.footer {
+  margin-top: 48px;
+  text-align: center;
+  font-family: 'Space Grotesk', monospace;
+  font-size: 0.6rem;
+  color: #aaaaaa;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}

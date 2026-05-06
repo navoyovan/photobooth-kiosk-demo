@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { getBackendUrl } from '../utils/kioskId';
 
 export const useKioskBoot = () => {
     const [kioskData, setKioskData] = useState(null);
@@ -14,7 +15,7 @@ export const useKioskBoot = () => {
                     throw new Error("UNREGISTERED MACHINE");
                 }
 
-                const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+                const apiUrl = getBackendUrl();
                 const response = await fetch(`${apiUrl}/api/kiosk/boot/${uuid}`);
                 
                 if (!response.ok) {

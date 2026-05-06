@@ -1,7 +1,7 @@
 import React, { useRef, useEffect } from 'react';
 import { animate, stagger } from 'animejs';
 
-const STEPS = ['Hy, Hlo!', '01', '02', '03', '04', 'Pending Additional Payment', '05'];
+const STEPS = ['Welcome', '01', '02', '03', '04', 'Pending', '05'];
 const PHASES = [
   { id: 'PYMT', steps: [1] },
   { id: 'CNVS', steps: [2] },

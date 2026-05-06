@@ -99,8 +99,10 @@ export default function App() {
   // Timer Sesi (5 menit = 300 detik) - Steps 2 & 3
   const [sessionTime, setSessionTime] = useState(300);
   // Timer Transaksi (3 menit = 180 detik) - Steps 1, 4, 5
+  // Timer Transaksi (3 menit = 180 detik) - Steps 1, 4, 5
   const [transactionTime, setTransactionTime] = useState(180);
   const [isTimerPaused, setIsTimerPaused] = useState(false);
+  const [checkoutMode, setCheckoutMode] = useState('PAYMENT'); // 'PAYMENT', 'CONFIRM', 'TIMEOUT'
 
   useEffect(() => {
     let timer;
@@ -147,6 +149,21 @@ export default function App() {
           setTransactionTime(1);
           return;
         }
+
+        // Step 4 Timeout: Trigger 10s confirmation instead of immediate end
+        // Step 4 Timeout: Trigger 10s confirmation instead of immediate end
+        if (currentStep === 4) {
+          if (checkoutMode !== 'TIMEOUT' || !isCheckoutModalOpen) {
+            setCheckoutMode('TIMEOUT');
+            setIsCheckoutModalOpen(true);
+            setIsTimerPaused(true);
+            // Set time to 1 to prevent immediate re-trigger loop if modal closes
+            setTransactionTime(1); 
+            return;
+          }
+          return;
+        }
+
         setOutroType('TIMEOUT');
         setCurrentStep(6);
         setFinalImage(null);
@@ -161,13 +178,14 @@ export default function App() {
       setSessionTime(300);
       setTransactionTime(180);
       setIsTimerPaused(false);
+      setCheckoutMode('PAYMENT');
     }
 
     return () => {
       clearInterval(timer);
       if (exportTimeout) clearTimeout(exportTimeout);
     };
-  }, [currentStep, sessionTime, transactionTime, isTimerPaused, isCaptureFinished, capturedPhotos]);
+  }, [currentStep, sessionTime, transactionTime, isTimerPaused, isCaptureFinished, capturedPhotos, isCheckoutModalOpen, checkoutMode]);
 
   const [devMode, setDevMode] = useState(false);
   const [devFreeFlow, setDevFreeFlow] = useState(false);
@@ -213,6 +231,7 @@ export default function App() {
     setTransactionTime(180);
     setIsCheckoutModalOpen(false);
     setIsOutroExiting(false);
+    localStorage.removeItem('photobooth_session');
   }, []);
 
   const formatTime = (seconds) => {
@@ -228,6 +247,62 @@ export default function App() {
   const [captureSubState, setCaptureSubState] = useState('viewfinder'); // 'viewfinder' | 'compositing'
   const captureRef = React.useRef();
   const paymentRef = React.useRef();
+
+  // --- SESSION RECOVERY LOGIC ---
+  useEffect(() => {
+    // We only save if we are past the Idle screen (currentStep > 0)
+    // and not yet in the Outro screen (currentStep < 6)
+    if (currentStep > 0 && currentStep < 6) {
+      const sessionData = {
+        currentStep,
+        selectedFrame,
+        amountPaid,
+        capturedPhotos,
+        printCopies,
+        captureFilter,
+        captureMirrored,
+        finalImage,
+        sessionTime,
+        transactionTime,
+        timestamp: Date.now()
+      };
+      localStorage.setItem('photobooth_session', JSON.stringify(sessionData));
+    }
+  }, [currentStep, selectedFrame, amountPaid, capturedPhotos, printCopies, captureFilter, captureMirrored, finalImage, sessionTime, transactionTime]);
+
+  const handleRestoreSession = useCallback((data) => {
+    // Restore all states
+    setAmountPaid(data.amountPaid || 0);
+    setPrintCopies(data.printCopies || 1);
+    setSelectedFrame(data.selectedFrame || null);
+    setCapturedPhotos(data.capturedPhotos || []);
+    setCaptureFilter(data.captureFilter || 'none');
+    setCaptureMirrored(data.captureMirrored !== undefined ? data.captureMirrored : true);
+    setFinalImage(data.finalImage || null);
+    if (data.sessionTime !== undefined) setSessionTime(data.sessionTime);
+    if (data.transactionTime !== undefined) setTransactionTime(data.transactionTime);
+
+    // Analyze Progress to Set Destination
+    const hasRealPhotos = data.capturedPhotos && data.capturedPhotos.some(p => p && !p.includes('default.png'));
+    const hasFrame = !!data.selectedFrame;
+    const hasPaid = (data.amountPaid || 0) > 0;
+
+    if (hasRealPhotos || data.finalImage) {
+      // Case A: Photos taken -> Compositing
+      setCurrentStep(3);
+      setIsCaptureFinished(true);
+    } else if (hasFrame) {
+      // Case B: Frame Selected, no photos -> Viewfinder
+      setCurrentStep(3);
+      setIsCaptureFinished(false);
+    } else if (hasPaid) {
+      // Case C: Paid, no frame -> Selection
+      setCurrentStep(2);
+    } else {
+      // Fallback
+      setCurrentStep(1);
+    }
+  }, []);
 
   // CAMERA MANAGEMENT (LAZY INITIALIZATION)
   useEffect(() => {
@@ -352,9 +427,9 @@ export default function App() {
         subState={captureSubState}
         isVisible={currentStep > 0 && currentStep < 6}
         backLabel={
-          currentStep === 1 ? '← CANCEL SESSION' :
-            currentStep === 3 ? (captureSubState === 'compositing' ? '← RETAKE SESSION' : '← CHANGE LAYOUT') :
-              currentStep === 4 ? ((isCheckoutModalOpen || sessionTime <= 0) ? null : '← BACK TO COMPOSITING') : null
+          currentStep === 1 ? 'Cancel Session' :
+            currentStep === 3 ? (captureSubState === 'compositing' ? 'Retake Photos' : 'Change Frame') :
+              currentStep === 4 ? ((isCheckoutModalOpen || sessionTime <= 0) ? null : 'Back to Editing') : null
         }
         onBack={(currentStep === 1 || currentStep === 3 || (currentStep === 4 && !isCheckoutModalOpen && sessionTime > 0)) ? () => {
           if (currentStep === 1) {
@@ -380,13 +455,13 @@ export default function App() {
       {/* GLOBAL HUD TIMER (TYPOGRAPHIC ANCHOR) */}
       <div className="telemetry-anchor-top-right">
         <div className="telemetry-label-micro">
-          {currentStep <= 3 ? 'SESSION TIME' : 'TIME LIMIT'}
+          {currentStep <= 3 ? 'Session' : 'Time Remaining'}
         </div>
 
         <div className="telemetry-main-row">
           <div className="telemetry-pulse-container">
             <div className="telemetry-pulse-dot"></div>
-            <span className="telemetry-pulse-label">STATION_ONLINE</span>
+            <span className="telemetry-pulse-label">Live</span>
           </div>
           <div className="telemetry-massive-time">
             {currentStep <= 3 ? formatTime(sessionTime) : formatTime(transactionTime)}
@@ -397,7 +472,7 @@ export default function App() {
       {/* DEV MODE GLOBAL INDICATOR */}
       {devMode && (
         <div className="dev-mode-indicator-group" style={{ pointerEvents: 'none', zIndex: 2147483647, position: 'fixed', top: '2rem', left: '2rem' }}>
-          <div className="dev-mode-indicator">SYSTEM_DIAGNOSTICS_ACTIVE</div>
+          <div className="dev-mode-indicator">Diagnostics Mode</div>
           {localStorage.getItem('machine_token') ? (
             <div className="dev-mode-indicator status-tag registered">REGISTRATION_STATUS: AUTHORIZED</div>
           ) : (
@@ -414,7 +489,7 @@ export default function App() {
               setTransactionTime(180);
               setCurrentStep(prev => prev + 1);
             }}>SKIP</button>
-            <button className="telemetry-dev-skip-minimal" onClick={() => setSessionTime(1)} style={{ color: '#FF4444', borderColor: '#FF4444' }}>FORCE_TIMEOUT</button>
+            <button className="telemetry-dev-skip-minimal" onClick={() => { setSessionTime(1); setTransactionTime(1); }} style={{ color: '#FF4444', borderColor: '#FF4444' }}>FORCE_TIMEOUT</button>
             {isCheckoutModalOpen && (
               <button
                 className="telemetry-dev-skip-minimal"
@@ -452,7 +527,7 @@ export default function App() {
       {currentStep === 1 && (
         <PaymentScreen
           ref={paymentRef}
-          onBack={() => setCurrentStep(0)}
+          onBack={handleReset}
           onSuccess={(paid) => {
             setAmountPaid(paid);
             setInitialCopies(printCopies);
@@ -465,6 +540,8 @@ export default function App() {
           setIsTimerPaused={setIsTimerPaused}
           kioskId={kioskId}
           devFreeFlow={devFreeFlow}
+          onRestoreSession={handleRestoreSession}
+          selectedFrame={selectedFrame}
         />
       )}
 
@@ -497,7 +574,7 @@ export default function App() {
           setCurrentSlotIndex={setCaptureSlotIndex}
           onBack={() => {
             // Disable back if timeout happened (sessionTime <= 0)
-            if (sessionTime <= 0) return; 
+            if (sessionTime <= 0) return;
 
             if (isCaptureFinished) {
               setIsCaptureFinished(false);
@@ -534,6 +611,9 @@ export default function App() {
           onNext={() => setCurrentStep(5)}
           devFreeFlow={devFreeFlow}
           setIsTimerPaused={setIsTimerPaused}
+          checkoutMode={checkoutMode}
+          setCheckoutMode={setCheckoutMode}
+          onTimeout={handleAbort}
         />
       )}
 
@@ -551,28 +631,8 @@ export default function App() {
         <OutroScreen finalImage={finalImage} type={outroType} onReset={handleReset} onExitStart={() => setIsOutroExiting(true)} />
       )}
 
-      {/* GLOBAL TRANSITION OVERLAY
-      <div
-        className="global-transition-overlay"
-        style={{
-          position: 'fixed',
-          inset: 0,
-          backgroundColor: '#ffffff',
-          zIndex: 99999,
-          pointerEvents: 'none',
-          opacity: isGlobalTransitioning ? 1 : 0,
-          transition: 'opacity 0.3s ease-in-out',
-          display: isGlobalTransitioning ? 'block' : 'none'
-        }}
-      /> */}
 
     </div>
   );
 };
 
-// known issues
-//pict with filters does not exported correctly
-//add more filters like halftone etc
-// remove filters>colorize from ExportScreen replace with printing "rolling Curtain" Animation
-// add sound effects for each button click?
-// remove dev mode, and x button

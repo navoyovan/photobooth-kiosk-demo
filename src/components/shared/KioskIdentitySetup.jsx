@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { getKioskId, getMachineUUID } from '../../utils/kioskId';
+import { getKioskId, getMachineUUID, getBackendUrl, setBackendUrl } from '../../utils/kioskId';
 import './hub-modals.css';
 
 const KioskIdentitySetup = ({ forceShow = false, onClose = null }) => {
@@ -9,10 +9,11 @@ const KioskIdentitySetup = ({ forceShow = false, onClose = null }) => {
     const [activationCode, setActivationCode] = useState('');
     const [isActivating, setIsActivating] = useState(false);
     const [feedback, setFeedback] = useState({ type: null, message: '' });
-    const [serverVerified, setServerVerified] = useState('PENDING');
     const [portalTarget, setPortalTarget] = useState(null);
+    const [serverVerified, setServerVerified] = useState('PENDING');
+    const [currentBackendUrl, setCurrentBackendUrl] = useState(getBackendUrl());
+    const [isEditingBackend, setIsEditingBackend] = useState(false);
 
-    const backendUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
     useEffect(() => {
         const target = document.getElementById('modal-root');
@@ -27,7 +28,7 @@ const KioskIdentitySetup = ({ forceShow = false, onClose = null }) => {
             // Check existing auth status
             const token = localStorage.getItem('machine_token');
             if (token) {
-                fetch(`${backendUrl}/api/kiosk/boot/${currentUuid}`, {
+                fetch(`${currentBackendUrl}/api/kiosk/boot/${currentUuid}`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 })
                 .then(res => setServerVerified(res.ok ? 'VERIFIED' : 'REJECTED'))
@@ -36,7 +37,7 @@ const KioskIdentitySetup = ({ forceShow = false, onClose = null }) => {
                 setServerVerified('UNREGISTERED');
             }
         }
-    }, [forceShow, backendUrl]);
+    }, [forceShow, currentBackendUrl]);
 
     const handleActivate = async () => {
         if (!activationCode || activationCode.length < 4) {
@@ -48,7 +49,7 @@ const KioskIdentitySetup = ({ forceShow = false, onClose = null }) => {
         setFeedback({ type: 'info', message: 'COMMUNICATING_WITH_MASTER_BRAIN...' });
 
         try {
-            const response = await fetch(`${backendUrl}/api/kiosk/activate`, {
+            const response = await fetch(`${currentBackendUrl}/api/kiosk/activate`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -146,7 +147,7 @@ const KioskIdentitySetup = ({ forceShow = false, onClose = null }) => {
                                 <input 
                                     type="text"
                                     value={activationCode}
-                                    onChange={(e) => setActivationCode(e.target.value.toUpperCase())}
+                                    readOnly
                                     placeholder="ENTER_ACTIVATION_KEY"
                                     style={{
                                         width: '100%', backgroundColor: '#000', border: '2px solid rgba(255,255,255,0.1)',
@@ -154,7 +155,6 @@ const KioskIdentitySetup = ({ forceShow = false, onClose = null }) => {
                                         fontWeight: 900, letterSpacing: '0.4em', outline: 'none',
                                         transition: 'all 0.2s', boxSizing: 'border-box', fontFamily: 'monospace'
                                     }}
-                                    disabled={isActivating || serverVerified === 'VERIFIED'}
                                 />
                                 {isActivating && (
                                     <div style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -163,14 +163,38 @@ const KioskIdentitySetup = ({ forceShow = false, onClose = null }) => {
                                 )}
                             </div>
 
-                            <button 
-                                onClick={handleActivate}
-                                disabled={isActivating || serverVerified === 'VERIFIED' || !activationCode}
-                                className="hub-modal-btn hub-btn-primary"
-                                style={{ width: '100%', padding: '1.25rem', fontSize: '16px' }}
-                            >
-                                {serverVerified === 'VERIFIED' ? 'STATION_ACTIVATED' : 'AUTHORIZE_STATION'}
-                            </button>
+                            {/* Hexadecimal Keypad */}
+                            {serverVerified !== 'VERIFIED' && (
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.5rem', width: '100%' }}>
+                                    {["1", "2", "3", "A", "4", "5", "6", "B", "7", "8", "9", "C", "D", "E", "F", "0", "DEL", "OK"].map(key => (
+                                        <button
+                                            key={key}
+                                            onClick={() => {
+                                                if (key === "DEL") setActivationCode(prev => prev.slice(0, -1));
+                                                else if (key === "OK") handleActivate();
+                                                else if (activationCode.length < 16) setActivationCode(prev => prev + key);
+                                            }}
+                                            className="hub-modal-btn"
+                                            style={{
+                                                backgroundColor: key === 'OK' ? '#06b6d4' : (key === 'DEL' ? 'rgba(239,68,68,0.2)' : 'rgba(255,255,255,0.05)'),
+                                                color: key === 'OK' ? '#000' : (key === 'DEL' ? '#ef4444' : '#fff'),
+                                                border: key === 'DEL' ? '1px solid #ef4444' : '1px solid rgba(255,255,255,0.1)',
+                                                padding: '1rem 0',
+                                                fontSize: '14px',
+                                                gridColumn: (key === 'OK' || key === 'DEL') ? 'span 2' : 'span 1'
+                                            }}
+                                        >
+                                            {key}
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+
+                            {serverVerified === 'VERIFIED' && (
+                                <div style={{ color: '#06b6d4', fontWeight: 900, textTransform: 'uppercase', fontSize: '14px', letterSpacing: '0.2em' }}>
+                                    STATION_AUTHORIZED_BY_MASTER
+                                </div>
+                            )}
 
                             {feedback.message && (
                                 <div style={{ fontSize: '11px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em', marginTop: '0.5rem', color: feedback.type === 'error' ? '#ef4444' : '#06b6d4', fontFamily: 'monospace' }}>
@@ -181,9 +205,33 @@ const KioskIdentitySetup = ({ forceShow = false, onClose = null }) => {
                     </div>
 
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', opacity: 0.7, transition: 'opacity 0.2s', paddingTop: '1rem' }}>
-                        <div style={{ display: 'flex', flexDirection: 'column' }}>
-                            <span style={{ color: '#52525b', fontSize: '10px', textTransform: 'uppercase', fontWeight: 900, letterSpacing: '0.1em' }}>MASTER_ENDPOINT</span>
-                            <code style={{ color: '#a1a1aa', fontSize: '10px', fontFamily: 'monospace' }}>{backendUrl}</code>
+                        <div style={{ display: 'flex', flexDirection: 'column', flex: 1, marginRight: '1rem' }}>
+                            <span style={{ color: '#52525b', fontSize: '10px', textTransform: 'uppercase', fontWeight: 900, letterSpacing: '0.1em' }}>MASTER_BRAIN_ADDRESS</span>
+                            {isEditingBackend ? (
+                                <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.25rem' }}>
+                                    <input 
+                                        type="text"
+                                        value={currentBackendUrl}
+                                        onChange={(e) => setCurrentBackendUrl(e.target.value)}
+                                        onBlur={() => {
+                                            setBackendUrl(currentBackendUrl);
+                                            setIsEditingBackend(false);
+                                        }}
+                                        autoFocus
+                                        style={{
+                                            backgroundColor: '#000', border: '1px solid #06b6d4', color: '#fff',
+                                            fontSize: '10px', fontFamily: 'monospace', padding: '0.25rem 0.5rem', width: '100%'
+                                        }}
+                                    />
+                                </div>
+                            ) : (
+                                <code 
+                                    onClick={() => setIsEditingBackend(true)}
+                                    style={{ color: '#a1a1aa', fontSize: '10px', fontFamily: 'monospace', cursor: 'pointer', borderBottom: '1px dashed #52525b' }}
+                                >
+                                    {currentBackendUrl}
+                                </code>
+                            )}
                         </div>
                         <button 
                             onClick={() => {
