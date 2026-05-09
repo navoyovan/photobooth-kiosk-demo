@@ -465,10 +465,7 @@ const SelectionScreenInner = ({ onFinish, onPrepareCamera, kioskData, loading })
   );
 };
 
-const SelectionScreen = (props) => {
-  const { kioskData, loading, error } = useKioskBoot();
-  const [showSetupManual, setShowSetupManual] = useState(false);
-
+const SelectionScreen = ({ kioskData, loading, ...props }) => {
   return <SelectionScreenInner kioskData={kioskData || { frames: [] }} loading={loading} {...props} />;
 };
 

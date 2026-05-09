@@ -2,6 +2,7 @@
   display: flex;
   width: 100vw;
   height: 100vh;
+  background: #ffffff;
   overflow: hidden;
   position: relative;
   z-index: 20;

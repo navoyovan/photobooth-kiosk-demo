@@ -2,10 +2,23 @@
 @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Space+Grotesk:wght@300;400;700;800&family=Syne:wght@400;500;600;700;800&display=swap');
 
 :root {
-  --accent-color: #ec5a00;
+  --accent-color: #f86910;
 
-  --mica-light: rgba(247, 247, 247, 0.70);
-  --mica-dark: rgba(5, 5, 5, 0.70);
+  --mica-light: linear-gradient(135deg,
+      rgba(255, 255, 255, 0.78) 0%,
+      rgba(252, 250, 245, 0.65) 100%);
+
+  --mica-dark: linear-gradient(135deg,
+      rgba(15, 15, 15, 0.92) 0%,
+      rgba(5, 5, 5, 0.82) 100%);
+
+  --mica-light-solid: linear-gradient(135deg,
+      rgba(255, 255, 255, 1) 0%,
+      rgba(252, 250, 245, 1) 100%);
+
+  --mica-dark-solid: linear-gradient(135deg,
+      rgba(15, 15, 15, 1) 0%,
+      rgba(5, 5, 5, 1) 100%);
 
 
   --theme-surface: #ffffff;
@@ -34,6 +47,68 @@ body {
   width: 100vw;
   background: #f4f2ef;
   /* Base material color for the entire kiosk */
+}
+
+
+.milky-mica-background {
+  /* Mica V3: High-vibrancy frost (User Tweaked) */
+  background: var(--mica-light);
+
+  backdrop-filter: blur(40px) saturate(140%) brightness(1.05);
+  -webkit-backdrop-filter: blur(40px) saturate(140%) brightness(1.05);
+
+  /* Specular Highlight & Soft Shadow */
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow:
+    inset 0 0 150px rgba(255, 255, 255, 0.25),
+    0 30px 100px rgba(0, 0, 0, 0.05);
+
+  position: relative;
+  transition: backdrop-filter 0.8s ease;
+}
+
+.milky-mica-background::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--mica-light-solid);
+  opacity: 0;
+  transition: opacity 0.8s ease;
+  z-index: -1;
+  pointer-events: none;
+}
+
+.milky-mica-background.is-solid-mode::after {
+  opacity: 1;
+}
+
+.milky-mica-background.is-solid-mode {
+  backdrop-filter: blur(0px) saturate(100%) brightness(1);
+}
+
+.charcoal-mica-background {
+  /* Charcoal Mica V2: Deep material depth */
+  background: var(--mica-dark);
+
+  backdrop-filter: blur(20px) saturate(140%) brightness(0.7);
+  -webkit-backdrop-filter: blur(20px) saturate(140%) brightness(0.7);
+
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow:
+    inset 0 0 150px rgba(0, 0, 0, 0.4),
+    0 40px 120px rgba(0, 0, 0, 0.5);
+  transition: background 0.8s ease, backdrop-filter 0.8s ease, box-shadow 0.8s ease;
+}
+
+.charcoal-solid-background {
+  /* Opaque version for modal transitions */
+  background: var(--mica-dark-solid);
+
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow:
+    inset 0 0 150px rgba(0, 0, 0, 0.4),
+    0 40px 120px rgba(0, 0, 0, 0.5);
+  transition: background 0.8s ease, backdrop-filter 0.8s ease, box-shadow 0.8s ease;
 }
 
 .app-wrapper {
@@ -107,35 +182,6 @@ body {
   --btn-color: #FFF;
   --btn-border: #FFF;
   background: rgba(255, 255, 255, 0.08) !important;
-}
-
-.milky-mica-background {
-  /* Mica V3: High-vibrancy frost (User Tweaked) */
-  background: linear-gradient(135deg,
-      rgba(255, 255, 255, 0.78) 0%,
-      rgba(252, 250, 245, 0.65) 100%);
-  backdrop-filter: blur(40px) saturate(140%) brightness(1.05);
-  -webkit-backdrop-filter: blur(40px) saturate(140%) brightness(1.05);
-
-  /* Specular Highlight & Soft Shadow */
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  box-shadow:
-    inset 0 0 150px rgba(255, 255, 255, 0.25),
-    0 30px 100px rgba(0, 0, 0, 0.05);
-}
-
-.charcoal-mica-background {
-  /* Charcoal Mica V2: Deep material depth */
-  background: linear-gradient(135deg,
-      rgba(15, 15, 15, 0.92) 0%,
-      rgba(5, 5, 5, 0.82) 100%);
-  backdrop-filter: blur(20px) saturate(140%) brightness(0.7);
-  -webkit-backdrop-filter: blur(20px) saturate(140%) brightness(0.7);
-
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow:
-    inset 0 0 150px rgba(0, 0, 0, 0.4),
-    0 40px 120px rgba(0, 0, 0, 0.5);
 }
 
 .ctaLabel {
@@ -339,7 +385,7 @@ body {
 /* Size & Color Variants */
 .intro .hero-display-main {
   font-size: 10vw;
-  letter-spacing: -1.2vw;
+  letter-spacing: -0.6vw;
   color: #000;
 }
 
@@ -349,7 +395,7 @@ body {
 }
 
 .hero-display-sub {
-  font-family: 'Syne', sans-serif;
+  font-family: 'Space Grotesk', sans-serif;
   font-weight: 800;
   text-transform: uppercase;
   position: relative;
@@ -2077,18 +2123,18 @@ body {
 .telemetry-pulse-label {
   font-family: 'Neue Machina', sans-serif;
   font-size: 0.6rem;
-  color: #00FF00;
+  color: var(--accent-color);
   letter-spacing: 0.05em;
   opacity: 0.8;
   font-weight: 900;
 }
 
 .telemetry-pulse-dot {
-  width: 8px;
-  height: 8px;
-  background-color: #00FF00;
+  width: 1rem;
+  height: 1rem;
+  background-color: var(--accent-color);
   border-radius: 50%;
-  box-shadow: 0 0 12px rgba(0, 255, 0, 0.6);
+  /* box-shadow: 0 0 12px var(--accent-color); */
   animation: telemetry-pulse 1.5s infinite;
 }
 

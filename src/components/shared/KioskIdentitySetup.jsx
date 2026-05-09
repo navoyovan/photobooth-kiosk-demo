@@ -31,8 +31,8 @@ const KioskIdentitySetup = ({ forceShow = false, onClose = null }) => {
                 fetch(`${currentBackendUrl}/api/kiosk/boot/${currentUuid}`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 })
-                .then(res => setServerVerified(res.ok ? 'VERIFIED' : 'REJECTED'))
-                .catch(() => setServerVerified('OFFLINE'));
+                    .then(res => setServerVerified(res.ok ? 'VERIFIED' : 'REJECTED'))
+                    .catch(() => setServerVerified('OFFLINE'));
             } else {
                 setServerVerified('UNREGISTERED');
             }
@@ -91,15 +91,15 @@ const KioskIdentitySetup = ({ forceShow = false, onClose = null }) => {
                     position: 'absolute', top: 0, left: 0, width: '100%', height: '2px',
                     backgroundColor: 'rgba(6,182,212,0.5)', boxShadow: '0 0 15px rgba(6,182,212,0.5)'
                 }}></div>
-                
-                <button 
+
+                <button
                     onClick={onClose}
                     className="hub-modal-btn hub-btn-exit"
                     style={{ position: 'absolute', top: '1.5rem', right: '1.5rem' }}
                 >
                     [ EXIT_HUB ]
                 </button>
-                
+
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '2.5rem' }}>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
@@ -142,9 +142,9 @@ const KioskIdentitySetup = ({ forceShow = false, onClose = null }) => {
                         {/* Activation Input */}
                         <div style={{ backgroundColor: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', padding: '2.5rem 2rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1.5rem', position: 'relative' }}>
                             <span style={{ color: '#06b6d4', fontSize: '12px', textTransform: 'uppercase', fontWeight: 900, letterSpacing: '0.3em' }}>Hardware Activation Gateway</span>
-                            
+
                             <div style={{ width: '100%', position: 'relative' }}>
-                                <input 
+                                <input
                                     type="text"
                                     value={activationCode}
                                     readOnly
@@ -152,7 +152,7 @@ const KioskIdentitySetup = ({ forceShow = false, onClose = null }) => {
                                     style={{
                                         width: '100%', backgroundColor: '#000', border: '2px solid rgba(255,255,255,0.1)',
                                         padding: '1.25rem', color: '#fff', textAlign: 'center', fontSize: '1.5rem',
-                                        fontWeight: 900, letterSpacing: '0.4em', outline: 'none',
+                                        outline: 'none',
                                         transition: 'all 0.2s', boxSizing: 'border-box', fontFamily: 'monospace'
                                     }}
                                 />
@@ -209,7 +209,7 @@ const KioskIdentitySetup = ({ forceShow = false, onClose = null }) => {
                             <span style={{ color: '#52525b', fontSize: '10px', textTransform: 'uppercase', fontWeight: 900, letterSpacing: '0.1em' }}>MASTER_BRAIN_ADDRESS</span>
                             {isEditingBackend ? (
                                 <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.25rem' }}>
-                                    <input 
+                                    <input
                                         type="text"
                                         value={currentBackendUrl}
                                         onChange={(e) => setCurrentBackendUrl(e.target.value)}
@@ -225,7 +225,7 @@ const KioskIdentitySetup = ({ forceShow = false, onClose = null }) => {
                                     />
                                 </div>
                             ) : (
-                                <code 
+                                <code
                                     onClick={() => setIsEditingBackend(true)}
                                     style={{ color: '#a1a1aa', fontSize: '10px', fontFamily: 'monospace', cursor: 'pointer', borderBottom: '1px dashed #52525b' }}
                                 >
@@ -233,9 +233,9 @@ const KioskIdentitySetup = ({ forceShow = false, onClose = null }) => {
                                 </code>
                             )}
                         </div>
-                        <button 
+                        <button
                             onClick={() => {
-                                if(window.confirm("ARE YOU SURE?")) {
+                                if (window.confirm("ARE YOU SURE?")) {
                                     localStorage.clear();
                                     window.location.reload();
                                 }

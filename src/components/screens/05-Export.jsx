@@ -12,7 +12,7 @@ const ExportScreen = ({ finalImage, printCopies, onFinish, kioskId, devFreeFlow 
   const watermarkRef = useRef(null);
 
   const timelineRef = useRef(null);
-  const [isDonating, setIsDonating] = useState(false);
+  const [isDonating, setIsDonating] = useState(true);
   const [isProcessingDonation, setIsProcessingDonation] = useState(false);
 
   useEffect(() => {
@@ -84,23 +84,12 @@ const ExportScreen = ({ finalImage, printCopies, onFinish, kioskId, devFreeFlow 
   }, [printCopies]);
 
   const handleManualExit = async () => {
-    if (isDonating && finalImage) {
-      setIsProcessingDonation(true);
-      try {
-        const webpBlob = await convertToWebP(finalImage);
-        await saveToLocalStarfield(webpBlob);
-      } catch (err) {
-        console.error("[Export] Donation failed:", err);
-      }
-      setIsProcessingDonation(false);
-    }
-
     animate(screenRef.current, {
       opacity: 0,
       scale: 0.95,
       duration: 500,
       easing: 'easeInQuad',
-      onComplete: onFinish
+      onComplete: () => onFinish(isDonating)
     });
   };
 
@@ -121,82 +110,83 @@ const ExportScreen = ({ finalImage, printCopies, onFinish, kioskId, devFreeFlow 
         )}
       </div>
 
-      {/* 3. Sumbu Kanan: Telemetry Stack */}
-      <div ref={telemetryAxisRef} className="telemetry-right-axis">
-        <div style={{ position: 'relative' }}>
-          {/* <div className="hero-title-halo dark" /> */}
+      {/* 3. Sumbu Kanan: Telemetry Stack (Full Height Column) */}
+      <div ref={telemetryAxisRef} className="telemetry-right-axis" style={{ justifyContent: 'flex-start' }}>
+
+        {/* TOP SECTION: IDENTIFIERS */}
+        <div className={styles.topSection}>
           <h1 className={styles.telemetryTitle}>YOUR AMAZING DIGITAL ARCHIVE</h1>
-        </div>
 
-        <div className="qr-box" style={{ margin: '0 0 2rem 0', alignSelf: 'flex-start', position: 'relative', width: '280px', height: '280px' }}>
-          <div className="qr-crop-marks">
-            <span></span>
-          </div>
+          <div className="qr-box" style={{ margin: '1rem 0 2.5rem 0', alignSelf: 'flex-start', position: 'relative', width: '280px', height: '280px', background: '#fff' }}>
+            <div className="qr-crop-marks">
+              <span></span>
+            </div>
 
-          <img
-            src={`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=https://hypebox.id/download/${kioskId}-${Date.now()}`}
-            alt="Download QR"
-            style={{
-              width: '200px',
-              height: '200px',
-              objectFit: 'contain',
-              zIndex: 5,
-              cursor: devFreeFlow ? 'pointer' : 'default'
-            }}
-            onClick={(e) => {
-              if (devFreeFlow && e.detail === 2) {
-                console.log("[DevFreeFlow] Double-tap QR skip triggered.");
-                onFinish();
-              }
-            }}
-          />
-        </div>
-
-        <div className={styles.metadataStack}>
-          <div className={styles.metadataItem}>LINK: ARCHIVE.PHOTOS/{kioskId}</div>
-          <div className={styles.metadataItem}>TERMINAL: {kioskId}</div>
-          <div className={styles.metadataItem}>STATUS: ENCRYPTED & SECURE</div>
-        </div>
-
-        <div className={styles.securityNotice}>
-          <span>SECURITY ADVISORY:</span> PLEASE MANUALLY EXIT TO CLEAR YOUR DATA. LEAVING THIS SCREEN ACTIVE ALLOWS OTHERS TO ACCESS YOUR DOWNLOAD LINK.
-        </div>
-      </div>
-
-      {/* 4. Eksekusi Final: Printer & Exit */}
-      <div ref={footerRef} className={styles.footer}>
-        <div className={styles.printerStatusBar}>
-          <div className={styles.printerStatusLabel}>
-            <span>MATERIALIZING PHYSICAL PRINTS</span>
-            <span>{Math.round(progress)}%</span>
-          </div>
-          <div className={styles.printerProgressTrack}>
-            <div className={styles.printerProgressFill} style={{ width: `${progress}%` }}></div>
-          </div>
-        </div>
-
-        <div className={styles.finalActions}>
-          <label className={styles.donateToggle}>
-            <input 
-              type="checkbox" 
-              checked={isDonating} 
-              onChange={(e) => setIsDonating(e.target.checked)} 
-              disabled={isProcessingDonation}
+            <img
+              src={`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=https://hypebox.id/download/${kioskId}-${Date.now()}`}
+              alt="Download QR"
+              style={{
+                width: '200px',
+                height: '200px',
+                objectFit: 'contain',
+                zIndex: 5,
+                cursor: devFreeFlow ? 'pointer' : 'default'
+              }}
+              onClick={(e) => {
+                if (devFreeFlow && e.detail === 2) {
+                  console.log("[DevFreeFlow] Double-tap QR skip triggered.");
+                  onFinish();
+                }
+              }}
             />
-            <span className={styles.donateLabel}>
-              {isProcessingDonation ? 'PROCESING_DONATION...' : 'DONATE_TO_COMMUNITY_STARFIELD'}
-            </span>
-          </label>
-          
-          <button 
-            className="btn-tier-1" 
-            onClick={handleManualExit}
-            disabled={isProcessingDonation || progress < 100}
-            style={{ opacity: progress < 100 ? 0.3 : 1, cursor: progress < 100 ? 'not-allowed' : 'pointer' }}
-          >
-            {isProcessingDonation ? 'WAIT...' : (progress < 100 ? 'PRINTING_IN_PROGRESS...' : 'COMPLETE SESSION ✕')}
-          </button>
+          </div>
+
+          <div className={styles.metadataStack}>
+            <div className={styles.metadataItem}>Artifact Link // archive.photos/{kioskId}</div>
+            <div className={styles.metadataItem}>Status // Encrypted & Secured</div>
+          </div>
+
+          <div className={styles.securityNotice}>
+            <span>SECURITY ADVISORY:</span> Please manually exit to clear your temporary data. Remaining on this screen may allow others to access your archive.
+          </div>
         </div>
+
+        {/* BOTTOM SECTION: MATERIALIZATION & FINISH (NOW INSIDE THE AXIS) */}
+        <div className={styles.bottomSection}>
+          <div className={styles.printerStatusBar}>
+            <div className={styles.printerStatusLabel}>
+              <span>Materializing Physical Prints</span>
+              <span>{Math.round(progress)}%</span>
+            </div>
+            <div className={styles.printerProgressTrack}>
+              <div className={styles.printerProgressFill} style={{ width: `${progress}%` }}></div>
+            </div>
+          </div>
+
+          <div className={styles.finalActions}>
+            <div
+              className={`${styles.donateToggle} ${isDonating ? styles.isDonating : ''}`}
+              onClick={() => !isProcessingDonation && setIsDonating(!isDonating)}
+            >
+              <span className={styles.bracket}>
+                {isProcessingDonation ? '[ … ]' : (isDonating ? '[ ■ ]' : '[   ]')}
+              </span>
+              <span className={styles.donateLabel}>
+                {isProcessingDonation ? 'Processing archive...' : 'Grant exhibition rights to public gallery wall.'}
+              </span>
+            </div>
+
+            <button
+              className={`btn-primary ${styles.finishBtn}`}
+              onClick={handleManualExit}
+              disabled={isProcessingDonation || progress < 100}
+              style={{ opacity: progress < 100 ? 0.3 : 1, cursor: progress < 100 ? 'not-allowed' : 'pointer', width: '100%', maxWidth: '30rem' }}
+            >
+              {isProcessingDonation ? 'WAIT...' : (progress < 100 ? 'MATERIALIZING...' : 'END SESSION ✕')}
+            </button>
+          </div>
+        </div>
+
       </div>
     </div>
   );

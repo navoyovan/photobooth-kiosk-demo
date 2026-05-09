@@ -1,48 +1,117 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import { animate, stagger } from 'animejs';
+import { convertToWebP, saveToLocalStarfield } from '../../utils/imageProcessor';
 
-const OutroScreen = ({ finalImage, type = 'NORMAL', onReset, onExitStart }) => {
+const OutroScreen = ({ finalImage, type = 'NORMAL', isDonating, onReset, onExitStart }) => {
   const screenRef = useRef(null);
+  const [variant, setVariant] = useState(isDonating && type === 'NORMAL' ? 'CONSENT' : 'NORMAL');
+  const [isSaving, setIsSaving] = useState(false);
+  const [timeLeft, setTimeLeft] = useState(10);
+  const hasTriggeredRef = useRef(false);
 
   useEffect(() => {
-    // Entrance: Background fade and Text Zoom In
-    animate(screenRef.current, {
-      opacity: [0, 1],
-      duration: 1000,
-      easing: 'easeOutQuad'
-    });
-
-    animate('.hero-display-text', {
-      opacity: [0, 1],
-      scale: [0.5, 1],
-      filter: ['blur(20px)', 'blur(0px)'],
-      duration: 1500,
-      easing: 'easeOutQuad',
-      delay: stagger(300)
-    });
-
-    // Stay for 4.5 seconds then start exit animation
-    const exitTimer = setTimeout(() => {
-      if (onExitStart) onExitStart();
+    if (variant === 'NORMAL') {
+      // Entrance: Background fade and Text Zoom In
       animate(screenRef.current, {
-        opacity: 0,
+        opacity: [0, 1],
         duration: 1000,
-        easing: 'easeInQuad'
+        easing: 'easeOutQuad'
       });
 
       animate('.hero-display-text', {
-        opacity: 0,
-        scale: 0.4, // Zoom Out (settling into distance) as requested
-        filter: 'blur(30px)',
+        opacity: [0, 1],
+        scale: [0.5, 1],
+        filter: ['blur(20px)', 'blur(0px)'],
         duration: 1500,
-        easing: 'easeInQuad',
-        delay: stagger(100),
-        onComplete: onReset
+        easing: 'easeOutQuad',
+        delay: stagger(300)
       });
-    }, 4500);
 
-    return () => clearTimeout(exitTimer);
-  }, []); // Run once on mount
+      // Stay for 4.5 seconds then start exit animation
+      const exitTimer = setTimeout(() => {
+        if (onExitStart) onExitStart();
+        animate(screenRef.current, {
+          opacity: 0,
+          duration: 1000,
+          easing: 'easeInQuad'
+        });
+
+        animate('.hero-display-text', {
+          opacity: 0,
+          scale: 0.4,
+          filter: 'blur(30px)',
+          duration: 1500,
+          easing: 'easeInQuad',
+          delay: stagger(100),
+          onComplete: onReset
+        });
+      }, 4500);
+
+      return () => clearTimeout(exitTimer);
+    } else if (variant === 'CONSENT') {
+      // CONSENT Variant Entrance
+      animate(screenRef.current, {
+        opacity: [0, 1],
+        duration: 800,
+        easing: 'easeOutQuad'
+      });
+
+      animate('.consent-image-preview', {
+        opacity: [0, 1],
+        scale: [0.8, 1],
+        duration: 1200,
+        easing: 'easeOutQuart'
+      });
+
+      animate('.consent-actions button', {
+        translateY: [20, 0],
+        opacity: [0, 1],
+        delay: stagger(100, { start: 400 }),
+        duration: 600,
+        easing: 'easeOutCubic'
+      });
+
+      // 10s Countdown to automatic ACCEPT
+      const interval = setInterval(() => {
+        setTimeLeft((prev) => {
+          if (prev <= 1) {
+            clearInterval(interval);
+            if (!hasTriggeredRef.current) handleAccept();
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+
+      return () => clearInterval(interval);
+    }
+  }, [variant, finalImage]);
+
+  const handleAccept = async () => {
+    if (isSaving || hasTriggeredRef.current) return;
+    hasTriggeredRef.current = true;
+    setIsSaving(true);
+    try {
+      const webpBlob = await convertToWebP(finalImage);
+      await saveToLocalStarfield(webpBlob);
+
+      // "Logic especially the part when it clears the starfield off"
+      if (onExitStart) onExitStart();
+
+      // Then move to final message
+      setVariant('NORMAL');
+    } catch (err) {
+      console.error("[Outro] Save failed:", err);
+      setVariant('NORMAL');
+      hasTriggeredRef.current = false;
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleDecline = () => {
+    setVariant('NORMAL');
+  };
 
   const messages = {
     NORMAL: ["MEMORIES ARCHIVED", "ENJOY THE WILDERNESS"],
@@ -51,6 +120,50 @@ const OutroScreen = ({ finalImage, type = 'NORMAL', onReset, onExitStart }) => {
   };
 
   const currentMsg = messages[type] || messages.NORMAL;
+
+  if (variant === 'CONSENT') {
+    return (
+      <div ref={screenRef} className="hero-display-layout outro consent-mode">
+        <div className="hero-display-content" style={{ gap: '2rem', padding: '0 10vw' }}>
+          <div className="hero-display-halo" />
+
+          <h1 className="hero-display-main" style={{ fontSize: '3.5rem', marginBottom: '0.5rem', letterSpacing: '-0.1rem' }}>
+            GRANT EXHIBITION RIGHTS?
+          </h1>
+
+          {/* <div className="consent-image-preview" style={{
+            height: '35vh',
+            aspectRatio: '1/1',
+            background: 'rgba(255,255,255,0.05)',
+            border: '1px solid rgba(255,255,255,0.1)',
+            backdropFilter: 'blur(10px)',
+            boxShadow: '0 40px 100px rgba(0,0,0,0.8)',
+            zIndex: 10,
+            overflow: 'hidden',
+            padding: '8px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}>
+            {finalImage && <img src={finalImage} alt="Final Preview" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />}
+          </div> */}
+
+          <p className="hero-display-sub" style={{ fontSize: '0.9rem', letterSpacing: '0.3rem', maxWidth: '800px', lineHeight: '1.8', opacity: 0.8 }}>
+            Allow your memory to be projected onto the community starfield wall for others to discover.
+          </p>
+
+          <div className="consent-actions" style={{ display: 'flex', gap: '2rem', zIndex: 10, marginTop: '1rem' }}>
+            <button className="btn-secondary dark" onClick={handleDecline} disabled={isSaving} style={{ minWidth: '200px' }}>
+              DECLINE
+            </button>
+            <button className="btn-primary" onClick={handleAccept} disabled={isSaving} style={{ minWidth: '240px' }}>
+              {isSaving ? 'SECURING...' : `ACCEPT & PUBLISH (${timeLeft}S)`}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div ref={screenRef} className="hero-display-layout outro">

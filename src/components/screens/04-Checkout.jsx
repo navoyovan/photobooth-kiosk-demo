@@ -158,7 +158,7 @@ const PrintManifestScreen = ({ finalImage, printCopies, setPrintCopies, initialC
 
 
   return (
-    <div ref={screenRef} className="panel-whole panel-center-content charcoal-mica-background">
+    <div ref={screenRef} className="panel-whole panel-center-content charcoal-solid-background  ">
 
       {/* 0. GHOST WATERMARK */}
       <div ref={watermarkRef} className="ghost-watermark">DARK<br />ROOM</div>

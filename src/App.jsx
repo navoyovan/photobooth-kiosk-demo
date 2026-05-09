@@ -15,11 +15,31 @@ import OutroScreen from './components/screens/06-Outro';
 import KineticPagination from './components/shared/KineticPagination';
 import KioskIdentitySetup from './components/shared/KioskIdentitySetup';
 import CommunityGalleryModal from './components/shared/CommunityGalleryModal';
+import { useKioskBoot } from './hooks/useKioskBoot';
 import { FRAME_TYPES, DEFAULT_FRAME } from './constants/frames';
 import { getKioskId, getMachineUUID, syncKioskConfig } from './utils/kioskId';
+import echo from './services/echo';
+import StatusService from './services/StatusService';
+
+function MaintenanceOverlay() {
+  return (
+    <div style={{
+      position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
+      backgroundColor: '#000', color: '#fff', zIndex: 999999,
+      display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center',
+      fontFamily: 'monospace'
+    }}>
+      <div style={{ fontSize: '2rem', letterSpacing: '0.2em', marginBottom: '1rem', color: '#ef4444' }}>
+        MAINTENANCE IN PROGRESS
+      </div>
+      <div style={{ opacity: 0.5 }}>This kiosk is currently locked for maintenance.</div>
+    </div>
+  )
+}
 
 // --- OTAK STATE MACHINE ---
 export default function App() {
+  const { kioskData, loading: kioskLoading } = useKioskBoot();
   const appRef = React.useRef();
   // 0: Idle, 1: Payment, 2: Selection, 3: Capture, 4: Print Manifest, 5: Export, 6: Outro
   const [currentStep, setCurrentStep] = useState(0);
@@ -34,6 +54,42 @@ export default function App() {
   const [isOutroExiting, setIsOutroExiting] = useState(false);
   const [isSetupOpen, setIsSetupOpen] = useState(false);
   const [showGallery, setShowGallery] = useState(false);
+  const [isMaintenanceLocked, setIsMaintenanceLocked] = useState(false);
+  const [isDonating, setIsDonating] = useState(true);
+  const [, setForceUpdate] = useState(0);
+
+  // Real-time integration
+  useEffect(() => {
+    const uuid = getMachineUUID()
+    if (uuid) {
+      StatusService.start(uuid);
+
+      // Poll StatusService for DevMode updates (since it's a singleton class without event emitters)
+      const devPoll = setInterval(() => setForceUpdate(prev => prev + 1), 1000);
+
+      const channel = echo.private(`kiosk.${uuid}`);
+      channel.listen('KioskCommandReceived', (e) => {
+        if (e.command === 'LOCK') setIsMaintenanceLocked(true);
+        if (e.command === 'UNLOCK') setIsMaintenanceLocked(false);
+        if (e.command === 'REFRESH') window.location.reload();
+      });
+
+      return () => {
+        StatusService.stop();
+        clearInterval(devPoll);
+        echo.leave(`kiosk.${uuid}`);
+      }
+    }
+  }, []);
+
+  // Update StatusService session state
+  useEffect(() => {
+    if (currentStep > 0 && currentStep < 6) {
+      StatusService.setStatus('session');
+    } else {
+      StatusService.setStatus('idle'); // or online
+    }
+  }, [currentStep]);
 
   // Telemetry HUD Animation Logic
   // Telemetry HUD Animation Logic (Visible from Selection to Checkout, hidden in Export/Outro)
@@ -158,7 +214,7 @@ export default function App() {
             setIsCheckoutModalOpen(true);
             setIsTimerPaused(true);
             // Set time to 1 to prevent immediate re-trigger loop if modal closes
-            setTransactionTime(1); 
+            setTransactionTime(1);
             return;
           }
           return;
@@ -222,6 +278,7 @@ export default function App() {
     setFinalImage(null);
     setAmountPaid(0);
     setPrintCopies(1);
+    setIsDonating(true);
     setCapturedPhotos([]);
     setIsCaptureFinished(false);
     setCaptureFilter('none');
@@ -262,6 +319,7 @@ export default function App() {
         captureFilter,
         captureMirrored,
         finalImage,
+        isDonating,
         sessionTime,
         transactionTime,
         timestamp: Date.now()
@@ -279,6 +337,7 @@ export default function App() {
     setCaptureFilter(data.captureFilter || 'none');
     setCaptureMirrored(data.captureMirrored !== undefined ? data.captureMirrored : true);
     setFinalImage(data.finalImage || null);
+    if (data.isDonating !== undefined) setIsDonating(data.isDonating);
     if (data.sessionTime !== undefined) setSessionTime(data.sessionTime);
     if (data.transactionTime !== undefined) setTransactionTime(data.transactionTime);
 
@@ -410,6 +469,7 @@ export default function App() {
 
   return (
     <div ref={appRef} className="app-wrapper" style={{ position: 'relative', width: '100vw', height: '100vh' }}>
+      {isMaintenanceLocked && <MaintenanceOverlay />}
       <KioskIdentitySetup forceShow={isSetupOpen} onClose={() => setIsSetupOpen(false)} />
       <CommunityGalleryModal isOpen={showGallery} onClose={() => setShowGallery(false)} />
 
@@ -461,7 +521,7 @@ export default function App() {
         <div className="telemetry-main-row">
           <div className="telemetry-pulse-container">
             <div className="telemetry-pulse-dot"></div>
-            <span className="telemetry-pulse-label">Live</span>
+            {/* <span className="telemetry-pulse-label">Live</span> */}
           </div>
           <div className="telemetry-massive-time">
             {currentStep <= 3 ? formatTime(sessionTime) : formatTime(transactionTime)}
@@ -472,13 +532,24 @@ export default function App() {
       {/* DEV MODE GLOBAL INDICATOR */}
       {devMode && (
         <div className="dev-mode-indicator-group" style={{ pointerEvents: 'none', zIndex: 2147483647, position: 'fixed', top: '2rem', left: '2rem' }}>
-          <div className="dev-mode-indicator">Diagnostics Mode</div>
+          <div className="dev-mode-indicator">Diagnostics Mode — {kioskData?.vendor_name || 'MASTER'}</div>
           {localStorage.getItem('machine_token') ? (
-            <div className="dev-mode-indicator status-tag registered">REGISTRATION_STATUS: AUTHORIZED</div>
+            <div className="dev-mode-indicator status-tag registered">REGISTRATION: AUTHORIZED [{kioskData?.readable_id || 'LOCAL'}]</div>
           ) : (
-            <div className="dev-mode-indicator status-tag pending">REGISTRATION_STATUS: PENDING_ACTIVATION</div>
+            <div className="dev-mode-indicator status-tag pending">REGISTRATION: PENDING_ACTIVATION</div>
           )}
-          <div className="dev-mode-controls" style={{ pointerEvents: 'auto', display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+          
+          <div className="dev-mode-indicator" style={{ marginTop: '0.5rem', backgroundColor: '#1a1a1a', border: '1px solid #333' }}>
+            <strong style={{ color: '#aaa', fontSize: '0.7rem', display: 'block', marginBottom: '0.2rem' }}>LIVE HEALTH:</strong>
+            PRINTER: <span style={{ color: StatusService.printer === 'ready' ? '#0f0' : '#f00' }}>{StatusService.printer.toUpperCase()}</span> | 
+            CAMERA: <span style={{ color: StatusService.camera === 'ready' ? '#0f0' : '#f00' }}>{StatusService.camera.toUpperCase()}</span> | 
+            STATUS: <span style={{ color: '#0ff' }}>{StatusService.status.toUpperCase()}</span>
+          </div>
+          <div className="dev-mode-controls" style={{ pointerEvents: 'auto', display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '0.5rem' }}>
+            <button className="telemetry-dev-skip-minimal" onClick={() => { StatusService.togglePrinterMock(); }}>TGL_PRINTER</button>
+            <button className="telemetry-dev-skip-minimal" onClick={() => { StatusService.toggleCameraMock(); }}>TGL_CAMERA</button>
+          </div>
+          <div className="dev-mode-controls" style={{ pointerEvents: 'auto', display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '0.5rem' }}>
             <button className="telemetry-dev-skip-minimal" onClick={() => {
               setSessionTime(300);
               setTransactionTime(180);
@@ -536,6 +607,7 @@ export default function App() {
           printCopies={printCopies}
           setPrintCopies={setPrintCopies}
           timerDisplay={formatTime(transactionTime)}
+          transactionTime={transactionTime}
           devMode={devMode}
           setIsTimerPaused={setIsTimerPaused}
           kioskId={kioskId}
@@ -548,6 +620,8 @@ export default function App() {
       {currentStep === 2 && (
         <SelectionScreen
           devMode={devMode}
+          kioskData={kioskData || { frames: [] }}
+          loading={kioskLoading}
           onPrepareCamera={() => setIsCameraRequested(true)}
           onFinish={(frame) => startPageTransition(() => {
             setSelectedFrame(frame);
@@ -621,14 +695,23 @@ export default function App() {
         <ExportScreen
           finalImage={finalImage}
           printCopies={printCopies}
-          onFinish={() => setCurrentStep(6)}
+          onFinish={(donating) => {
+            setIsDonating(donating);
+            setCurrentStep(6);
+          }}
           kioskId={kioskId}
           devFreeFlow={devFreeFlow}
         />
       )}
 
       {currentStep === 6 && (
-        <OutroScreen finalImage={finalImage} type={outroType} onReset={handleReset} onExitStart={() => setIsOutroExiting(true)} />
+        <OutroScreen 
+          finalImage={finalImage} 
+          type={outroType} 
+          isDonating={isDonating}
+          onReset={handleReset} 
+          onExitStart={() => setIsOutroExiting(true)} 
+        />
       )}
 
 

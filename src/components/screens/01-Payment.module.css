@@ -115,6 +115,8 @@
   line-height: 1.6;
   letter-spacing: 0.05em;
   color: #666666;
+  font-weight: 700;
+
   display: flex;
   flex-direction: column;
 }
@@ -380,4 +382,65 @@
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+/* HIGH-END TELEMETRY HUD */
+.telemetryHud {
+  position: absolute;
+  top: 3rem;
+  right: 4rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  text-align: right;
+  align-items: flex-end;
+  z-index: 100;
+  pointer-events: none;
+}
+
+.telemetryRow {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.telemetryLabel {
+  font-family: 'Syne', sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  color: #9ca3af;
+  text-transform: uppercase;
+}
+
+.telemetryValueGroup {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  justify-content: flex-end;
+}
+
+.telemetryValue {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  color: #111111;
+  letter-spacing: 0.05em;
+}
+
+.ledDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  transition: all 0.4s ease;
+}
+
+.ledHealthy {
+  background-color: #00FFFF;
+  /* box-shadow: 0 0 8px rgba(0, 255, 255, 0.6); */
+}
+
+.ledWarning {
+  background-color: #f97316;
+  /* box-shadow: 0 0 8px rgba(249, 115, 22, 0.4); */
 }

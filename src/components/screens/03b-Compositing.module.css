@@ -151,7 +151,7 @@
 }
 
 .greebles {
-  position: absolute;
+  /* position: absolute;
   right: 2rem;
   top: 50%;
   transform: translateY(-50%) rotate(90deg);
@@ -162,7 +162,7 @@
   text-transform: uppercase;
   letter-spacing: 0.4rem;
   white-space: nowrap;
-  pointer-events: none;
+  pointer-events: none; */
 }
 
 .statusFooter {

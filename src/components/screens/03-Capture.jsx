@@ -869,7 +869,7 @@ const CaptureScreen = React.forwardRef(({
               </div>
 
               <div className="panel-right panel-center-content">
-                <div className={cpStyles.greebles}>RENDER_SIZE: 14.2MB // PRINT_QUEUE: READY // DPI: 300</div>
+                {/* <div className={cpStyles.greebles}>RENDER_SIZE: 14.2MB // PRINT_QUEUE: READY // DPI: 300</div> */}
                 <div className={cpStyles.statusFooter}>
                   <span>SYS.KERN_v4.2.1-EX</span>
                   <RunningTimestamp />

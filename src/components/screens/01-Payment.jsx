@@ -4,9 +4,10 @@ import { exitEditorialLayout } from '../../utils/transitions';
 import { entranceEditorialLayout } from '../../utils/transitions';
 import GalleryCheckoutModal from '../shared/GalleryCheckoutModal';
 import SessionRecoveryModal from '../shared/SessionRecoveryModal';
+import StatusService from '../../services/StatusService';
 import styles from './01-Payment.module.css';
 
-const PaymentScreen = forwardRef(({ onBack, onSuccess, printCopies, setPrintCopies, timerDisplay, devMode = false, setIsTimerPaused, kioskId, devFreeFlow, onRestoreSession, selectedFrame }, ref) => {
+const PaymentScreen = forwardRef(({ onBack, onSuccess, printCopies, setPrintCopies, timerDisplay, transactionTime, devMode = false, setIsTimerPaused, kioskId, devFreeFlow, onRestoreSession, selectedFrame }, ref) => {
   const screenRef = useRef();
   const leftPanelRef = useRef();
   const rightPanelRef = useRef();
@@ -212,18 +213,40 @@ const PaymentScreen = forwardRef(({ onBack, onSuccess, printCopies, setPrintCopi
   return (
     <div
       ref={screenRef}
-      className={`milky-mica-background screen-container ${styles.screen}`}
+      className={`milky-mica-background ${isCheckoutModalOpen ? 'is-solid-mode' : ''} screen-container ${styles.screen}`}
       style={{
         zIndex: 10
       }}
     >
+      {/* EDITORIAL TELEMETRY HUD */}
+      <div className={styles.telemetryHud}>
+        <div className={styles.telemetryRow}>
+          <span className={styles.telemetryLabel}>OPTICS</span>
+          <div className={styles.telemetryValueGroup}>
+            <span className={styles.telemetryValue}>
+              {StatusService.camera === 'ready' ? 'Calibrated & Ready' : 'Sensor Malfunction'}
+            </span>
+            <div className={`${styles.ledDot} ${StatusService.camera === 'ready' ? styles.ledHealthy : styles.ledWarning}`}></div>
+          </div>
+        </div>
+
+        <div className={styles.telemetryRow}>
+          <span className={styles.telemetryLabel}>PRINT MEDIA</span>
+          <div className={styles.telemetryValueGroup}>
+            <span className={styles.telemetryValue}>
+              {StatusService.printer === 'ready' ? '85% Capacity' : 'Media Depleted'}
+            </span>
+            <div className={`${styles.ledDot} ${StatusService.printer === 'ready' ? styles.ledHealthy : styles.ledWarning}`}></div>
+          </div>
+        </div>
+      </div>
 
       {/* PANEL KIRI: Kendali & Instruksi */}
       <div ref={leftPanelRef} className="panel-left">
         {/* The Giant Watermark */}
         <h2 className="watermark-sideways">Secure</h2>
 
-        <div style={{ width: '100%', marginTop: 'auto', marginBottom: 'auto', zIndex: 20 }}>
+        <div style={{ width: '100%', marginTop: 'auto', marginBottom: 'auto', paddingBottom: '5rem', zIndex: 20 }}>
           {/* The Hero Overlap Title */}
           <div className="side-display-container">
             <div className="side-display-bullet">▌</div>
@@ -231,14 +254,16 @@ const PaymentScreen = forwardRef(({ onBack, onSuccess, printCopies, setPrintCopi
           </div>
 
           <div className={styles.instructionList}>
+
             <div className={styles.instructionStep}>
               <span className={styles.instructionNum}>01.</span>
-              <p className={styles.instructionText}>Choose how many copies you need.</p>
+              <p className={styles.instructionText}>CHOOSE HOW MANY COPIES YOU NEED.</p>
             </div>
             <div className={styles.instructionStep}>
               <span className={styles.instructionNum}>02.</span>
-              <p className={styles.instructionText}>Confirm the selection to generate QR.</p>
+              <p className={styles.instructionText}>CONFIRM THE SELECTION TO GENERATE QR CODE.</p>
             </div>
+
           </div>
 
           <div className={styles.promoContainer}>
@@ -394,7 +419,7 @@ const PaymentScreen = forwardRef(({ onBack, onSuccess, printCopies, setPrintCopi
         totalPrice={price}
         initialPayment={0}
         orderId={`PHB-${Math.floor(Date.now() / 1000)}`}
-        timeLeft={180} // Mock time, actual timer handled by App
+        timeLeft={transactionTime}
         devFreeFlow={devFreeFlow}
         setIsTimerPaused={setIsTimerPaused}
         mode="PAYMENT"

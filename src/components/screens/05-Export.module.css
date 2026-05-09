@@ -1,10 +1,27 @@
 .telemetryTitle {
   font-family: 'Syne', sans-serif;
   font-weight: 800;
-  font-size: 3.5rem;
+  font-size: 3rem;
   color: #FFFFFF;
-  margin: 0;
-  line-height: 1;
+  margin: 0 0 3rem 0;
+  line-height: 0.85;
+  text-transform: uppercase;
+  max-width: 500px;
+}
+
+.topSection {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  padding-top: 4rem;
+}
+
+.bottomSection {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2.5rem;
+  padding-bottom: 6rem;
 }
 
 .metadataStack {
@@ -75,9 +92,9 @@
 
 .finalActions {
   display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 3rem;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1.5rem;
 }
 
 .donateToggle {
@@ -88,41 +105,31 @@
   user-select: none;
 }
 
-.donateToggle input[type="checkbox"] {
-  appearance: none;
-  width: 14px;
-  height: 14px;
-  border: 1px solid rgba(255, 255, 255, 0.4);
-  background: transparent;
-  cursor: pointer;
-  position: relative;
-  transition: all 0.2s ease;
-}
-
-.donateToggle input[type="checkbox"]:checked {
-  background: #00FFFF;
-  border-color: #00FFFF;
-  box-shadow: 0 0 10px rgba(0, 255, 255, 0.4);
-}
-
-.donateToggle input[type="checkbox"]:checked::after {
-  content: '✕';
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  font-size: 8px;
-  color: #000;
+.bracket {
+  font-family: monospace;
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.3);
   font-weight: 900;
+  min-width: 30px;
+}
+
+.isDonating .bracket {
+  color: var(--accent-color, #f86910);
+  text-shadow: 0 0 15px rgba(248, 105, 16, 0.4);
 }
 
 .donateLabel {
   font-family: 'Space Grotesk', monospace;
-  font-size: 0.65rem;
-  color: rgba(255, 255, 255, 0.4);
-  letter-spacing: 0.15em;
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.6);
+  letter-spacing: 0.1em;
   font-weight: 600;
   transition: color 0.2s ease;
+  white-space: nowrap;
+}
+
+.isDonating .donateLabel {
+  color: #FFFFFF;
 }
 
 .donateToggle:hover .donateLabel {
