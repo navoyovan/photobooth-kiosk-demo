@@ -5,12 +5,12 @@
 export const DEFAULT_LAYOUTS = {
   // 4-Grid Square Collage
   'GRID_4': [
-    { id: 0, x: 0,  y: 0,  w: 50, h: 50 },
-    { id: 1, x: 50, y: 0,  w: 50, h: 50 },
-    { id: 2, x: 0,  y: 50, w: 50, h: 50 },
+    { id: 0, x: 0, y: 0, w: 50, h: 50 },
+    { id: 1, x: 50, y: 0, w: 50, h: 50 },
+    { id: 2, x: 0, y: 50, w: 50, h: 50 },
     { id: 3, x: 50, y: 50, w: 50, h: 50 }
   ],
-  
+
   // Single Full Frame (Space)
   'SINGLE': [
     { id: 0, x: 0, y: 0, w: 100, h: 100 }
@@ -18,7 +18,7 @@ export const DEFAULT_LAYOUTS = {
 
   // 3-Photo Vertical Strip (Example)
   'STRIP_3': [
-    { id: 0, x: 10, y: 5,  w: 80, h: 25 },
+    { id: 0, x: 10, y: 5, w: 80, h: 25 },
     { id: 1, x: 10, y: 35, w: 80, h: 25 },
     { id: 2, x: 10, y: 65, w: 80, h: 25 }
   ]

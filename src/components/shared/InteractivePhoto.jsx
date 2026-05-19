@@ -52,9 +52,17 @@ const InteractivePhoto = forwardRef(({ photos = [], frame, photoFilter = 'none',
   }));
 
   const updateMetrics = () => {
+    const { cW, cH } = containerDims.current || { cW: 400, cH: 400 };
+    const layout = getFrameLayout(frame);
+    const slot = layout[0] || { x: 0, y: 0, w: 100, h: 100 };
+    const slotX = (slot.x / 100) * cW;
+    const slotY = (slot.y / 100) * cH;
+
+    // The HUD should track the PHOTO boundaries (state.current)
+    // but must be offset by the SLOT position to align correctly on screen
     setMetrics({
-      x: Math.round(state.current.x),
-      y: Math.round(state.current.y),
+      x: Math.round(slotX + state.current.x),
+      y: Math.round(slotY + state.current.y),
       w: Math.round(state.current.w),
       h: Math.round(state.current.h)
     });
@@ -210,17 +218,6 @@ const InteractivePhoto = forwardRef(({ photos = [], frame, photoFilter = 'none',
 
   return (
     <div className="composer-gallery-wrapper">
-      <div className="viewfinder-hud-layer" style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 1000 }}>
-        <div style={{ position: 'absolute', transform: `translate(${metrics.x}px, ${metrics.y}px)`, width: `${metrics.w}px`, height: `${metrics.h}px` }}>
-          <div className="viewfinder-crosshair"></div>
-          <div className="vf-corner tl"></div>
-          <div className="vf-corner tr"></div>
-          <div className="vf-corner bl"></div>
-          <div className="vf-corner br"></div>
-          <div className="boundary-dashed-line-visual"></div>
-        </div>
-      </div>
-
       <div
         ref={containerRef}
         className="gallery-pedestal"
@@ -231,6 +228,17 @@ const InteractivePhoto = forwardRef(({ photos = [], frame, photoFilter = 'none',
           overflow: 'visible'
         }}
       >
+        <div className="viewfinder-hud-layer" style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 1000 }}>
+          <div style={{ position: 'absolute', transform: `translate(${metrics.x}px, ${metrics.y}px)`, width: `${metrics.w}px`, height: `${metrics.h}px` }}>
+            <div className="viewfinder-crosshair"></div>
+            <div className="vf-corner tl"></div>
+            <div className="vf-corner tr"></div>
+            <div className="vf-corner bl"></div>
+            <div className="vf-corner br"></div>
+            <div className="boundary-dashed-line-visual"></div>
+          </div>
+        </div>
+
         <div className="hud-data-box top-left">POS_X: {metrics.x}PX</div>
         <div className="hud-data-box top-right">POS_Y: {metrics.y}PX</div>
         <div className="hud-data-box bottom-left">WIDTH: {metrics.w}PX</div>

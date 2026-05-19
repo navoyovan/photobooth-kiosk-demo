@@ -29,7 +29,7 @@ const FloatingPhotos = ({ previousImage, isOutro, isVisible, isTransformed, show
 
   const [communityImages, setCommunityImages] = useState([]);
 
-  // Load Community Photos from IndexedDB
+  // load community photos from IndexedDB
   useEffect(() => {
     const loadCommunity = async () => {
       try {
@@ -39,7 +39,7 @@ const FloatingPhotos = ({ previousImage, isOutro, isVisible, isTransformed, show
             return new Promise((resolve) => {
               const img = new Image();
               img.onload = () => resolve(img);
-              img.onerror = () => resolve(null); // Ignore broken images
+              img.onerror = () => resolve(null); // ignore broken images
               img.src = url;
             });
           });
@@ -128,7 +128,7 @@ const FloatingPhotos = ({ previousImage, isOutro, isVisible, isTransformed, show
       for (let i = 0; i < needed; i++) {
         const pos = getSpawnPos();
 
-        // MASTER POOL LOGIC: "Replace one-by-one"
+        // replace nganu itunya first in first out
         const activePlaceholders = loadedImages.slice(0, Math.max(0, loadedImages.length - communityImages.length));
         const masterPool = [...activePlaceholders, ...communityImages];
         const selectedImg = masterPool[Math.floor(Math.random() * masterPool.length)];
