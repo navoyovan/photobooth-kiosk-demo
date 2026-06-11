@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useMemo, useState } from 'react';
 import { animate, cubicBezier } from 'animejs';
 import { getCommunityPhotoUrls } from '../../utils/imageProcessor';
 
-const FloatingPhotos = ({ previousImage, isOutro, isVisible, isTransformed, showPhotos = true }) => {
+const FloatingPhotos = ({ previousImage, isOutro, isVisible, isTransformed, showPhotos = true, grayscale = false }) => {
   const canvasRef = useRef(null);
   const photosRef = useRef([]);
   const prevImgRef = useRef(null);
@@ -227,8 +227,9 @@ const FloatingPhotos = ({ previousImage, isOutro, isVisible, isTransformed, show
         position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
         zIndex: 0, pointerEvents: 'none',
         background: isOutro ? '#000' : 'transparent',
-        transition: 'background 2s ease-in-out, opacity 0.5s ease-out',
+        transition: 'background 2s ease-in-out, opacity 0.5s ease-out, filter 1s ease',
         opacity: isVisible ? 1 : 0,
+        filter: grayscale ? 'grayscale(90%) contrast(0.9) brightness(0.85)' : undefined,
       }}
     />
   );

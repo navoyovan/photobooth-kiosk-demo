@@ -2,9 +2,14 @@ import React, { useState, useEffect, useRef } from 'react';
 import { animate } from 'animejs';
 import styles from './SessionRecoveryModal.module.css';
 import { getFrameLayout } from '../../constants/frame_layouts';
+import { TRANSLATIONS } from '../../constants/translations';
 
 
-const SessionRecoveryModal = ({ isOpen, onContinue, onDiscard, sessionData }) => {
+const SessionRecoveryModal = ({ isOpen, onContinue, onDiscard, sessionData, language = 'EN' }) => {
+  const t = (key) => {
+    return TRANSLATIONS[language]?.[key] || TRANSLATIONS['EN']?.[key] || key;
+  };
+
   const modalRef = useRef();
   const overlayRef = useRef();
 
@@ -71,17 +76,17 @@ const SessionRecoveryModal = ({ isOpen, onContinue, onDiscard, sessionData }) =>
         style={{ opacity: 0 }}
       >
         <div className={styles.header}>
-          <h2 className={styles.title}>RESUME SESSION?</h2>
+          <h2 className={styles.title}>{t('resumeSessionModalTitle')}</h2>
         </div>
 
         <div className={styles.previewContainer}>
           <div className={styles.previewMeta}>
              <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>PROGRESS</span>
-                <span className={styles.metaValue}>{Math.round((photosTaken / totalSlots) * 100)}% COMPLETE</span>
+                <span className={styles.metaLabel}>{t('progressLabel')}</span>
+                <span className={styles.metaValue}>{Math.round((photosTaken / totalSlots) * 100)}% {t('completeLabel')}</span>
              </div>
              <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>LAST STEP</span>
+                <span className={styles.metaLabel}>{t('lastStepLabel')}</span>
                 <span className={styles.metaValue}>{['IDLE', 'PAYMENT', 'SELECTION', 'CAPTURE', 'CHECKOUT', 'EXPORT'][currentStep] || 'PROCESSING'}</span>
              </div>
           </div>
@@ -127,10 +132,10 @@ const SessionRecoveryModal = ({ isOpen, onContinue, onDiscard, sessionData }) =>
 
         <div className={styles.actions}>
           <button className="btn-primary" onClick={onContinue} style={{ marginTop: 0 }}>
-            RESUME SESSION
+            {t('resumeSessionBtn')}
           </button>
           <button className="btn-secondary" onClick={onDiscard}>
-            ← DISCARD AND RESET
+            {t('discardResetBtn')}
           </button>
         </div>
 

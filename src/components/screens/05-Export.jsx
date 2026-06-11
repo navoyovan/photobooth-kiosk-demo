@@ -1,10 +1,17 @@
 import React, { useRef, useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { animate, createTimeline } from 'animejs';
 import { entranceAqcuisitionLayout } from '../../utils/transitions';
 import { convertToWebP, saveToLocalStarfield } from '../../utils/imageProcessor';
+import { getBackendUrl, getMachineUUID } from '../../utils/kioskId';
+import { TRANSLATIONS } from '../../constants/translations';
 import styles from './05-Export.module.css';
 
-const ExportScreen = ({ finalImage, printCopies, onFinish, kioskId, devFreeFlow }) => {
+const ExportScreen = ({ finalImage, capturedPhotos = [], printCopies, onFinish, kioskId, devFreeFlow, sessionHash, selectedFrame, language = 'EN' }) => {
+  const t = (key) => {
+    return TRANSLATIONS[language]?.[key] || TRANSLATIONS['EN']?.[key] || key;
+  };
+
   const screenRef = useRef(null);
   const [progress, setProgress] = useState(0);
   const telemetryAxisRef = useRef(null);
@@ -14,6 +21,74 @@ const ExportScreen = ({ finalImage, printCopies, onFinish, kioskId, devFreeFlow 
   const timelineRef = useRef(null);
   const [isDonating, setIsDonating] = useState(true);
   const [isProcessingDonation, setIsProcessingDonation] = useState(false);
+  const [isPrintImageLoaded, setIsPrintImageLoaded] = useState(false);
+  const [isLandscapePrint, setIsLandscapePrint] = useState(false);
+  const printScale = localStorage.getItem('PHOTOBOOTH_PRINT_SCALE') || '100';
+
+  const [uploading, setUploading] = useState(true);
+  const [downloadUrl, setDownloadUrl] = useState('');
+  const [uploadError, setUploadError] = useState(false);
+  const [resolvedHash, setResolvedHash] = useState(sessionHash);
+
+  useEffect(() => {
+    let active = true;
+    const uploadSession = async () => {
+      try {
+        setUploading(true);
+        setUploadError(false);
+
+        const backendUrl = getBackendUrl();
+        const response = await fetch(`${backendUrl}/api/kiosk/upload-session`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            kiosk_uuid: getMachineUUID(),
+            final_image: finalImage,
+            raw_photos: capturedPhotos,
+            session_hash: sessionHash,
+            frame_id: selectedFrame?.id,
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error(`Upload response status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        if (active) {
+          if (data.success) {
+            setDownloadUrl(data.download_url);
+            if (data.hash) {
+              setResolvedHash(data.hash);
+            }
+          } else {
+            throw new Error(data.message || 'Upload failed');
+          }
+        }
+      } catch (err) {
+        console.error('[Export] Upload failed:', err);
+        if (active) {
+          setUploadError(true);
+          // Local fallback
+          setDownloadUrl(`${getBackendUrl()}/download/offline-fallback`);
+        }
+      } finally {
+        if (active) {
+          setUploading(false);
+        }
+      }
+    };
+
+    if (finalImage) {
+      uploadSession();
+    }
+
+    return () => {
+      active = false;
+    };
+  }, [finalImage, capturedPhotos]);
 
   useEffect(() => {
     if (timelineRef.current) timelineRef.current.pause();
@@ -83,6 +158,47 @@ const ExportScreen = ({ finalImage, printCopies, onFinish, kioskId, devFreeFlow 
     return () => clearInterval(interval);
   }, [printCopies]);
 
+  // --- EPSON SL-D500 PHYSICAL PRINT ENGINE SPOOLER ---
+  useEffect(() => {
+    if (isPrintImageLoaded) {
+      // Inject dynamic page size style to force Chrome's print dialog to auto-recognize orientation
+      const styleId = 'dynamic-print-page-style';
+      let styleEl = document.getElementById(styleId);
+      if (!styleEl) {
+        styleEl = document.createElement('style');
+        styleEl.id = styleId;
+        document.head.appendChild(styleEl);
+      }
+      styleEl.innerHTML = `
+        @media print {
+          @page {
+            size: ${isLandscapePrint ? '6in 4in' : '4in 6in'} !important;
+            margin: 0 !important;
+          }
+        }
+      `;
+      
+      return () => {
+        const el = document.getElementById(styleId);
+        if (el) el.remove();
+      };
+    }
+  }, [isPrintImageLoaded, isLandscapePrint]);
+
+  useEffect(() => {
+    if (finalImage && isPrintImageLoaded) {
+      console.log(`[Printer] Spooling print job to Epson SL-D500. Copies requested: ${printCopies} (via unified multi-page document)`);
+      
+      // Safety timeout to ensure layout engine stabilizes before printing freezes JS
+      const timer = setTimeout(() => {
+        console.log(`[Printer] Directing print job trigger`);
+        window.print();
+      }, 500);
+
+      return () => clearTimeout(timer);
+    }
+  }, [finalImage, isPrintImageLoaded, printCopies]);
+
   const handleManualExit = async () => {
     animate(screenRef.current, {
       opacity: 0,
@@ -98,7 +214,7 @@ const ExportScreen = ({ finalImage, printCopies, onFinish, kioskId, devFreeFlow 
 
       {/* 1. Kanvas Global & Ghost Watermark */}
       <div ref={watermarkRef} className="ghost-watermark">
-        ARCH<br />IVE
+        {t('exportWatermark')}
       </div>
 
       {/* 2. Sumbu Kiri: Masterpiece */}
@@ -115,39 +231,54 @@ const ExportScreen = ({ finalImage, printCopies, onFinish, kioskId, devFreeFlow 
 
         {/* TOP SECTION: IDENTIFIERS */}
         <div className={styles.topSection}>
-          <h1 className={styles.telemetryTitle}>YOUR AMAZING DIGITAL ARCHIVE</h1>
+          <h1 className={styles.telemetryTitle}>{t('digitalArchiveTitle')}</h1>
 
           <div className="qr-box" style={{ margin: '1rem 0 2.5rem 0', alignSelf: 'flex-start', position: 'relative', width: '280px', height: '280px', background: '#fff' }}>
             <div className="qr-crop-marks">
               <span></span>
             </div>
 
-            <img
-              src={`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=https://hypebox.id/download/${kioskId}-${Date.now()}`}
-              alt="Download QR"
-              style={{
-                width: '200px',
-                height: '200px',
-                objectFit: 'contain',
-                zIndex: 5,
-                cursor: devFreeFlow ? 'pointer' : 'default'
-              }}
-              onClick={(e) => {
-                if (devFreeFlow && e.detail === 2) {
-                  console.log("[DevFreeFlow] Double-tap QR skip triggered.");
-                  onFinish();
-                }
-              }}
-            />
+            {uploading ? (
+              <div className={styles.qrContainer}>
+                <div className={styles.qrScannerLine} />
+                <div className={styles.loaderRing} />
+                <span className={styles.loadingLabel}>{t('syncingVault')}</span>
+              </div>
+            ) : (
+              <img
+                src={`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(downloadUrl)}`}
+                alt="Download QR"
+                style={{
+                  width: '200px',
+                  height: '200px',
+                  objectFit: 'contain',
+                  zIndex: 5,
+                  cursor: devFreeFlow ? 'pointer' : 'default'
+                }}
+                onClick={(e) => {
+                  if (devFreeFlow && e.detail === 2) {
+                    console.log("[DevFreeFlow] Double-tap QR skip triggered.");
+                    onFinish();
+                  }
+                }}
+              />
+            )}
           </div>
 
           <div className={styles.metadataStack}>
-            <div className={styles.metadataItem}>Artifact Link // archive.photos/{kioskId}</div>
-            <div className={styles.metadataItem}>Status // Encrypted & Secured</div>
+            <div className={styles.metadataItem}>
+              {t('sessionId')} // {resolvedHash}
+            </div>
+            <div className={styles.metadataItem}>
+              {t('artifactLink')} // {uploading ? t('statusTransmitting') : (downloadUrl.replace(/^https?:\/\//, '').substring(0, 26) + (downloadUrl.length > 26 ? '...' : ''))}
+            </div>
+            <div className={styles.metadataItem}>
+              {t('statusLabel')} // {uploading ? t('statusTransmitting') : (uploadError ? t('statusOffline') : t('statusEncrypted'))}
+            </div>
           </div>
 
           <div className={styles.securityNotice}>
-            <span>SECURITY ADVISORY:</span> Please manually exit to clear your temporary data. Remaining on this screen may allow others to access your archive.
+            {t('securityAdvisory')}
           </div>
         </div>
 
@@ -155,7 +286,7 @@ const ExportScreen = ({ finalImage, printCopies, onFinish, kioskId, devFreeFlow 
         <div className={styles.bottomSection}>
           <div className={styles.printerStatusBar}>
             <div className={styles.printerStatusLabel}>
-              <span>Materializing Physical Prints</span>
+              <span>{t('materializingPrints')}</span>
               <span>{Math.round(progress)}%</span>
             </div>
             <div className={styles.printerProgressTrack}>
@@ -172,7 +303,7 @@ const ExportScreen = ({ finalImage, printCopies, onFinish, kioskId, devFreeFlow 
                 {isProcessingDonation ? '[ … ]' : (isDonating ? '[ ■ ]' : '[   ]')}
               </span>
               <span className={styles.donateLabel}>
-                {isProcessingDonation ? 'Processing archive...' : 'Grant exhibition rights to public gallery wall.'}
+                {isProcessingDonation ? t('syncingVault') : t('exhibitionRightsConsent')}
               </span>
             </div>
 
@@ -182,12 +313,35 @@ const ExportScreen = ({ finalImage, printCopies, onFinish, kioskId, devFreeFlow 
               disabled={isProcessingDonation || progress < 100}
               style={{ opacity: progress < 100 ? 0.3 : 1, cursor: progress < 100 ? 'not-allowed' : 'pointer', width: '100%', maxWidth: '30rem' }}
             >
-              {isProcessingDonation ? 'WAIT...' : (progress < 100 ? 'MATERIALIZING...' : 'END SESSION ✕')}
+              {isProcessingDonation ? t('wait') : (progress < 100 ? t('materializing') : t('endSession'))}
             </button>
           </div>
         </div>
 
       </div>
+      
+      {/* Clean, off-screen print target for physical print engine */}
+      {createPortal(
+        <>
+          {Array.from({ length: Number(printCopies) || 1 }).map((_, index) => (
+            <div key={index} className={`print-only-container ${isLandscapePrint ? 'landscape-print' : 'portrait-print'}`} style={{ transform: `scale(${Number(printScale) / 100})`, transformOrigin: 'center' }}>
+              <img 
+                src={finalImage || "/taken_pic/default.png"} 
+                alt={`Epson SL-D500 Collage Print Copy ${index + 1}`} 
+                onLoad={(e) => {
+                  if (index === 0) {
+                    const isLandscape = e.target.naturalWidth > e.target.naturalHeight;
+                    console.log(`[Printer] Physical print image loaded. Size: ${e.target.naturalWidth}x${e.target.naturalHeight}. Landscape: ${isLandscape}`);
+                    setIsLandscapePrint(isLandscape);
+                    setIsPrintImageLoaded(true);
+                  }
+                }}
+              />
+            </div>
+          ))}
+        </>,
+        document.body
+      )}
     </div>
   );
 };

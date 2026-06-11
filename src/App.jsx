@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { animate } from 'animejs';
 
 import FloatingPhotos from './components/shared/Starfield';
@@ -21,24 +22,22 @@ import { getKioskId, getMachineUUID, syncKioskConfig } from './utils/kioskId';
 import echo from './services/echo';
 import StatusService from './services/StatusService';
 
-function MaintenanceOverlay() {
-  return (
-    <div style={{
-      position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
-      backgroundColor: '#000', color: '#fff', zIndex: 999999,
-      display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center',
-      fontFamily: 'monospace'
-    }}>
-      <div style={{ fontSize: '2rem', letterSpacing: '0.2em', marginBottom: '1rem', color: '#ef4444' }}>
-        MAINTENANCE IN PROGRESS
-      </div>
-      <div style={{ opacity: 0.5 }}>This kiosk is currently locked for maintenance.</div>
-    </div>
-  )
-}
+
+
+
+
+const generateSessionHash = () => {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  let result = '';
+  for (let i = 0; i < 12; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return result;
+};
 
 // --- OTAK STATE MACHINE ---
 export default function App() {
+  const [sessionHash, setSessionHash] = useState(generateSessionHash());
   const { kioskData, loading: kioskLoading } = useKioskBoot();
   const appRef = React.useRef();
   // 0: Idle, 1: Payment, 2: Selection, 3: Capture, 4: Print Manifest, 5: Export, 6: Outro
@@ -55,8 +54,22 @@ export default function App() {
   const [isSetupOpen, setIsSetupOpen] = useState(false);
   const [showGallery, setShowGallery] = useState(false);
   const [isMaintenanceLocked, setIsMaintenanceLocked] = useState(false);
+  const [isMaintenanceExiting, setIsMaintenanceExiting] = useState(false);
   const [isDonating, setIsDonating] = useState(true);
   const [, setForceUpdate] = useState(0);
+
+  // Advanced Nerd Printer HUD States
+  const [isPrinterDevOpen, setIsPrinterDevOpen] = useState(false);
+  const [devPrinterName, setDevPrinterName] = useState(localStorage.getItem('PHOTOBOOTH_PRINTER_NAME') || 'Epson SL-D500');
+  const [devPrintScale, setDevPrintScale] = useState(localStorage.getItem('PHOTOBOOTH_PRINT_SCALE') || '100');
+
+  // Idle Screen Brand Configuration
+  const [idleBrandType, setIdleBrandType] = useState(localStorage.getItem('PHOTOBOOTH_IDLE_BRAND_TYPE') || 'logo'); // Default to logo
+  const [idleBrandText, setIdleBrandText] = useState(localStorage.getItem('PHOTOBOOTH_IDLE_BRAND_TEXT') || 'Hype - Box');
+  const [idleBrandLogo, setIdleBrandLogo] = useState(localStorage.getItem('PHOTOBOOTH_IDLE_BRAND_LOGO') || '/assets/main-logo.png');
+  const [idleBrandTextScale, setIdleBrandTextScale] = useState(localStorage.getItem('PHOTOBOOTH_IDLE_BRAND_TEXT_SCALE') || '100');
+  const [idleBrandLogoScale, setIdleBrandLogoScale] = useState(localStorage.getItem('PHOTOBOOTH_IDLE_BRAND_LOGO_SCALE') || '100');
+  const [isBrandingDevOpen, setIsBrandingDevOpen] = useState(false);
 
   // Real-time integration
   useEffect(() => {
@@ -69,8 +82,13 @@ export default function App() {
 
       const channel = echo.private(`kiosk.${uuid}`);
       channel.listen('KioskCommandReceived', (e) => {
-        if (e.command === 'LOCK') setIsMaintenanceLocked(true);
-        if (e.command === 'UNLOCK') setIsMaintenanceLocked(false);
+        if (e.command === 'LOCK') {
+          setIsMaintenanceLocked(true);
+          setIsMaintenanceExiting(false);
+        }
+        if (e.command === 'UNLOCK') {
+          setIsMaintenanceExiting(true);
+        }
         if (e.command === 'REFRESH') window.location.reload();
       });
 
@@ -93,7 +111,7 @@ export default function App() {
 
   // Telemetry HUD Animation Logic
   // Telemetry HUD Animation Logic (Visible from Selection to Checkout, hidden in Export/Outro)
-  const isTelemetryVisible = currentStep >= 2 && currentStep <= 4;
+  const isTelemetryVisible = currentStep >= 2 && currentStep <= 4 && !isMaintenanceLocked;
 
   // Global Asset Preloading
   useEffect(() => {
@@ -149,8 +167,22 @@ export default function App() {
   const [cameraDevices, setCameraDevices] = useState([]);
   const [selectedDeviceId, setSelectedDeviceId] = useState("");
   const [isCameraRequested, setIsCameraRequested] = useState(false);
+  const [cameraType, setCameraType] = useState(() => {
+    // Override/cleanup any saved DSLR camera types to start fresh with webcam
+    const saved = localStorage.getItem('PHOTOBOOTH_CAMERA_TYPE');
+    if (saved === 'digicam' || saved === 'hybrid') {
+      localStorage.setItem('PHOTOBOOTH_CAMERA_TYPE', 'webcam');
+      return 'webcam';
+    }
+    return saved || 'webcam';
+  });
+  const [digicamUrl, setDigicamUrl] = useState(() => {
+    return localStorage.getItem('PHOTOBOOTH_DIGICAM_URL') || 'http://localhost:5513';
+  });
+  const [isCameraDevOpen, setIsCameraDevOpen] = useState(false);
 
   const activeFrame = selectedFrame || DEFAULT_FRAME;
+
 
   // Timer Sesi (5 menit = 300 detik) - Steps 2 & 3
   const [sessionTime, setSessionTime] = useState(300);
@@ -245,6 +277,10 @@ export default function App() {
 
   const [devMode, setDevMode] = useState(false);
   const [devFreeFlow, setDevFreeFlow] = useState(false);
+  const [bypassMode, setBypassMode] = useState(() => {
+    return localStorage.getItem('PHOTOBOOTH_BYPASS_MODE') === 'true';
+  });
+  const [language, setLanguage] = useState('EN');
 
   useEffect(() => {
     syncKioskConfig();
@@ -261,7 +297,20 @@ export default function App() {
       }
     };
     window.addEventListener('keydown', handleKeydown);
-    return () => window.removeEventListener('keydown', handleKeydown);
+
+    window.simulateMaintenanceLock = () => {
+      setIsMaintenanceLocked(true);
+      setIsMaintenanceExiting(false);
+    };
+    window.simulateMaintenanceUnlock = () => {
+      setIsMaintenanceExiting(true);
+    };
+
+    return () => {
+      window.removeEventListener('keydown', handleKeydown);
+      delete window.simulateMaintenanceLock;
+      delete window.simulateMaintenanceUnlock;
+    };
   }, []);
 
   const handleAbort = useCallback(() => {
@@ -288,7 +337,9 @@ export default function App() {
     setTransactionTime(180);
     setIsCheckoutModalOpen(false);
     setIsOutroExiting(false);
+    setSessionHash(generateSessionHash());
     localStorage.removeItem('photobooth_session');
+    setLanguage('EN');
   }, []);
 
   const formatTime = (seconds) => {
@@ -322,11 +373,12 @@ export default function App() {
         isDonating,
         sessionTime,
         transactionTime,
+        sessionHash,
         timestamp: Date.now()
       };
       localStorage.setItem('photobooth_session', JSON.stringify(sessionData));
     }
-  }, [currentStep, selectedFrame, amountPaid, capturedPhotos, printCopies, captureFilter, captureMirrored, finalImage, sessionTime, transactionTime]);
+  }, [currentStep, selectedFrame, amountPaid, capturedPhotos, printCopies, captureFilter, captureMirrored, finalImage, sessionTime, transactionTime, sessionHash]);
 
   const handleRestoreSession = useCallback((data) => {
     // Restore all states
@@ -340,6 +392,7 @@ export default function App() {
     if (data.isDonating !== undefined) setIsDonating(data.isDonating);
     if (data.sessionTime !== undefined) setSessionTime(data.sessionTime);
     if (data.transactionTime !== undefined) setTransactionTime(data.transactionTime);
+    if (data.sessionHash) setSessionHash(data.sessionHash);
 
     // Analyze Progress to Set Destination
     const hasRealPhotos = data.capturedPhotos && data.capturedPhotos.some(p => p && !p.includes('default.png'));
@@ -424,7 +477,8 @@ export default function App() {
     };
 
     startCamera();
-  }, [currentStep, selectedDeviceId, isCameraRequested, cameraDevices, cameraStream]);
+  }, [currentStep, selectedDeviceId, isCameraRequested, cameraDevices, cameraStream, cameraType]);
+
 
   const transitionTimeout1 = React.useRef(null);
   const transitionTimeout2 = React.useRef(null);
@@ -469,23 +523,23 @@ export default function App() {
 
   return (
     <div ref={appRef} className="app-wrapper" style={{ position: 'relative', width: '100vw', height: '100vh' }}>
-      {isMaintenanceLocked && <MaintenanceOverlay />}
       <KioskIdentitySetup forceShow={isSetupOpen} onClose={() => setIsSetupOpen(false)} />
       <CommunityGalleryModal isOpen={showGallery} onClose={() => setShowGallery(false)} />
 
       <FloatingPhotos
         previousImage={outroType === 'NORMAL' ? finalImage : null}
-        isOutro={currentStep >= 3}
-        isVisible={currentStep < 2 || currentStep >= 5}
-        showPhotos={currentStep < 2 || currentStep >= 5}
-        isTransformed={isTunneling || currentStep === 1 || (currentStep >= 3 && !isOutroExiting)}
+        isOutro={currentStep >= 3 || isMaintenanceLocked || isMaintenanceExiting}
+        isVisible={currentStep < 2 || currentStep >= 5 || isMaintenanceLocked || isMaintenanceExiting}
+        showPhotos={currentStep < 2 || currentStep >= 5 || isMaintenanceLocked || isMaintenanceExiting}
+        isTransformed={(isTunneling || currentStep === 1 || (currentStep >= 3 && !isOutroExiting) || isMaintenanceLocked) && !isMaintenanceExiting}
+        grayscale={isMaintenanceLocked && !isMaintenanceExiting}
       />
 
       {/* GLOBAL KINETIC PAGINATION */}
       <KineticPagination
         currentStep={currentStep}
         subState={captureSubState}
-        isVisible={currentStep > 0 && currentStep < 6}
+        isVisible={currentStep > 0 && currentStep < 6 && !isMaintenanceLocked}
         backLabel={
           currentStep === 1 ? 'Cancel Session' :
             currentStep === 3 ? (captureSubState === 'compositing' ? 'Retake Photos' : 'Change Frame') :
@@ -545,175 +599,535 @@ export default function App() {
             CAMERA: <span style={{ color: StatusService.camera === 'ready' ? '#0f0' : '#f00' }}>{StatusService.camera.toUpperCase()}</span> | 
             STATUS: <span style={{ color: '#0ff' }}>{StatusService.status.toUpperCase()}</span>
           </div>
+
+          {/* NERD CONFIGURATION CONTROLS */}
+          <div className="dev-mode-indicator" style={{ marginTop: '0.5rem', backgroundColor: '#111', border: '1px solid #222', pointerEvents: 'auto' }}>
+            <div 
+              style={{ color: '#00FFFF', cursor: 'pointer', fontWeight: 900, display: 'flex', justifyContent: 'space-between', fontSize: '0.65rem', fontFamily: 'monospace' }} 
+              onClick={() => setIsPrinterDevOpen(!isPrinterDevOpen)}
+            >
+              <span>{isPrinterDevOpen ? '▼' : '▶'} PRINTER_NERD_SETTINGS (EPSON)</span>
+              <span>[ 4"x6" ]</span>
+            </div>
+            {isPrinterDevOpen && (
+              <div style={{ marginTop: '0.6rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', fontSize: '0.65rem', borderTop: '1px dashed #333', paddingTop: '0.5rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ color: '#777' }}>SPOOLER QUEUE:</span>
+                  <input 
+                    type="text" 
+                    value={devPrinterName}
+                    onChange={(e) => {
+                      setDevPrinterName(e.target.value);
+                      localStorage.setItem('PHOTOBOOTH_PRINTER_NAME', e.target.value);
+                    }}
+                    style={{ backgroundColor: '#000', border: '1px solid #333', color: '#fff', fontSize: '0.6rem', fontFamily: 'monospace', padding: '2px 4px', width: '130px', textAlign: 'right' }}
+                  />
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ color: '#777' }}>SCALE FACTOR:</span>
+                  <input 
+                    type="number" 
+                    value={devPrintScale}
+                    onChange={(e) => {
+                      setDevPrintScale(e.target.value);
+                      localStorage.setItem('PHOTOBOOTH_PRINT_SCALE', e.target.value);
+                    }}
+                    style={{ backgroundColor: '#000', border: '1px solid #333', color: '#fff', fontSize: '0.6rem', fontFamily: 'monospace', padding: '2px 4px', width: '60px', textAlign: 'right' }}
+                  />
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.2rem' }}>
+                  <button 
+                    className="telemetry-dev-skip-minimal" 
+                    onClick={() => {
+                      console.log("[Printer] Spooling manual calibration card print test...");
+                      // Force portrait page style for the calibration card
+                      const styleId = 'dynamic-print-page-style';
+                      let styleEl = document.getElementById(styleId);
+                      if (!styleEl) {
+                        styleEl = document.createElement('style');
+                        styleEl.id = styleId;
+                        document.head.appendChild(styleEl);
+                      }
+                      styleEl.innerHTML = `
+                        @media print {
+                          @page {
+                            size: 4in 6in !important;
+                            margin: 0 !important;
+                          }
+                        }
+                      `;
+                      
+                      window.print();
+                      
+                      // Clean up after the print dialog is spooled
+                      setTimeout(() => {
+                        const el = document.getElementById(styleId);
+                        if (el) el.remove();
+                      }, 1000);
+                    }} 
+                    style={{ color: '#00FF00', borderColor: '#00FF00', fontSize: '0.55rem', padding: '2px 6px', backgroundColor: 'rgba(0,255,0,0.05)' }}
+                  >
+                    RUN TEST PRINT
+                  </button>
+                  <span style={{ color: '#888', fontSize: '0.6rem' }}>
+                    LINK: {StatusService.isLocalBackend ? 'LOCAL_API (Real)' : 'FALLBACK (Blind)'}
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* CAMERA CONFIGURATION CONTROLS */}
+          <div className="dev-mode-indicator" style={{ marginTop: '0.5rem', backgroundColor: '#111', border: '1px solid #222', pointerEvents: 'auto' }}>
+            <div 
+              style={{ color: '#00FFFF', cursor: 'pointer', fontWeight: 900, display: 'flex', justifyContent: 'space-between', fontSize: '0.65rem', fontFamily: 'monospace' }} 
+              onClick={() => setIsCameraDevOpen(!isCameraDevOpen)}
+            >
+              <span>{isCameraDevOpen ? '▼' : '▶'} CAMERA_NERD_SETTINGS</span>
+              <span>[ {cameraType.toUpperCase()} ]</span>
+            </div>
+            {isCameraDevOpen && (
+              <div style={{ marginTop: '0.6rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', fontSize: '0.65rem', borderTop: '1px dashed #333', paddingTop: '0.5rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ color: '#777' }}>CAMERA TYPE:</span>
+                  <div style={{ display: 'flex', gap: '4px' }}>
+                    <button 
+                      onClick={() => {
+                        setCameraType('webcam');
+                        localStorage.setItem('PHOTOBOOTH_CAMERA_TYPE', 'webcam');
+                      }}
+                      style={{ 
+                        backgroundColor: cameraType === 'webcam' ? '#00FFFF' : '#000', 
+                        color: cameraType === 'webcam' ? '#000' : '#FFF', 
+                        border: '1px solid #333', 
+                        fontSize: '0.55rem', 
+                        fontFamily: 'monospace', 
+                        padding: '2px 6px',
+                        cursor: 'pointer',
+                        fontWeight: cameraType === 'webcam' ? 'bold' : 'normal'
+                      }}
+                    >
+                      WEBCAM
+                    </button>
+                    <button 
+                      disabled
+                      style={{ 
+                        backgroundColor: '#000', 
+                        color: '#444', 
+                        border: '1px solid #222', 
+                        fontSize: '0.55rem', 
+                        fontFamily: 'monospace', 
+                        padding: '2px 6px',
+                        cursor: 'not-allowed',
+                        opacity: 0.4
+                      }}
+                    >
+                      HYBRID
+                    </button>
+                    <button 
+                      disabled
+                      style={{ 
+                        backgroundColor: '#000', 
+                        color: '#444', 
+                        border: '1px solid #222', 
+                        fontSize: '0.55rem', 
+                        fontFamily: 'monospace', 
+                        padding: '2px 6px',
+                        cursor: 'not-allowed',
+                        opacity: 0.4
+                      }}
+                    >
+                      DSLR (digiCam)
+                    </button>
+                  </div>
+                </div>
+
+              </div>
+            )}
+          </div>
+
+          {/* BRANDING CONFIGURATION CONTROLS */}
+          <div className="dev-mode-indicator" style={{ marginTop: '0.5rem', backgroundColor: '#111', border: '1px solid #222', pointerEvents: 'auto' }}>
+            <div 
+              style={{ color: '#00FFFF', cursor: 'pointer', fontWeight: 900, display: 'flex', justifyContent: 'space-between', fontSize: '0.65rem', fontFamily: 'monospace' }} 
+              onClick={() => setIsBrandingDevOpen(!isBrandingDevOpen)}
+            >
+              <span>{isBrandingDevOpen ? '▼' : '▶'} IDLE_BRANDING_SETTINGS</span>
+              <span>[ {idleBrandType.toUpperCase()} ]</span>
+            </div>
+            {isBrandingDevOpen && (
+              <div style={{ marginTop: '0.6rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', fontSize: '0.65rem', borderTop: '1px dashed #333', paddingTop: '0.5rem' }}>
+                
+                {/* Brand Type Toggle */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ color: '#777' }}>DISPLAY TYPE:</span>
+                  <div style={{ display: 'flex', gap: '4px' }}>
+                    <button 
+                      onClick={() => {
+                        setIdleBrandType('text');
+                        localStorage.setItem('PHOTOBOOTH_IDLE_BRAND_TYPE', 'text');
+                      }}
+                      style={{ 
+                        backgroundColor: idleBrandType === 'text' ? '#00FFFF' : '#000', 
+                        color: idleBrandType === 'text' ? '#000' : '#FFF', 
+                        border: '1px solid #333', 
+                        fontSize: '0.55rem', 
+                        fontFamily: 'monospace', 
+                        padding: '2px 6px',
+                        cursor: 'pointer',
+                        fontWeight: idleBrandType === 'text' ? 'bold' : 'normal'
+                      }}
+                    >
+                      TEXT
+                    </button>
+                    <button 
+                      onClick={() => {
+                        setIdleBrandType('logo');
+                        localStorage.setItem('PHOTOBOOTH_IDLE_BRAND_TYPE', 'logo');
+                      }}
+                      style={{ 
+                        backgroundColor: idleBrandType === 'logo' ? '#00FFFF' : '#000', 
+                        color: idleBrandType === 'logo' ? '#000' : '#FFF', 
+                        border: '1px solid #333', 
+                        fontSize: '0.55rem', 
+                        fontFamily: 'monospace', 
+                        padding: '2px 6px',
+                        cursor: 'pointer',
+                        fontWeight: idleBrandType === 'logo' ? 'bold' : 'normal'
+                      }}
+                    >
+                      LOGO
+                    </button>
+                  </div>
+                </div>
+
+                {/* Brand Text Customizer */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ color: '#777' }}>BRAND TEXT:</span>
+                  <input 
+                    type="text" 
+                    value={idleBrandText}
+                    onChange={(e) => {
+                      setIdleBrandText(e.target.value);
+                      localStorage.setItem('PHOTOBOOTH_IDLE_BRAND_TEXT', e.target.value);
+                    }}
+                    style={{ backgroundColor: '#000', border: '1px solid #333', color: '#fff', fontSize: '0.6rem', fontFamily: 'monospace', padding: '2px 4px', width: '130px', textAlign: 'right' }}
+                  />
+                </div>
+
+                {/* Brand Logo Path Customizer */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ color: '#777' }}>LOGO ASSET:</span>
+                  <input 
+                    type="text" 
+                    value={idleBrandLogo}
+                    onChange={(e) => {
+                      setIdleBrandLogo(e.target.value);
+                      localStorage.setItem('PHOTOBOOTH_IDLE_BRAND_LOGO', e.target.value);
+                    }}
+                    style={{ backgroundColor: '#000', border: '1px solid #333', color: '#fff', fontSize: '0.6rem', fontFamily: 'monospace', padding: '2px 4px', width: '130px', textAlign: 'right' }}
+                  />
+                </div>
+
+                {/* Brand Text Scale Customizer */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ color: '#777' }}>TEXT SCALE (%):</span>
+                  <input 
+                    type="number" 
+                    value={idleBrandTextScale}
+                    onChange={(e) => {
+                      setIdleBrandTextScale(e.target.value);
+                      localStorage.setItem('PHOTOBOOTH_IDLE_BRAND_TEXT_SCALE', e.target.value);
+                    }}
+                    style={{ backgroundColor: '#000', border: '1px solid #333', color: '#fff', fontSize: '0.6rem', fontFamily: 'monospace', padding: '2px 4px', width: '60px', textAlign: 'right' }}
+                  />
+                </div>
+
+                {/* Brand Logo Scale Customizer */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ color: '#777' }}>LOGO SCALE (%):</span>
+                  <input 
+                    type="number" 
+                    value={idleBrandLogoScale}
+                    onChange={(e) => {
+                      setIdleBrandLogoScale(e.target.value);
+                      localStorage.setItem('PHOTOBOOTH_IDLE_BRAND_LOGO_SCALE', e.target.value);
+                    }}
+                    style={{ backgroundColor: '#000', border: '1px solid #333', color: '#fff', fontSize: '0.6rem', fontFamily: 'monospace', padding: '2px 4px', width: '60px', textAlign: 'right' }}
+                  />
+                </div>
+
+              </div>
+            )}
+          </div>
           <div className="dev-mode-controls" style={{ pointerEvents: 'auto', display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '0.5rem' }}>
             <button className="telemetry-dev-skip-minimal" onClick={() => { StatusService.togglePrinterMock(); }}>TGL_PRINTER</button>
             <button className="telemetry-dev-skip-minimal" onClick={() => { StatusService.toggleCameraMock(); }}>TGL_CAMERA</button>
           </div>
           <div className="dev-mode-controls" style={{ pointerEvents: 'auto', display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '0.5rem' }}>
-            <button className="telemetry-dev-skip-minimal" onClick={() => {
-              setSessionTime(300);
-              setTransactionTime(180);
-              setCurrentStep(prev => Math.max(0, prev - 1));
-            }}>PREV</button>
-            <button className="telemetry-dev-skip-minimal" onClick={() => {
-              setSessionTime(300);
-              setTransactionTime(180);
-              setCurrentStep(prev => prev + 1);
-            }}>SKIP</button>
-            <button className="telemetry-dev-skip-minimal" onClick={() => { setSessionTime(1); setTransactionTime(1); }} style={{ color: '#FF4444', borderColor: '#FF4444' }}>FORCE_TIMEOUT</button>
-            {isCheckoutModalOpen && (
-              <button
-                className="telemetry-dev-skip-minimal"
-                onClick={() => window.simulatePaymentSuccess?.()}
-                style={{ color: '#00FFFF', borderColor: '#00FFFF' }}
-              >
-                AUTHORIZE
-              </button>
+            {!isMaintenanceLocked && (
+              <>
+                <button className="telemetry-dev-skip-minimal" onClick={() => {
+                  setSessionTime(300);
+                  setTransactionTime(180);
+                  setCurrentStep(prev => Math.max(0, prev - 1));
+                }}>PREV</button>
+                <button className="telemetry-dev-skip-minimal" onClick={() => {
+                  setSessionTime(300);
+                  setTransactionTime(180);
+                  setCurrentStep(prev => prev + 1);
+                }}>SKIP</button>
+                <button className="telemetry-dev-skip-minimal" onClick={() => { setSessionTime(1); setTransactionTime(1); }} style={{ color: '#FF4444', borderColor: '#FF4444' }}>FORCE_TIMEOUT</button>
+                {isCheckoutModalOpen && (
+                  <button
+                    className="telemetry-dev-skip-minimal"
+                    onClick={() => window.simulatePaymentSuccess?.()}
+                    style={{ color: '#00FFFF', borderColor: '#00FFFF' }}
+                  >
+                    AUTHORIZE
+                  </button>
+                )}
+                <button
+                  className={`telemetry-dev-skip-minimal ${devFreeFlow ? 'active' : ''}`}
+                  onClick={() => setDevFreeFlow(!devFreeFlow)}
+                  style={{ color: devFreeFlow ? '#00FF00' : '#FF0000', borderColor: devFreeFlow ? '#00FF00' : '#FF0000' }}
+                >
+                  FREE_FLOW: {devFreeFlow ? 'ON' : 'OFF'}
+                </button>
+                <button
+                  className={`telemetry-dev-skip-minimal ${bypassMode ? 'active' : ''}`}
+                  onClick={() => {
+                    const next = !bypassMode;
+                    setBypassMode(next);
+                    localStorage.setItem('PHOTOBOOTH_BYPASS_MODE', next ? 'true' : 'false');
+                  }}
+                  style={{ color: bypassMode ? '#ffaa00' : '#888', borderColor: bypassMode ? '#ffaa00' : '#333' }}
+                >
+                  BYPASS: {bypassMode ? 'ON' : 'OFF'}
+                </button>
+                <button className="telemetry-dev-skip-minimal" onClick={() => setIsSetupOpen(true)}>SETUP</button>
+                <button className="telemetry-dev-skip-minimal" onClick={() => setShowGallery(true)} style={{ color: '#00FFFF', borderColor: '#00FFFF' }}>GALLERY</button>
+                <button className="telemetry-dev-skip-minimal exit" onClick={handleAbort}>END</button>
+              </>
             )}
-            <button
-              className={`telemetry-dev-skip-minimal ${devFreeFlow ? 'active' : ''}`}
-              onClick={() => setDevFreeFlow(!devFreeFlow)}
-              style={{ color: devFreeFlow ? '#00FF00' : '#FF0000', borderColor: devFreeFlow ? '#00FF00' : '#FF0000' }}
-            >
-              FREE_FLOW: {devFreeFlow ? 'ON' : 'OFF'}
-            </button>
-            <button className="telemetry-dev-skip-minimal" onClick={() => setIsSetupOpen(true)}>SETUP</button>
-            <button className="telemetry-dev-skip-minimal" onClick={() => setShowGallery(true)} style={{ color: '#00FFFF', borderColor: '#00FFFF' }}>GALLERY</button>
-            <button className="telemetry-dev-skip-minimal exit" onClick={handleAbort}>END</button>
           </div>
         </div>
       )}
 
-      {currentStep === 0 && (
-        <IdleScreen
-          onNext={() => {
-            setFinalImage(null);
-            setCurrentStep(1);
-            setIsTunneling(false);
-          }}
-          onTransitionStart={() => setIsTunneling(true)}
-        />
-      )}
-
-      {currentStep === 1 && (
-        <PaymentScreen
-          ref={paymentRef}
-          onBack={handleReset}
-          onSuccess={(paid) => {
-            setAmountPaid(paid);
-            setInitialCopies(printCopies);
-            startPageTransition(() => setCurrentStep(2));
-          }}
-          printCopies={printCopies}
-          setPrintCopies={setPrintCopies}
-          timerDisplay={formatTime(transactionTime)}
-          transactionTime={transactionTime}
-          devMode={devMode}
-          setIsTimerPaused={setIsTimerPaused}
-          kioskId={kioskId}
-          devFreeFlow={devFreeFlow}
-          onRestoreSession={handleRestoreSession}
-          selectedFrame={selectedFrame}
-        />
-      )}
-
-      {currentStep === 2 && (
-        <SelectionScreen
-          devMode={devMode}
-          kioskData={kioskData || { frames: [] }}
-          loading={kioskLoading}
-          onPrepareCamera={() => setIsCameraRequested(true)}
-          onFinish={(frame) => startPageTransition(() => {
-            setSelectedFrame(frame);
-            setCurrentStep(3);
-            setCaptureSubState('viewfinder');
-            setIsCameraRequested(false);
-          })}
-        />
-      )}
-
-      {currentStep === 3 && (
-        <CaptureScreen
-          ref={captureRef}
-          selectedFrame={selectedFrame}
-          photos={capturedPhotos}
-          setPhotos={setCapturedPhotos}
-          isFinished={isCaptureFinished}
-          setIsFinished={setIsCaptureFinished}
-          selectedFilter={captureFilter}
-          setSelectedFilter={setCaptureFilter}
-          isMirrored={captureMirrored}
-          setIsMirrored={setCaptureMirrored}
-          currentSlotIndex={captureSlotIndex}
-          setCurrentSlotIndex={setCaptureSlotIndex}
-          onBack={() => {
-            // Disable back if timeout happened (sessionTime <= 0)
-            if (sessionTime <= 0) return;
-
-            if (isCaptureFinished) {
-              setIsCaptureFinished(false);
-            } else {
-              setCurrentStep(2);
-            }
-          }}
-          onFinish={(img) => startPageTransition(() => {
-            setFinalImage(img);
-            setOutroType('NORMAL');
-            setCurrentStep(4);
-          })}
-          setCaptureSubState={setCaptureSubState}
-          kioskId={kioskId}
-          devMode={devMode}
-          cameraStream={cameraStream}
-          cameraDevices={cameraDevices}
-          selectedDeviceId={selectedDeviceId}
-          setSelectedDeviceId={setSelectedDeviceId}
-          onEnsureCamera={onEnsureCamera}
-        />
-      )}
-
-      {currentStep === 4 && (
-        <PrintManifestScreen
-          finalImage={finalImage}
-          printCopies={printCopies}
-          setPrintCopies={setPrintCopies}
-          initialCopies={initialCopies}
-          isCheckoutOpen={isCheckoutModalOpen}
-          setIsCheckoutOpen={setIsCheckoutModalOpen}
-          transactionTime={transactionTime}
-          amountPaid={amountPaid}
-          onNext={() => setCurrentStep(5)}
-          devFreeFlow={devFreeFlow}
-          setIsTimerPaused={setIsTimerPaused}
-          checkoutMode={checkoutMode}
-          setCheckoutMode={setCheckoutMode}
-          onTimeout={handleAbort}
-        />
-      )}
-
-      {currentStep === 5 && (
-        <ExportScreen
-          finalImage={finalImage}
-          printCopies={printCopies}
-          onFinish={(donating) => {
-            setIsDonating(donating);
-            setCurrentStep(6);
-          }}
-          kioskId={kioskId}
-          devFreeFlow={devFreeFlow}
-        />
-      )}
-
-      {currentStep === 6 && (
+      {(isMaintenanceLocked || isMaintenanceExiting) ? (
         <OutroScreen 
-          finalImage={finalImage} 
-          type={outroType} 
-          isDonating={isDonating}
-          onReset={handleReset} 
-          onExitStart={() => setIsOutroExiting(true)} 
+          type="MAINTENANCE" 
+          onReset={() => {
+            setIsMaintenanceLocked(false);
+            setIsMaintenanceExiting(false);
+          }}
+          language={language}
+          triggerExit={isMaintenanceExiting}
         />
+      ) : (
+        <>
+          {currentStep === 0 && (
+            <IdleScreen
+              onNext={() => {
+                setFinalImage(null);
+                setCurrentStep(1);
+                setIsTunneling(false);
+              }}
+              onTransitionStart={() => setIsTunneling(true)}
+              brandType={idleBrandType}
+              brandText={idleBrandText}
+              brandLogo={idleBrandLogo}
+              brandTextScale={idleBrandTextScale}
+              brandLogoScale={idleBrandLogoScale}
+            />
+          )}
+
+          {currentStep === 1 && (
+            <PaymentScreen
+              ref={paymentRef}
+              onBack={handleReset}
+              onSuccess={(paid) => {
+                setAmountPaid(paid);
+                setInitialCopies(printCopies);
+                startPageTransition(() => setCurrentStep(2));
+              }}
+              printCopies={printCopies}
+              setPrintCopies={setPrintCopies}
+              timerDisplay={formatTime(transactionTime)}
+              transactionTime={transactionTime}
+              devMode={devMode}
+              setIsTimerPaused={setIsTimerPaused}
+              kioskId={kioskId}
+              devFreeFlow={devFreeFlow}
+              onRestoreSession={handleRestoreSession}
+              selectedFrame={selectedFrame}
+              bypassMode={bypassMode}
+              language={language}
+              setLanguage={setLanguage}
+            />
+          )}
+
+          {currentStep === 2 && (
+            <SelectionScreen
+              devMode={devMode}
+              kioskData={kioskData || { frames: [] }}
+              loading={kioskLoading}
+              onPrepareCamera={() => setIsCameraRequested(true)}
+              onFinish={(frame) => startPageTransition(() => {
+                setSelectedFrame(frame);
+                setCurrentStep(3);
+                setCaptureSubState('viewfinder');
+                setIsCameraRequested(false);
+              })}
+              language={language}
+            />
+          )}
+
+          {currentStep === 3 && (
+            <CaptureScreen
+              ref={captureRef}
+              selectedFrame={selectedFrame}
+              photos={capturedPhotos}
+              setPhotos={setCapturedPhotos}
+              isFinished={isCaptureFinished}
+              setIsFinished={setIsCaptureFinished}
+              selectedFilter={captureFilter}
+              setSelectedFilter={setCaptureFilter}
+              isMirrored={captureMirrored}
+              setIsMirrored={setCaptureMirrored}
+              currentSlotIndex={captureSlotIndex}
+              setCurrentSlotIndex={setCaptureSlotIndex}
+              onBack={() => {
+                // Disable back if timeout happened (sessionTime <= 0)
+                if (sessionTime <= 0) return;
+
+                if (isCaptureFinished) {
+                  setIsCaptureFinished(false);
+                } else {
+                  setCurrentStep(2);
+                }
+              }}
+              onFinish={(img) => startPageTransition(() => {
+                setFinalImage(img);
+                setOutroType('NORMAL');
+                setCurrentStep(4);
+              })}
+              setCaptureSubState={setCaptureSubState}
+              kioskId={kioskId}
+              devMode={devMode}
+              cameraStream={cameraStream}
+              cameraDevices={cameraDevices}
+              selectedDeviceId={selectedDeviceId}
+              setSelectedDeviceId={setSelectedDeviceId}
+              onEnsureCamera={onEnsureCamera}
+              language={language}
+            />
+          )}
+
+          {currentStep === 4 && (
+            <PrintManifestScreen
+              finalImage={finalImage}
+              printCopies={printCopies}
+              setPrintCopies={setPrintCopies}
+              initialCopies={initialCopies}
+              isCheckoutOpen={isCheckoutModalOpen}
+              setIsCheckoutOpen={setIsCheckoutModalOpen}
+              transactionTime={transactionTime}
+              amountPaid={amountPaid}
+              onNext={() => setCurrentStep(5)}
+              devFreeFlow={devFreeFlow}
+              setIsTimerPaused={setIsTimerPaused}
+              checkoutMode={checkoutMode}
+              setCheckoutMode={setCheckoutMode}
+              onTimeout={handleAbort}
+              sessionHash={sessionHash}
+              bypassMode={bypassMode}
+              language={language}
+            />
+          )}
+
+          {currentStep === 5 && (
+            <ExportScreen
+              finalImage={finalImage}
+              capturedPhotos={capturedPhotos}
+              printCopies={printCopies}
+              onFinish={(donating) => {
+                setIsDonating(donating);
+                setCurrentStep(6);
+              }}
+              kioskId={kioskId}
+              devFreeFlow={devFreeFlow}
+              sessionHash={sessionHash}
+              selectedFrame={selectedFrame}
+              language={language}
+            />
+          )}
+
+          {currentStep === 6 && (
+            <OutroScreen 
+              finalImage={finalImage} 
+              type={outroType} 
+              isDonating={isDonating}
+              onReset={handleReset} 
+              onExitStart={() => setIsOutroExiting(true)} 
+              language={language}
+            />
+          )}
+        </>
       )}
 
+      {/* Test sheet template (Only active when printing outside Export screen) */}
+      {currentStep !== 5 && createPortal(
+        <div className="print-only-container portrait-print" style={{ transform: `scale(${Number(devPrintScale) / 100})`, transformOrigin: 'center' }}>
+          <div style={{ 
+            width: '4in', 
+            height: '6in', 
+            backgroundColor: '#ffffff', 
+            color: '#000000', 
+            display: 'flex', 
+            flexDirection: 'column', 
+            justifyContent: 'center', 
+            alignItems: 'center', 
+            fontFamily: 'monospace', 
+            padding: '0.4in', 
+            boxSizing: 'border-box', 
+            border: '6px double #000000',
+            textAlign: 'center'
+          }}>
+            <h2 style={{ margin: '0 0 5px 0', fontSize: '20px', fontWeight: 900, letterSpacing: '2px' }}>HYPE-BOX</h2>
+            <h4 style={{ margin: '0 0 15px 0', fontSize: '10px', letterSpacing: '4px', color: '#666' }}>CALIBRATION SHEET</h4>
+            
+            <div style={{ 
+              border: '2px dashed #000000', 
+              width: '100%', 
+              height: '2.2in', 
+              display: 'flex', 
+              flexDirection: 'column',
+              justifyContent: 'center', 
+              alignItems: 'center', 
+              fontSize: '9px',
+              gap: '5px',
+              padding: '10px',
+              boxSizing: 'border-box'
+            }}>
+              <strong>ALIGNMENT MARKER</strong>
+              <div style={{ width: '40px', height: '40px', border: '1px solid #000', borderRadius: '50%', position: 'relative', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                <div style={{ width: '100%', height: '1px', backgroundColor: '#000', position: 'absolute' }}></div>
+                <div style={{ height: '100%', width: '1px', backgroundColor: '#000', position: 'absolute' }}></div>
+              </div>
+              <span>4" x 6" PORTRAIT</span>
+            </div>
+
+            <div style={{ fontSize: '7.5px', marginTop: '20px', textAlign: 'left', width: '100%', display: 'flex', flexDirection: 'column', gap: '3px', borderTop: '1px solid #000', paddingTop: '10px' }}>
+              <div><strong>PRINTER:</strong> {devPrinterName}</div>
+              <div><strong>SCALE:</strong> {devPrintScale}%</div>
+              <div><strong>FINGERPRINT:</strong> {machineUUID}</div>
+              <div><strong>TIMESTAMP:</strong> {new Date().toLocaleString()}</div>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
 
     </div>
   );

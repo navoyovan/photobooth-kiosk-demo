@@ -5,9 +5,14 @@ import { entranceEditorialLayout } from '../../utils/transitions';
 import GalleryCheckoutModal from '../shared/GalleryCheckoutModal';
 import SessionRecoveryModal from '../shared/SessionRecoveryModal';
 import StatusService from '../../services/StatusService';
+import { TRANSLATIONS } from '../../constants/translations';
 import styles from './01-Payment.module.css';
 
-const PaymentScreen = forwardRef(({ onBack, onSuccess, printCopies, setPrintCopies, timerDisplay, transactionTime, devMode = false, setIsTimerPaused, kioskId, devFreeFlow, onRestoreSession, selectedFrame }, ref) => {
+const PaymentScreen = forwardRef(({ onBack, onSuccess, printCopies, setPrintCopies, timerDisplay, transactionTime, devMode = false, setIsTimerPaused, kioskId, devFreeFlow, onRestoreSession, selectedFrame, bypassMode = false, language = 'EN', setLanguage }, ref) => {
+  const t = (key) => {
+    return TRANSLATIONS[language]?.[key] || TRANSLATIONS['EN']?.[key] || key;
+  };
+
   const screenRef = useRef();
   const leftPanelRef = useRef();
   const rightPanelRef = useRef();
@@ -221,20 +226,20 @@ const PaymentScreen = forwardRef(({ onBack, onSuccess, printCopies, setPrintCopi
       {/* EDITORIAL TELEMETRY HUD */}
       <div className={styles.telemetryHud}>
         <div className={styles.telemetryRow}>
-          <span className={styles.telemetryLabel}>OPTICS</span>
+          <span className={styles.telemetryLabel}>{t('optics')}</span>
           <div className={styles.telemetryValueGroup}>
             <span className={styles.telemetryValue}>
-              {StatusService.camera === 'ready' ? 'Calibrated & Ready' : 'Sensor Malfunction'}
+              {StatusService.camera === 'ready' ? t('calibratedReady') : t('sensorMalfunction')}
             </span>
             <div className={`${styles.ledDot} ${StatusService.camera === 'ready' ? styles.ledHealthy : styles.ledWarning}`}></div>
           </div>
         </div>
 
         <div className={styles.telemetryRow}>
-          <span className={styles.telemetryLabel}>PRINT MEDIA</span>
+          <span className={styles.telemetryLabel}>{t('printMedia')}</span>
           <div className={styles.telemetryValueGroup}>
             <span className={styles.telemetryValue}>
-              {StatusService.printer === 'ready' ? '85% Capacity' : 'Media Depleted'}
+              {StatusService.printer === 'ready' ? `85% ${t('capacity')}` : t('mediaDepleted')}
             </span>
             <div className={`${styles.ledDot} ${StatusService.printer === 'ready' ? styles.ledHealthy : styles.ledWarning}`}></div>
           </div>
@@ -244,40 +249,59 @@ const PaymentScreen = forwardRef(({ onBack, onSuccess, printCopies, setPrintCopi
       {/* PANEL KIRI: Kendali & Instruksi */}
       <div ref={leftPanelRef} className="panel-left">
         {/* The Giant Watermark */}
-        <h2 className="watermark-sideways">Secure</h2>
+        <h2 className="watermark-sideways">{t('secureWatermark')}</h2>
+
+        {/* Floating Language Switcher */}
+        <div className={styles.langToggleContainer}>
+          <button 
+            className={`${styles.langBtn} ${language === 'EN' ? styles.active : ''}`}
+            onClick={() => setLanguage('EN')}
+          >
+            EN
+          </button>
+          <span className={styles.langDivider}>/</span>
+          <button 
+            className={`${styles.langBtn} ${language === 'ID' ? styles.active : ''}`}
+            onClick={() => setLanguage('ID')}
+          >
+            ID
+          </button>
+        </div>
 
         <div style={{ width: '100%', marginTop: 'auto', marginBottom: 'auto', paddingBottom: '5rem', zIndex: 20 }}>
           {/* The Hero Overlap Title */}
           <div className="side-display-container">
             <div className="side-display-bullet">▌</div>
-            <h2 className="side-display-h1">Payment</h2>
+            <h2 className="side-display-h1">{t('paymentTitle')}</h2>
           </div>
 
           <div className={styles.instructionList}>
 
             <div className={styles.instructionStep}>
               <span className={styles.instructionNum}>01.</span>
-              <p className={styles.instructionText}>CHOOSE HOW MANY COPIES YOU NEED.</p>
+              <p className={styles.instructionText}>{t('stepCopies')}</p>
             </div>
             <div className={styles.instructionStep}>
               <span className={styles.instructionNum}>02.</span>
-              <p className={styles.instructionText}>CONFIRM THE SELECTION TO GENERATE QR CODE.</p>
+              <p className={styles.instructionText}>
+                {bypassMode ? t('stepPayStand') : t('stepConfirmQR')}
+              </p>
             </div>
 
           </div>
 
           <div className={styles.promoContainer}>
-            <span className={styles.promoLabel}>HAVE A PROMO CODE?</span>
+            <span className={styles.promoLabel}>{t('promoLabel')}</span>
             <div
               className={`${styles.promoInput} ${promoStatus === 'checking' ? styles.statusChecking : ''} ${promoStatus === 'success' ? styles.statusSuccess : ''} ${promoStatus === 'failed' ? styles.statusFailed : ''} ${showNumpad ? styles.focused : ''}`}
               onClick={() => setShowNumpad(!showNumpad)}
             >
-              {coupon || (showNumpad ? "" : <span style={{ color: "rgba(var(--theme-text-muted-rgb), 0.5)" }}>TAP TO ENTER CODE</span>)}
+              {coupon || (showNumpad ? "" : <span style={{ color: "rgba(var(--theme-text-muted-rgb), 0.5)" }}>{t('promoPlaceholder')}</span>)}
               {showNumpad && <span className={styles.blinkingCursor}>|</span>}
             </div>
-            {promoStatus === "checking" && <span className={`${styles.couponStatusMsg} ${styles.statusChecking}`}>VERIFYING...</span>}
-            {promoStatus === "success" && <span className={`${styles.couponStatusMsg} ${styles.statusSuccess}`}>CODE APPLIED</span>}
-            {promoStatus === "failed" && <span className={`${styles.couponStatusMsg} ${styles.statusFailed}`}>INVALID CODE</span>}
+            {promoStatus === "checking" && <span className={`${styles.couponStatusMsg} ${styles.statusChecking}`}>{t('promoChecking')}</span>}
+            {promoStatus === "success" && <span className={`${styles.couponStatusMsg} ${styles.statusSuccess}`}>{t('promoApplied')}</span>}
+            {promoStatus === "failed" && <span className={`${styles.couponStatusMsg} ${styles.statusFailed}`}>{t('promoInvalid')}</span>}
 
             {promoStatus !== "success" && showNumpad && (
               <div ref={numpadRef} className={styles.numpad} style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
@@ -298,7 +322,6 @@ const PaymentScreen = forwardRef(({ onBack, onSuccess, printCopies, setPrintCopi
             )}
           </div>
         </div>
-
 
       </div>
 
@@ -349,8 +372,8 @@ const PaymentScreen = forwardRef(({ onBack, onSuccess, printCopies, setPrintCopi
                             filter: `brightness(${100 - (printCopies - index - 1) * 1.1}%)`,
                           }}
                         >
-                          <img src={selectedFrame?.thumbnail || "/taken_pic/default.png"} alt={`Placeholder ${index + 1}`} />
-                          <div className="boundary-dashed-line-visual"></div>
+                          <img src={selectedFrame?.thumbnail || "/assets/payment_qty.png"} alt={`Placeholder ${index + 1}`} />
+
                         </div>
                       );
                     })}
@@ -361,7 +384,7 @@ const PaymentScreen = forwardRef(({ onBack, onSuccess, printCopies, setPrintCopi
           </div>
 
           <button className={`btn-tier-1 ${styles.confirmBtn}`} onClick={handleConfirmCheckout} disabled={isLoading}>
-            {isLoading ? "Please wait..." : "Generate Payment QR"}
+            {isLoading ? t('pleaseWait') : (bypassMode ? t('payWithOperator') : t('generatePaymentQR'))}
           </button>
         </div>
 
@@ -423,6 +446,8 @@ const PaymentScreen = forwardRef(({ onBack, onSuccess, printCopies, setPrintCopi
         devFreeFlow={devFreeFlow}
         setIsTimerPaused={setIsTimerPaused}
         mode="PAYMENT"
+        bypassMode={bypassMode}
+        language={language}
       />
 
       {/* RECOVERY MODAL */}
@@ -431,6 +456,7 @@ const PaymentScreen = forwardRef(({ onBack, onSuccess, printCopies, setPrintCopi
         onContinue={handleContinueSession}
         onDiscard={handleDiscardSession}
         sessionData={savedSession || {}}
+        language={language}
       />
 
     </div>

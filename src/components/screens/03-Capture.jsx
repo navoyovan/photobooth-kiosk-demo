@@ -4,12 +4,15 @@ import RunningTimestamp from '../shared/RunningTimestamp';
 import InteractivePhoto from '../shared/InteractivePhoto';
 import CollageComposer from '../shared/CollageComposer';
 import { getFrameLayout } from '../../constants/frame_layouts';
-
 import { exitEditorialLayout } from '../../utils/transitions';
 import { entranceEditorialLayout } from '../../utils/transitions';
-
+import { TRANSLATIONS } from '../../constants/translations';
 import vfStyles from './03a-Viewfinder.module.css';
 import cpStyles from './03b-Compositing.module.css';
+
+
+
+
 
 const CaptureScreen = React.forwardRef(({
   selectedFrame,
@@ -34,6 +37,7 @@ const CaptureScreen = React.forwardRef(({
   selectedDeviceId,
   setSelectedDeviceId,
   onEnsureCamera,
+  language = 'EN',
 }, ref) => {
   const videoRef = useRef(null);
   const screenRef = useRef(null);
@@ -43,6 +47,9 @@ const CaptureScreen = React.forwardRef(({
   const filterListRef = useRef(null);
   const magneticAnchorRef = useRef(null);
   const timelineRef = useRef(null);
+  const t = (key) => {
+    return TRANSLATIONS[language]?.[key] || TRANSLATIONS['EN']?.[key] || key;
+  };
   const gridSystemRef = useRef(null);
   const hudTopLeftRef = useRef(null);
   const hudCenterLeftRef = useRef(null);
@@ -115,6 +122,9 @@ const CaptureScreen = React.forwardRef(({
   const audioRef = useRef(null);
   const freezeTimeoutRef = useRef(null);
   const exportTimeoutRef = useRef(null);
+
+
+
 
   // Re-animate Viewfinder elements when returning from Compositing
   useEffect(() => {
@@ -308,7 +318,7 @@ const CaptureScreen = React.forwardRef(({
     };
   }, []);
 
-  const takeSnapshot = (slotIdx) => {
+  const takeSnapshot = async (slotIdx) => {
     // Shutter Flash Sequence
     const flash = document.createElement('div');
     flash.className = vfStyles.shutterFlash;
@@ -378,6 +388,7 @@ const CaptureScreen = React.forwardRef(({
         captureNext(slotIdx + 1);
       }, 1500);
     }
+
   };
 
   const toggleSlot = (idx) => {
@@ -390,9 +401,8 @@ const CaptureScreen = React.forwardRef(({
   };
 
   // Telemetry logic
-  const activeCamera = deviceList.find(d => d.deviceId === selectedDeviceId);
-  const isProfessionalSource = activeCamera?.label?.toLowerCase().includes('canon') || activeCamera?.label?.toLowerCase().includes('dslr');
-  const telemetryString = isProfessionalSource ? "ISO_3200 // F1.4 // S_1/125" : "AUTO_EXP // DGT_LENS";
+  const telemetryString = "AUTO_EXP // DGT_LENS";
+
 
   const handleRetake = () => {
     startTransition(() => {
@@ -542,6 +552,7 @@ const CaptureScreen = React.forwardRef(({
       {/* THE CAMERA FEED */}
       <video ref={videoRef} autoPlay playsInline muted className={vfStyles.cameraFeed} />
 
+
       {/* THE OPTICAL GRID */}
       <div ref={gridSystemRef} className={vfStyles.opticalGrid}>
         <div className={`${vfStyles.gridLine} ${vfStyles.horizontal1}`}></div>
@@ -552,7 +563,7 @@ const CaptureScreen = React.forwardRef(({
 
       {/* GHOST WATERMARK: CAPTURE */}
       <div ref={watermarkRef} className={vfStyles.watermark}>
-        VIEWFINDER
+        {t('viewfinderWatermark')}
       </div>
 
       {/* MAIN HUD WRAPPER */}
@@ -564,11 +575,6 @@ const CaptureScreen = React.forwardRef(({
         <div ref={hudTopLeftRef} className={`${vfStyles.hudAnchor} ${vfStyles.topLeft}`} onClick={e => e.stopPropagation()}>
           <div className={vfStyles.telemetry}>
             {telemetryString}
-            <div className="dslr-status-indicator" style={{ marginTop: '0.5rem', fontSize: '0.7rem', opacity: 0.8 }}>
-              DSLR_LINK: <span style={{ color: isProfessionalSource ? 'rgb(var(--theme-accent-rgb))' : "rgba(255,255,255,0.4)" }}>
-                [{isProfessionalSource ? 'OK' : 'NOT FOUND'}]
-              </span>
-            </div>
           </div>
 
           {/* MINIMALIST CAMERA SELECTOR */}
@@ -617,8 +623,8 @@ const CaptureScreen = React.forwardRef(({
             className={vfStyles.timerAxis}
             style={{ transform: `translateY(${(3 - ['-', '-', 0, 3, 5, '-', '-'].indexOf(timerDelay)) * 5.9}rem)` }}
           >
-            {['-', '-', 0, 3, 5, '-', '-'].map((t, idx) => {
-              const isNumeric = typeof t === 'number';
+            {['-', '-', 0, 3, 5, '-', '-'].map((timerVal, idx) => {
+              const isNumeric = typeof timerVal === 'number';
               const activeIndex = ['-', '-', 0, 3, 5, '-', '-'].indexOf(timerDelay);
               const dist = Math.abs(idx - activeIndex);
               const opacity = Math.max(0.02, 1 - dist * 0.35);
@@ -632,8 +638,8 @@ const CaptureScreen = React.forwardRef(({
               return (
                 <div
                   key={idx}
-                  className={`${vfStyles.timerItem} ${timerDelay === t ? vfStyles.active : ''} ${!isNumeric ? vfStyles.unselectable : ''}`}
-                  onClick={() => isNumeric && setTimerDelay(t)}
+                  className={`${vfStyles.timerItem} ${timerDelay === timerVal ? vfStyles.active : ''} ${!isNumeric ? vfStyles.unselectable : ''}`}
+                  onClick={() => isNumeric && setTimerDelay(timerVal)}
                   style={{
                     opacity,
                     transform: `translateX(${translateX})`,
@@ -641,9 +647,9 @@ const CaptureScreen = React.forwardRef(({
                     filter: blurAmount > 0 ? `blur(${blurAmount}px)` : 'none'
                   }}
                 >
-                  <span className={vfStyles.timerNum}>{t}</span>
-                  {isNumeric && <span className={vfStyles.timerUnit}>SEC</span>}
-                  {timerDelay === t && <div className={vfStyles.timerDnaAccent}></div>}
+                  <span className={vfStyles.timerNum}>{timerVal}</span>
+                  {isNumeric && <span className={vfStyles.timerUnit}>{t('sec')}</span>}
+                  {timerDelay === timerVal && <div className={vfStyles.timerDnaAccent}></div>}
                 </div>
               );
             })}
@@ -746,7 +752,7 @@ const CaptureScreen = React.forwardRef(({
         {/* CENTER: TAP ANYWHERE CTA */}
         {!isCapturing && !isFinished && countdown === null && (
           <div className={`${vfStyles.hudAnchor} ${vfStyles.absoluteCenter}`} style={{ opacity: 1 }}>
-            <span className="ctaLabel">TAP ANYWHERE TO CAPTURE</span>
+            <span className="ctaLabel">{t('shutterCta')}</span>
 
           </div>
         )}
@@ -757,7 +763,10 @@ const CaptureScreen = React.forwardRef(({
             <div ref={countdownTextRef} className={vfStyles.countdownNumber}>{countdown}</div>
           </div>
         )}
+
+
       </div>
+
 
       {/* FX OVERLAYS */}
       <div className={vfStyles.vignette}></div>
@@ -794,13 +803,13 @@ const CaptureScreen = React.forwardRef(({
             <div ref={compositingPanelRef} className={`milky-mica-background ${cpStyles.panel}`}>
               <div className="panel-left">
                 {/* Vertical Watermark — separate ref for deepest parallax */}
-                <h2 className="watermark-sideways">CURATE</h2>
+                <h2 className="watermark-sideways">{t('curateWatermark')}</h2>
 
                 <div style={{ width: '100%', marginTop: 'auto', marginBottom: 'auto', zIndex: 20 }}>
                   {/* Hero Title with Cyan Overlap */}
                   <div className="side-display-container">
                     <div className="side-display-bullet">▌</div>
-                    <h2 className="side-display-h1">COMPOSITING</h2>
+                    <h2 className="side-display-h1">{t('compositingTitle')}</h2>
                   </div>
 
                   <div className={cpStyles.instructionsList}>
@@ -808,7 +817,7 @@ const CaptureScreen = React.forwardRef(({
                     <div className={cpStyles.instructionStep}>
                       <span className={cpStyles.instructionNum}>01.</span>
                       <div className={cpStyles.instructionContent}>
-                        <span className={cpStyles.sectionLabel}>CHOOSE YOUR LENS PROFILE.</span>
+                        <span className={cpStyles.sectionLabel}>{t('lensProfileLabel')}</span>
                         <div className={cpStyles.filterList} ref={filterListRef}>
                           <div className={cpStyles.magneticAnchor} ref={magneticAnchorRef}>▌</div>
                           {FILTERS.map(f => (
@@ -838,12 +847,12 @@ const CaptureScreen = React.forwardRef(({
                     <div className={cpStyles.instructionStep}>
                       <span className={cpStyles.instructionNum}>02.</span>
                       <div className={cpStyles.instructionContent}>
-                        <span className={cpStyles.sectionLabel}>ADJUST FRAME ORIENTATION.</span>
+                        <span className={cpStyles.sectionLabel}>{t('orientationLabel')}</span>
                         <div
                           className={cpStyles.transformToggle}
                           onClick={() => setIsMirrored(!isMirrored)}
                         >
-                          <span className={cpStyles.transformLabel}>MIRRORED</span>
+                          <span className={cpStyles.transformLabel}>{t('orientationMirrored')}</span>
                           <div className={`${cpStyles.switch} ${isMirrored ? cpStyles.active : ''}`}>
                             <div className={cpStyles.switchLine}></div>
                             <div className={cpStyles.switchDot}></div>
@@ -857,9 +866,9 @@ const CaptureScreen = React.forwardRef(({
                       <div className={cpStyles.instructionStep}>
                         <span className={cpStyles.instructionNum}>03.</span>
                         <div className={cpStyles.instructionContent}>
-                          <span className={cpStyles.sectionLabel}>MANAGE COMPOSITION LAYERS.</span>
+                          <span className={cpStyles.sectionLabel}>{t('layersLabel')}</span>
                           <p className={cpStyles.instructionText}>
-                            USE THE LAYER SELECTOR ON THE LEFT OF THE CANVAS TO SWITCH BETWEEN CAPTURES.
+                            {t('layersDesc')}
                           </p>
                         </div>
                       </div>
@@ -898,7 +907,7 @@ const CaptureScreen = React.forwardRef(({
                 </div>
                 <div className="finalize-action-container" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2rem' }}>
                   <button className="btn-tier-1" onClick={handleExport}>
-                    PRINT COMPOSITION
+                    {t('printComposition')}
                   </button>
                 </div>
               </div>

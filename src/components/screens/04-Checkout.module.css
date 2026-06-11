@@ -11,16 +11,31 @@
   opacity: 0;
 }
 
+@keyframes accentPulseDark {
+  0%, 100% {
+    color: rgba(255, 255, 255, 0.6);
+  }
+  50% {
+    color: var(--accent-color, #00ffff);
+  }
+}
+
 .qtyStepperBtn {
   font-family: 'Syne', sans-serif;
   font-size: 4rem;
-  color: rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 0.6);
   background: transparent;
   border: none;
   cursor: pointer;
   line-height: 1;
   transition: color 0.2s, transform 0.2s;
   padding: 0.5rem;
+  animation: accentPulseDark 2s infinite ease-in-out;
+}
+
+.qtyStepperBtn:hover {
+  color: #ffffff;
+  animation-play-state: paused;
 }
 
 .qtyStepperBtn:active {

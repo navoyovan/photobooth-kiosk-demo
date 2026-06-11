@@ -54,6 +54,7 @@ The kiosk includes a built-in Telemetry HUD for debugging and hardware testing.
 - **Skip Logic**: Use the `SKIP` and `PREV` buttons to navigate the state machine without completing steps.
 - **Bypass Payment**: In Dev Mode, use the `AUTHORIZE` button during checkout to simulate a successful QRIS transaction.
 - **Free Flow**: Toggle `FREE_FLOW` to bypass hardware constraints (camera checks, timeouts).
+- **Antigravity AI**: Use Antigravity to quickly prototype UI components, debug state machines, or optimize scoped CSS styles.
 
 ## 📡 Backend Integration
 This kiosk is designed to communicate with the [HYPE-BOX Cloud Payment Backend](file:///c:/laragon/www/photobooth-api/README.md).

@@ -2,10 +2,14 @@ import React, { useState, useRef, useEffect } from 'react';
 import { animate, createTimeline, stagger, remove } from 'animejs';
 import GalleryCheckoutModal from '../shared/GalleryCheckoutModal';
 import styles from './04-Checkout.module.css';
-
 import { entranceAqcuisitionLayout } from '../../utils/transitions';
+import { TRANSLATIONS } from '../../constants/translations';
 
-const PrintManifestScreen = ({ finalImage, printCopies, setPrintCopies, initialCopies, isCheckoutOpen, setIsCheckoutOpen, transactionTime, amountPaid, onNext, devFreeFlow, setIsTimerPaused, checkoutMode, setCheckoutMode, onTimeout }) => {
+const PrintManifestScreen = ({ finalImage, printCopies, setPrintCopies, initialCopies, isCheckoutOpen, setIsCheckoutOpen, transactionTime, amountPaid, onNext, devFreeFlow, setIsTimerPaused, checkoutMode, setCheckoutMode, onTimeout, sessionHash, bypassMode = false, language = 'EN' }) => {
+  const t = (key) => {
+    return TRANSLATIONS[language]?.[key] || TRANSLATIONS['EN']?.[key] || key;
+  };
+
   const screenRef = useRef();
   const stackContainerRef = useRef();
   const audioRef = useRef();
@@ -217,22 +221,22 @@ const PrintManifestScreen = ({ finalImage, printCopies, setPrintCopies, initialC
         <div ref={manifestPanelRef} className={styles.manifestRightPanel}>
           <div className={styles.manifestTitleGroup} style={{ position: 'relative' }}>
             {/* <div className="hero-title-halo dark" /> */}
-            <h1 className={styles.manifestHugeTitle}>CHECKOUT</h1>
-            <span className={styles.manifestCyanSub}>CONFIRM YOUR SELECTION TO PROCEED</span>
+            <h1 className={styles.manifestHugeTitle}>{t('checkoutTitle')}</h1>
+            <span className={styles.manifestCyanSub}>{t('confirmSelectionProceed')}</span>
           </div>
 
           <div className={styles.manifestDataStack}>
             <div className={styles.dataRow}>
-              <span className={styles.dataLabel}>PAPER FINISH</span>
-              <span className={styles.dataValue}>PREMIUM HIGH GLOSS</span>
+              <span className={styles.dataLabel}>{t('paperFinish')}</span>
+              <span className={styles.dataValue}>{t('premiumHighGloss')}</span>
             </div>
             <div className={styles.dataRow}>
-              <span className={styles.dataLabel}>TOTAL AMOUNT</span>
+              <span className={styles.dataLabel}>{t('totalAmount')}</span>
               <span className={styles.dataValue}>Rp {totalPrice.toLocaleString()}</span>
             </div>
             <div className={styles.dataRow}>
-              <span className={styles.dataLabel}>SESSION REFERENCE</span>
-              <span className={styles.dataValue}>KERN V4.2 // ID-92-{Math.floor(Math.random() * 900) + 100}</span>
+              <span className={styles.dataLabel}>{t('sessionRef')}</span>
+              <span className={styles.dataValue}>KERN V4.2 // {sessionHash}</span>
             </div>
           </div>
 
@@ -245,7 +249,9 @@ const PrintManifestScreen = ({ finalImage, printCopies, setPrintCopies, initialC
               setIsCheckoutOpen(true);
             }
           }}>
-            {safeCopies > initialCopies ? "CONFIRM PRINT & PAY" : "CONFIRM PRINT"}
+            {safeCopies > initialCopies 
+              ? (bypassMode ? t('confirmPayOperator') : t('confirmPrintPay')) 
+              : t('confirmPrint')}
           </button>
         </div>
       </div>
@@ -265,6 +271,8 @@ const PrintManifestScreen = ({ finalImage, printCopies, setPrintCopies, initialC
         setIsTimerPaused={setIsTimerPaused}
         mode={checkoutMode}
         onTimeout={onTimeout}
+        bypassMode={bypassMode}
+        language={language}
       />
     </div>
   );

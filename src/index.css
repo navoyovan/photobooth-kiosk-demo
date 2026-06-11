@@ -382,6 +382,18 @@ body {
   line-height: 0.7;
 }
 
+.hero-display-logo {
+  display: block;
+  max-width: 50vw;
+  max-height: 25vh;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  margin: 0 auto 3rem auto;
+  position: relative;
+  z-index: 2;
+}
+
 /* Size & Color Variants */
 .intro .hero-display-main {
   font-size: 10vw;
@@ -2734,3 +2746,95 @@ body {
 .dev-mode-indicator-group button {
   pointer-events: auto !important;
 }
+
+/* Screen-only styling: hide offscreen but keep in layout for image loading and onLoad event */
+.print-only-container {
+  position: absolute !important;
+  left: -9999px !important;
+  top: -9999px !important;
+  width: 1px !important;
+  height: 1px !important;
+  overflow: hidden !important;
+  opacity: 0 !important;
+}
+
+/* ---------------------------------
+   PRINTER HARDWARE SILENT STYLE (Epson SL-D500)
+   --------------------------------- */
+@media print {
+  @page portrait-layout {
+    size: 4in 6in; /* Standard 4x6 Portrait */
+    margin: 0 !important;
+  }
+  
+  @page landscape-layout {
+    size: 6in 4in; /* Standard 6x4 Landscape */
+    margin: 0 !important;
+  }
+  
+  html, body {
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    overflow: visible !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Hide all normal screen elements */
+  #root, .app-wrapper, .panel-whole, .dev-mode-indicator-group, .telemetry-anchor-top-right, .modal-root {
+    display: none !important;
+  }
+
+  /* Display only our print image target container */
+  .print-only-container {
+    display: block !important;
+    position: relative !important;
+    left: 0 !important;
+    top: 0 !important;
+    overflow: visible !important;
+    opacity: 1 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    page-break-inside: avoid !important;
+    z-index: 9999999 !important;
+  }
+  
+  /* Portrait Page Binding */
+  .print-only-container.portrait-print {
+    page: portrait-layout;
+    width: 4in !important;
+    height: 6in !important;
+  }
+  
+  .print-only-container.portrait-print img {
+    width: 4in !important;
+    height: 6in !important;
+    display: block !important;
+    object-fit: contain !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* Landscape Page Binding */
+  .print-only-container.landscape-print {
+    page: landscape-layout;
+    width: 6in !important;
+    height: 4in !important;
+  }
+  
+  .print-only-container.landscape-print img {
+    width: 6in !important;
+    height: 4in !important;
+    display: block !important;
+    object-fit: contain !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .print-only-container:not(:last-child) {
+    page-break-after: always !important;
+  }
+}

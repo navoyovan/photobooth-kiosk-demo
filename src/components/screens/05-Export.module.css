@@ -135,3 +135,71 @@
 .donateToggle:hover .donateLabel {
   color: rgba(255, 255, 255, 0.8);
 }
+
+@keyframes qrScan {
+  0%, 100% {
+    top: 5%;
+  }
+  50% {
+    top: 95%;
+  }
+}
+
+@keyframes pulseSoft {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
+}
+
+.qrContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  color: #08080c;
+  font-family: 'Space Grotesk', monospace;
+  font-size: 0.8rem;
+  fontWeight: bold;
+  letter-spacing: 0.1em;
+  text-align: center;
+  padding: 1rem;
+  width: 100%;
+  height: 100%;
+  position: relative;
+  overflow: hidden;
+}
+
+.qrScannerLine {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  height: 4px;
+  background: linear-gradient(90deg, transparent, #00ffff, transparent);
+  box-shadow: 0 0 10px #00ffff;
+  animation: qrScan 2.5s infinite ease-in-out;
+}
+
+.loaderRing {
+  width: 55px;
+  height: 55px;
+  border: 3px solid rgba(0, 0, 0, 0.05);
+  border-top: 3px solid #00ffff;
+  border-radius: 50%;
+}
+
+.loadingLabel {
+  text-transform: uppercase;
+  color: #666;
+  font-weight: 700;
+  animation: pulseSoft 1.5s infinite ease-in-out;
+}
+
+.errorLabel {
+  text-transform: uppercase;
+  color: #ef4444;
+  font-weight: 700;
+}

@@ -2,8 +2,13 @@ import React, { useState, useEffect, useRef } from 'react';
 import { animate, createTimeline } from 'animejs';
 import styles from './GalleryCheckoutModal.module.css';
 import { getBackendUrl } from '../../utils/kioskId';
+import { TRANSLATIONS } from '../../constants/translations';
 
-const GalleryCheckoutModal = ({ isOpen, onClose, onSuccess, totalPrice, initialPayment = 0, orderId = "ORD-9921", timeLeft, devFreeFlow, setIsTimerPaused, mode = 'PAYMENT', onTimeout }) => {
+const GalleryCheckoutModal = ({ isOpen, onClose, onSuccess, totalPrice, initialPayment = 0, orderId = "ORD-9921", timeLeft, devFreeFlow, setIsTimerPaused, mode = 'PAYMENT', onTimeout, bypassMode = false, language = 'EN' }) => {
+  const t = (key) => {
+    return TRANSLATIONS[language]?.[key] || TRANSLATIONS['EN']?.[key] || key;
+  };
+
   const [paymentStatus, setPaymentStatus] = useState('pending'); // 'pending', 'success'
   const [qrData, setQrData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -90,6 +95,11 @@ const GalleryCheckoutModal = ({ isOpen, onClose, onSuccess, totalPrice, initialP
   // WebSocket logic (Laravel Reverb Mock)
   useEffect(() => {
     if (!isOpen || mode !== 'PAYMENT') return;
+
+    if (bypassMode) {
+      setIsLoading(false);
+      return;
+    }
 
     const fetchQr = async () => {
       try {
@@ -202,7 +212,9 @@ const GalleryCheckoutModal = ({ isOpen, onClose, onSuccess, totalPrice, initialP
       >
         {/* Header (Editorial Hook) */}
         <h2 className={styles.header}>
-          {mode === 'PAYMENT' ? 'ACQUISITION CERTIFICATE' : mode === 'TIMEOUT' ? 'SESSION TIMING OUT' : 'CONFIRM PRINT ORDER'}
+          {mode === 'PAYMENT' 
+            ? (bypassMode ? t('operatorAuthRequired') : t('acquisitionCertificate')) 
+            : mode === 'TIMEOUT' ? t('sessionTimingOut') : t('confirmPrintOrder')}
         </h2>
 
         {/* The Artifact QR Code / Message Box */}
@@ -224,7 +236,20 @@ const GalleryCheckoutModal = ({ isOpen, onClose, onSuccess, totalPrice, initialP
           <div className="boundary-dashed-line-visual"></div>
 
           {mode === 'PAYMENT' ? (
-            isLoading ? (
+            bypassMode ? (
+              <div className="bypass-operator-display" style={{ textAlign: 'center', padding: '1.5rem' }}>
+                <div style={{ fontSize: '3rem', marginBottom: '0.8rem', animation: 'pulse 1.5s infinite' }}>🛎️</div>
+                <div style={{ fontSize: '1rem', fontWeight: 800, fontFamily: 'Space Grotesk', color: '#ffaa00', letterSpacing: '0.05rem', marginBottom: '0.4rem' }}>
+                  {t('manualPaymentBypass')}
+                </div>
+                <p style={{ fontSize: '0.8rem', opacity: 0.7, maxWidth: '280px', margin: '0 auto', lineHeight: '1.4', color: '#111' }}>
+                  {t('pleasePayOperator').replace('{amount}', (totalPrice - initialPayment).toLocaleString())}
+                </p>
+                <div style={{ fontSize: '0.65rem', color: '#ffaa00', fontWeight: 700, marginTop: '0.8rem', letterSpacing: '0.1rem' }}>
+                  {t('operatorAccessRequired')}
+                </div>
+              </div>
+            ) : isLoading ? (
               <div className="spinner-sleek animate-spin" style={{
                 width: '40px',
                 height: '40px',
@@ -237,7 +262,7 @@ const GalleryCheckoutModal = ({ isOpen, onClose, onSuccess, totalPrice, initialP
               <div className="payment-error-state" style={{ textAlign: 'center', padding: '2rem' }}>
                 <div style={{ fontSize: '2.5rem', marginBottom: '1.5rem' }}>⚠️</div>
                 <span className="qr-placeholder-text" style={{ fontSize: '0.75rem', fontWeight: 600, color: "#ff4444", letterSpacing: '0.1rem', fontFamily: 'Space Grotesk' }}>
-                  {error.toUpperCase()}
+                  {t('hardwareNetworkError').toUpperCase()}
                 </span>
               </div>
             ) : (
@@ -253,16 +278,16 @@ const GalleryCheckoutModal = ({ isOpen, onClose, onSuccess, totalPrice, initialP
                 {timeoutCountdown}
               </div>
               <div style={{ fontSize: '0.8rem', fontWeight: 600, marginTop: '1rem', opacity: 0.7, letterSpacing: '0.2rem' }}>
-                SECONDS UNTIL EXPIRY
+                {t('secondsUntilExpiry')}
               </div>
             </div>
           ) : (
             <div className="confirm-display" style={{ textAlign: 'center', padding: '2rem' }}>
               <div style={{ fontSize: '1.2rem', fontWeight: 700, fontFamily: 'Space Grotesk', marginBottom: '1rem' }}>
-                PROCEED WITH PRINTING?
+                {t('proceedWithPrinting')}
               </div>
               <p style={{ fontSize: '0.8rem', opacity: 0.6, maxWidth: '240px', margin: '0 auto' }}>
-                Your order is ready. Would you like to add more copies before we finalize?
+                {t('printOrderConfirmDesc')}
               </p>
             </div>
           )}
@@ -272,7 +297,7 @@ const GalleryCheckoutModal = ({ isOpen, onClose, onSuccess, totalPrice, initialP
         {(totalPrice - initialPayment > 0) && (
           <div className={styles.summary}>
             <span className={styles.label}>
-              ACQUISITION VALUE //
+              {t('acquisitionValue')}
             </span>
             <span className={styles.value}>
               Rp {(qrData?.amount || (totalPrice - initialPayment)).toLocaleString()}
@@ -282,21 +307,27 @@ const GalleryCheckoutModal = ({ isOpen, onClose, onSuccess, totalPrice, initialP
 
         {/* Expiry Indicator */}
         <div className={styles.expiry}>
-          {mode === 'PAYMENT' ? `QR VALID UNTIL [ ${formatTime(timeLeft)} ]` :
-            mode === 'TIMEOUT' ? 'PRINT NOW TO PREVENT SESSION LOSS' :
-              'ADDITIONAL PRINTS CAN BE ADDED'}
+          {mode === 'PAYMENT' ? (bypassMode ? t('verifyCustomerPayment') : t('qrValidUntil').replace('{time}', formatTime(timeLeft))) :
+            mode === 'TIMEOUT' ? t('printNowPreventLoss') :
+              t('additionalPrintsAdded')}
         </div>
 
         {/* Execute Block */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', width: '100%', marginTop: 'auto' }}>
-          {mode !== 'PAYMENT' && (
+          {(mode !== 'PAYMENT' || bypassMode) && (
             <button
               ref={primaryBtnRef}
               className="btn-tier-1"
               onClick={handlePaymentSuccess}
-              style={{ width: '100%' }}
+              style={{
+                width: '100%',
+                backgroundColor: (bypassMode && mode === 'PAYMENT') ? '#ffaa00' : undefined,
+                color: (bypassMode && mode === 'PAYMENT') ? '#000000' : undefined,
+              }}
             >
-              {mode === 'TIMEOUT' ? 'CONFIRM & PRINT NOW' : 'YES, CONFIRM PRINT'}
+              {mode === 'TIMEOUT' ? t('confirmPrintNow') :
+               mode === 'PAYMENT' ? (initialPayment === 0 ? t('authorizeStartSession') : t('authorizePrint')) :
+               t('yesConfirmPrint')}
             </button>
           )}
 
@@ -305,7 +336,7 @@ const GalleryCheckoutModal = ({ isOpen, onClose, onSuccess, totalPrice, initialP
             onClick={() => handleExit(onClose)}
             style={{ width: '100%' }}
           >
-            {mode === 'TIMEOUT' ? 'CANCEL SESSION' : '← EDIT ORDER'}
+            {mode === 'TIMEOUT' ? t('cancelSession') : t('editOrder')}
           </button>
         </div>
 

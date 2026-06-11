@@ -6,10 +6,15 @@ import { useKioskBoot } from '../../hooks/useKioskBoot';
 import KioskIdentitySetup from '../shared/KioskIdentitySetup';
 import { exitEditorialLayout } from '../../utils/transitions';
 import { entranceEditorialLayout } from '../../utils/transitions';
+import { TRANSLATIONS } from '../../constants/translations';
 import styles from './02-Selection.module.css';
 
 
-const SelectionScreenInner = ({ onFinish, onPrepareCamera, kioskData, loading }) => {
+const SelectionScreenInner = ({ onFinish, onPrepareCamera, kioskData, loading, language = 'EN' }) => {
+  const t = (key) => {
+    return TRANSLATIONS[language]?.[key] || TRANSLATIONS['EN']?.[key] || key;
+  };
+
   const screenRef = useRef(null);
   const rightPanelRef = useRef(null);
   const colRefs = useRef([]);
@@ -208,7 +213,7 @@ const SelectionScreenInner = ({ onFinish, onPrepareCamera, kioskData, loading })
       id: `placeholder-${i}`,
       isPlaceholder: true,
       thumbnail: null,
-      name: "Coming Soon",
+      name: t('comingSoon'),
       slots: 1
     }));
 
@@ -346,7 +351,7 @@ const SelectionScreenInner = ({ onFinish, onPrepareCamera, kioskData, loading })
       {/* KIRI: Informasi & Kontrol */}
       <div ref={leftPanelRef} className="panel-left">
         {/* Giant Rotated Bleeding Title */}
-        <h2 ref={watermarkRef} className="watermark-sideways">SELECT YOUR CANVAS</h2>
+        <h2 ref={watermarkRef} className="watermark-sideways">{t('selectCanvasWatermark')}</h2>
 
         <div style={{ display: 'flex', flexDirection: 'column', flexGrow: 1, justifyItems: 'flex-start', justifyContent: 'center', zIndex: 20 }}>
           <div className="side-display-container">
@@ -359,7 +364,7 @@ const SelectionScreenInner = ({ onFinish, onPrepareCamera, kioskData, loading })
                 ref={frameRefText}
                 className={`${styles.modeToggleOption} ${activeCategory === 'SPACE' ? styles.active : ''}`}
               >
-                FRAME
+                {t('frame')}
               </div>
             </div>
 
@@ -372,7 +377,7 @@ const SelectionScreenInner = ({ onFinish, onPrepareCamera, kioskData, loading })
                 ref={collageRefText}
                 className={`${styles.modeToggleOption} ${activeCategory === 'GRID' ? styles.active : ''}`}
               >
-                COLLAGE
+                {t('collage')}
               </div>
             </div>
           </div>
@@ -445,7 +450,7 @@ const SelectionScreenInner = ({ onFinish, onPrepareCamera, kioskData, loading })
                 <div className="boundary-dashed-line-visual"></div>
               </div>
 
-              <div className={styles.note}>[ PREVIEW ] — TAP OUTSIDE TO DISMISS</div>
+              <div className={styles.note}>{t('previewTapDismiss')}</div>
 
               <button
                 className="btn-tier-1"
@@ -454,7 +459,7 @@ const SelectionScreenInner = ({ onFinish, onPrepareCamera, kioskData, loading })
                   handleFinish(activeFrame);
                 }}
               >
-                CONFIRM SELECTION
+                {t('confirmSelection')}
               </button>
             </div>
           </div>

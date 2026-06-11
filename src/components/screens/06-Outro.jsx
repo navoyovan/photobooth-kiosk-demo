@@ -1,8 +1,13 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { animate, stagger } from 'animejs';
 import { convertToWebP, saveToLocalStarfield } from '../../utils/imageProcessor';
+import { TRANSLATIONS } from '../../constants/translations';
 
-const OutroScreen = ({ finalImage, type = 'NORMAL', isDonating, onReset, onExitStart }) => {
+const OutroScreen = ({ finalImage, type = 'NORMAL', isDonating, onReset, onExitStart, language = 'EN', triggerExit = false }) => {
+  const t = (key) => {
+    return TRANSLATIONS[language]?.[key] || TRANSLATIONS['EN']?.[key] || key;
+  };
+
   const screenRef = useRef(null);
   const [variant, setVariant] = useState(isDonating && type === 'NORMAL' ? 'CONSENT' : 'NORMAL');
   const [isSaving, setIsSaving] = useState(false);
@@ -27,27 +32,29 @@ const OutroScreen = ({ finalImage, type = 'NORMAL', isDonating, onReset, onExitS
         delay: stagger(300)
       });
 
-      // Stay for 4.5 seconds then start exit animation
-      const exitTimer = setTimeout(() => {
-        if (onExitStart) onExitStart();
-        animate(screenRef.current, {
-          opacity: 0,
-          duration: 1000,
-          easing: 'easeInQuad'
-        });
+      // Stay for 4.5 seconds then start exit animation (only if not maintenance mode)
+      if (type !== 'MAINTENANCE') {
+        const exitTimer = setTimeout(() => {
+          if (onExitStart) onExitStart();
+          animate(screenRef.current, {
+            opacity: 0,
+            duration: 1000,
+            easing: 'easeInQuad'
+          });
 
-        animate('.hero-display-text', {
-          opacity: 0,
-          scale: 0.4,
-          filter: 'blur(30px)',
-          duration: 1500,
-          easing: 'easeInQuad',
-          delay: stagger(100),
-          onComplete: onReset
-        });
-      }, 4500);
+          animate('.hero-display-text', {
+            opacity: 0,
+            scale: 0.4,
+            filter: 'blur(30px)',
+            duration: 1500,
+            easing: 'easeInQuad',
+            delay: stagger(100),
+            onComplete: onReset
+          });
+        }, 4500);
 
-      return () => clearTimeout(exitTimer);
+        return () => clearTimeout(exitTimer);
+      }
     } else if (variant === 'CONSENT') {
       // CONSENT Variant Entrance
       animate(screenRef.current, {
@@ -87,6 +94,27 @@ const OutroScreen = ({ finalImage, type = 'NORMAL', isDonating, onReset, onExitS
     }
   }, [variant, finalImage]);
 
+  useEffect(() => {
+    if (triggerExit && type === 'MAINTENANCE') {
+      if (onExitStart) onExitStart();
+      animate(screenRef.current, {
+        opacity: 0,
+        duration: 1000,
+        easing: 'easeInQuad'
+      });
+
+      animate('.hero-display-text', {
+        opacity: 0,
+        scale: 0.4,
+        filter: 'blur(30px)',
+        duration: 1500,
+        easing: 'easeInQuad',
+        delay: stagger(100),
+        onComplete: onReset
+      });
+    }
+  }, [triggerExit, type]);
+
   const handleAccept = async () => {
     if (isSaving || hasTriggeredRef.current) return;
     hasTriggeredRef.current = true;
@@ -114,9 +142,10 @@ const OutroScreen = ({ finalImage, type = 'NORMAL', isDonating, onReset, onExitS
   };
 
   const messages = {
-    NORMAL: ["MEMORIES ARCHIVED", "ENJOY THE WILDERNESS"],
-    TIMEOUT: ["SESSION EXPIRED", "TIME IS A CRUEL MASTER"],
-    ABORT: ["SESSION TERMINATED", "SYSTEM RESETTING"]
+    NORMAL: [t('normalOutroMsg1'), t('normalOutroMsg2')],
+    TIMEOUT: [t('timeoutOutroMsg1'), t('timeoutOutroMsg2')],
+    ABORT: [t('abortOutroMsg1'), t('abortOutroMsg2')],
+    MAINTENANCE: [t('maintenanceOutroMsg1'), t('maintenanceOutroMsg2')]
   };
 
   const currentMsg = messages[type] || messages.NORMAL;
@@ -128,7 +157,7 @@ const OutroScreen = ({ finalImage, type = 'NORMAL', isDonating, onReset, onExitS
           <div className="hero-display-halo" />
 
           <h1 className="hero-display-main" style={{ fontSize: '3.5rem', marginBottom: '0.5rem', letterSpacing: '-0.1rem' }}>
-            GRANT EXHIBITION RIGHTS?
+            {t('grantExhibitionRights')}
           </h1>
 
           {/* <div className="consent-image-preview" style={{
@@ -149,15 +178,15 @@ const OutroScreen = ({ finalImage, type = 'NORMAL', isDonating, onReset, onExitS
           </div> */}
 
           <p className="hero-display-sub" style={{ fontSize: '0.9rem', letterSpacing: '0.3rem', maxWidth: '800px', lineHeight: '1.8', opacity: 0.8 }}>
-            Allow your memory to be projected onto the community starfield wall for others to discover.
+            {t('exhibitionRightsDesc')}
           </p>
 
           <div className="consent-actions" style={{ display: 'flex', gap: '2rem', zIndex: 10, marginTop: '1rem' }}>
             <button className="btn-secondary dark" onClick={handleDecline} disabled={isSaving} style={{ minWidth: '200px' }}>
-              DECLINE
+              {t('decline')}
             </button>
             <button className="btn-primary" onClick={handleAccept} disabled={isSaving} style={{ minWidth: '240px' }}>
-              {isSaving ? 'SECURING...' : `ACCEPT & PUBLISH (${timeLeft}S)`}
+              {isSaving ? t('securing') : `${t('acceptPublish')} (${timeLeft}S)`}
             </button>
           </div>
         </div>
@@ -169,8 +198,8 @@ const OutroScreen = ({ finalImage, type = 'NORMAL', isDonating, onReset, onExitS
     <div ref={screenRef} className="hero-display-layout outro">
       <div className="hero-display-content">
         <div className="hero-display-halo" />
-        <h1 className="hero-display-main hero-display-text">{currentMsg[0]}</h1>
-        <p className="hero-display-sub hero-display-text">{currentMsg[1]}</p>
+        <h1 className="hero-display-main hero-display-text" style={type === 'MAINTENANCE' ? { color: '#ef4444' } : undefined}>{currentMsg[0]}</h1>
+        <p className="hero-display-sub hero-display-text" style={type === 'MAINTENANCE' ? { color: '#ef4444', opacity: 0.8, letterSpacing: '0.2rem' } : undefined}>{currentMsg[1]}</p>
       </div>
     </div>
   );
