@@ -22,7 +22,6 @@ Included:
 Not included:
 
 - Physical printing
-- ~~Payment integration~~
 - Vendor dashboard
 - Kiosk management
 - Remote monitoring
