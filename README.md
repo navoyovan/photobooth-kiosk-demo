@@ -4,7 +4,7 @@ A self-contained photobooth experience demo built to showcase the core experienc
 
 Capture photos, apply layouts, generate photostrips, and share the result through QR download.
 
-Hypebox is a photobooth platform designed for events and businesses, combining interactive experiences with kiosk hardware, cloud services, and management tools.
+Hype-box is a photobooth platform designed for events and businesses, combining interactive experiences with kiosk hardware, cloud services, and management tools.
 
 This repository represents the demo experience layer of the platform.
 
@@ -39,4 +39,4 @@ Built as a demonstration of interactive kiosk experiences, combining frontend in
 ## License
 
 This project is available under the Hype-box Demo License.
-See LICENSE
+See LICENSE.md
