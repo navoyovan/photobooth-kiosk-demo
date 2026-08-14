@@ -7,6 +7,7 @@ import { getFrameLayout } from '../../constants/frame_layouts';
 import { exitEditorialLayout } from '../../utils/transitions';
 import { entranceEditorialLayout } from '../../utils/transitions';
 import { TRANSLATIONS } from '../../constants/translations';
+import { SecondaryButton, CtaButton } from '../../ui';
 import vfStyles from './03a-Viewfinder.module.css';
 import cpStyles from './03b-Compositing.module.css';
 
@@ -97,6 +98,8 @@ const CaptureScreen = React.forwardRef(({
   // Status Sesi Capture
   const [timerDelay, setTimerDelay] = useState(devMode ? 0 : 3);
   const [activeSlots, setActiveSlots] = useState([]);
+  const [targetedSlotIndex, setTargetedSlotIndex] = useState(0);
+  const [retakeTargetIndex, setRetakeTargetIndex] = useState(null);
 
   // Initialize activeSlots when frame changes
   useEffect(() => {
@@ -255,6 +258,17 @@ const CaptureScreen = React.forwardRef(({
   };
 
   const captureNext = (slotIdx) => {
+    // If we were in single-slot retake mode, and we finished capturing the targeted slot,
+    // we should stop capturing and return to review mode.
+    if (retakeTargetIndex !== null && slotIdx !== retakeTargetIndex) {
+      setRetakeTargetIndex(null);
+      isCapturingRef.current = false;
+      setIsCapturing(false);
+      setCountdown(null);
+      setIsFinished(true);
+      return;
+    }
+
     const totalSlots = selectedFrame?.slots || 1;
 
     // Find the next active slot
@@ -404,6 +418,20 @@ const CaptureScreen = React.forwardRef(({
   const telemetryString = "AUTO_EXP // DGT_LENS";
 
 
+  const triggerRetakeSequence = (targetIdx) => {
+    if (isCapturing) return;
+    setRetakeTargetIndex(targetIdx);
+    setCurrentSlotIndex(targetIdx);
+    setIsCapturing(true);
+    isCapturingRef.current = true;
+    setIsFinished(false);
+
+    // Brief timeout to ensure video/viewfinder elements are rendered before starting sequence
+    setTimeout(() => {
+      captureNext(targetIdx);
+    }, 150);
+  };
+
   const handleRetake = () => {
     startTransition(() => {
       isCapturingRef.current = false;
@@ -416,7 +444,12 @@ const CaptureScreen = React.forwardRef(({
 
   React.useImperativeHandle(ref, () => ({
     retake: handleRetake,
-    export: handleExport
+    export: handleExport,
+    triggerRetake: () => {
+      if (targetedSlotIndex === -1) return false;
+      triggerRetakeSequence(targetedSlotIndex);
+      return true;
+    }
   }));
 
   const handleExport = async () => {
@@ -424,39 +457,33 @@ const CaptureScreen = React.forwardRef(({
       const tl = createTimeline();
 
       // BUNDLE: Unified Editorial Exit
-      exitEditorialLayout(tl, { duration: 350 });
-
+      exitEditorialLayout(tl, { duration: 300 });
 
       const comp = composerRef.current.getComposition();
-      console.log("EXPORT_COMPOSITION_DATA:", comp);
       const canvas = canvasRef.current;
       const ctx = canvas.getContext('2d');
 
-      // HELPER: Fetch image as Blob to bypass Tainted Canvas issues
-      const fetchImageAsDataUrl = async (url) => {
-        if (!url || url.startsWith('data:')) return url;
-        try {
-          const response = await fetch(url, { mode: 'cors' });
-          if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-          const blob = await response.blob();
-          return new Promise((resolve) => {
-            const reader = new FileReader();
-            reader.onloadend = () => resolve(reader.result);
-            reader.readAsDataURL(blob);
-          });
-        } catch (e) {
-          console.error("CORS_FETCH_FAILED:", url, e);
-          return url; // Fallback to raw URL
-        }
+      const loadImage = (src) => {
+        return new Promise((resolve) => {
+          if (!src) return resolve(null);
+          const img = new Image();
+          img.crossOrigin = "anonymous";
+          img.onload = () => resolve(img);
+          img.onerror = (err) => {
+            console.warn("Image load fallback for export:", src, err);
+            resolve(null);
+          };
+          img.src = src;
+        });
       };
 
-      // PERFORMANCE BOOST: Fetch all images in PARALLEL
-      const [photoImages, frameImgData] = await Promise.all([
-        Promise.all(comp.photos.map(p => fetchImageAsDataUrl(p.src))),
-        fetchImageAsDataUrl(selectedFrame.thumbnail)
+      // Direct, instantaneous parallel image loading
+      const [photoImages, frameImg] = await Promise.all([
+        Promise.all(comp.photos.map(p => loadImage(p.src))),
+        loadImage(selectedFrame.thumbnail)
       ]);
 
-      // Force high-fidelity export
+      // High-fidelity export canvas
       canvas.width = comp.cW * 2;
       canvas.height = comp.cH * 2;
       ctx.scale(2, 2);
@@ -466,32 +493,18 @@ const CaptureScreen = React.forwardRef(({
       ctx.fillStyle = "rgb(21, 21, 21)";
       ctx.fillRect(0, 0, comp.cW, comp.cH);
 
-      // PERFECT ALIGNMENT FIX: Clip all photo layers to the frame container
+      // Clip all photo layers to the frame container
       ctx.save();
       ctx.beginPath();
       ctx.rect(0, 0, comp.cW, comp.cH);
       ctx.clip();
 
-      // UNIFIED EXPORT LOGIC: Use the photos array for everything
       for (let i = 0; i < comp.photos.length; i++) {
         const photoData = comp.photos[i];
-        if (!photoData.src) continue; // Skip empty slots
-
-        const photoSrc = photoImages[i];
-
-        const photoImg = new Image();
-        photoImg.src = photoSrc;
-        photoImg.crossOrigin = "anonymous";
-
-        await new Promise((resolve, reject) => {
-          if (exportTimeoutRef.current) clearTimeout(exportTimeoutRef.current);
-          exportTimeoutRef.current = setTimeout(() => reject(new Error('Image load timeout')), 3000);
-          photoImg.onload = () => { clearTimeout(exportTimeoutRef.current); resolve(); };
-          photoImg.onerror = () => { clearTimeout(exportTimeoutRef.current); reject(new Error('Image load failed')); };
-        }).catch(err => console.error("Export Error:", err));
+        const photoImg = photoImages[i];
+        if (!photoData.src || !photoImg) continue;
 
         ctx.save();
-        // Apply individual slot clipping (if slot data is present)
         if (photoData.sW) {
           ctx.beginPath();
           ctx.rect(Math.round(photoData.sX), Math.round(photoData.sY), Math.round(photoData.sW), Math.round(photoData.sH));
@@ -511,19 +524,15 @@ const CaptureScreen = React.forwardRef(({
 
       ctx.restore(); // End clipping
 
-      const frameImg = new Image();
-      frameImg.crossOrigin = "anonymous";
-      frameImg.src = frameImgData;
-      await new Promise(r => frameImg.onload = r);
-      ctx.drawImage(frameImg, 0, 0, Math.round(comp.cW), Math.round(comp.cH));
+      if (frameImg) {
+        ctx.drawImage(frameImg, 0, 0, Math.round(comp.cW), Math.round(comp.cH));
+      }
 
       const dataUrl = canvas.toDataURL('image/jpeg', 0.95);
 
-      // Snappier final transition
       tl.add({
         duration: 50,
         onComplete: () => {
-          console.log("EXPORT_COMPLETE_CALLING_ONFINISH");
           onFinish(dataUrl);
         }
       });
@@ -657,7 +666,7 @@ const CaptureScreen = React.forwardRef(({
         </div>
 
         <div
-          className={vfStyles.photoWheel}
+          className={`${vfStyles.photoWheel} ${isFinished ? vfStyles.reviewMode : ''}`}
           onClick={e => e.stopPropagation()}
           style={{
             transform: isCapturing
@@ -669,6 +678,8 @@ const CaptureScreen = React.forwardRef(({
             const isSlot = rIdx >= 2 && rIdx < activeSlots.length + 2;
             const slotIdx = isSlot ? rIdx - 2 : -1;
             const isCurrent = isSlot && slotIdx === currentSlotIndex && isCapturing;
+            const isTargeted = isSlot && activeSlots[slotIdx] && !isFinished && !isCapturing;
+            const isReviewTarget = isFinished && slotIdx === targetedSlotIndex;
 
             // Focus logic
             const focusIdx = isCapturing ? currentSlotIndex + 2 : -1;
@@ -702,26 +713,54 @@ const CaptureScreen = React.forwardRef(({
               }
             }
 
+            const isSlotExcessInCompositing = isFinished && isSlot && slotIdx >= selectedFrame.slots;
+
             return (
               <div
                 key={rIdx}
-                className={`${vfStyles.wheelItem} ${isCurrent ? vfStyles.active : ''}`}
+                className={`${vfStyles.wheelItem} ${(isCurrent || isTargeted || isReviewTarget) ? vfStyles.active : ''} ${isSlotExcessInCompositing ? vfStyles.disabled : ''}`}
                 style={{
                   transform: `translateX(${translateX}) scale(${scale})`,
-                  opacity,
-                  filter: blurAmount > 0 ? `blur(${blurAmount}px)` : 'none'
+                  opacity: isSlotExcessInCompositing ? opacity * 0.25 : opacity,
+                  filter: blurAmount > 0 ? `blur(${blurAmount}px)` : 'none',
+                  cursor: isSlotExcessInCompositing ? 'not-allowed' : (((!isFinished && !isCapturing && isSlot) || (isFinished && isSlot)) ? 'pointer' : 'default'),
+                  pointerEvents: isSlotExcessInCompositing ? 'none' : 'auto'
+                }}
+                onClick={() => {
+                  if (isFinished && isSlot) {
+                    if (slotIdx < selectedFrame.slots) {
+                      setTargetedSlotIndex(slotIdx);
+                    }
+                  } else if (!isFinished && !isCapturing && isSlot) {
+                    toggleSlot(slotIdx);
+                  }
                 }}
               >
                 {!isSlot ? (
                   <div className={vfStyles.wheelDash}></div>
                 ) : (
                   <>
-                    <div className={vfStyles.wheelToggle} onClick={() => toggleSlot(slotIdx)}>
-                      <div className={`${vfStyles.toggleIndicator} ${activeSlots[slotIdx] ? vfStyles.active : ''}`} />
-                    </div>
-                    <div className={`${vfStyles.wheelThumb} ${!photos[slotIdx] ? vfStyles.empty : ''}`}>
+                    {!isFinished && !isCapturing && (
+                      <div className={`${vfStyles.targetLock} ${activeSlots[slotIdx] ? vfStyles.targeted : ''}`}>
+                        {activeSlots[slotIdx] ? (
+                          <span className={vfStyles.targetActiveLabel} style={{ whiteSpace: 'nowrap' }}>
+                            {photos[slotIdx] ? '[ RE-TAKE ]' : `[ SLOT 0${slotIdx + 1} ]`}
+                          </span>
+                        ) : (
+                          <span className={vfStyles.targetIdleLabel} style={{ whiteSpace: 'nowrap' }}>
+                            {photos[slotIdx] ? '[ KEEP ]' : '[ ]'}
+                          </span>
+                        )}
+                      </div>
+                    )}
+                    <div className={`${vfStyles.wheelThumb} ${!photos[slotIdx] ? vfStyles.empty : ''} ${(activeSlots[slotIdx] && photos[slotIdx] && !isFinished) ? vfStyles.retakeMarked : ''}`}>
                       {photos[slotIdx] ? (
-                        <img src={photos[slotIdx]} alt={`Thumb ${slotIdx}`} />
+                        <>
+                          <img src={photos[slotIdx]} alt={`Thumb ${slotIdx}`} />
+                          {activeSlots[slotIdx] && !isFinished && !isCapturing && (
+                            <div className={vfStyles.retakeCrossOverlay}></div>
+                          )}
+                        </>
                       ) : (
                         <div className={vfStyles.blueprint}>
                           <div className={`${vfStyles.cropMark} ${vfStyles.cmTl}`} />
@@ -745,7 +784,7 @@ const CaptureScreen = React.forwardRef(({
             {Math.min((photos.length - 1) + 1, selectedFrame.slots)} / {selectedFrame.slots}
           </div>
           <div className={vfStyles.serialDetail}>
-            SYS.KERN_V4.2 // {kioskId} // {new Date().toLocaleDateString()}
+            DEMO V1.0
           </div>
         </div>
 
@@ -825,16 +864,9 @@ const CaptureScreen = React.forwardRef(({
                               key={f.label}
                               onClick={() => {
                                 if (f.value === selectedFilter) return;
-                                setIsProcessingFilter(true);
-                                setTimeout(() => {
-                                  setSelectedFilter(f.value);
-                                }, 150); // Change filter at peak blur
-                                setTimeout(() => {
-                                  setIsProcessingFilter(false);
-                                }, 500);
+                                setSelectedFilter(f.value);
                               }}
-                              className={`${cpStyles.filterBtn} ${selectedFilter === f.value ? cpStyles.active : ''} ${isProcessingFilter ? cpStyles.processing : ''}`}
-                              disabled={isProcessingFilter}
+                              className={`${cpStyles.filterBtn} ${selectedFilter === f.value ? cpStyles.active : ''}`}
                             >
                               {f.label}
                             </button>
@@ -880,9 +912,9 @@ const CaptureScreen = React.forwardRef(({
               <div className="panel-right panel-center-content">
                 {/* <div className={cpStyles.greebles}>RENDER_SIZE: 14.2MB // PRINT_QUEUE: READY // DPI: 300</div> */}
                 <div className={cpStyles.statusFooter}>
-                  <span>SYS.KERN_v4.2.1-EX</span>
-                  <RunningTimestamp />
-                  <span>BUFFER_LOADED: 100%</span>
+                  <span>SYS.DEMO_v1.0</span>
+                  {/* <RunningTimestamp /> */}
+                  {/* <span>BUFFER_LOADED: 100%</span> */}
                 </div>
                 <div className={cpStyles.floatingContainer}>
                   {selectedFrame.slots > 1 ? (
@@ -893,6 +925,7 @@ const CaptureScreen = React.forwardRef(({
                       photoFilter={selectedFilter}
                       isMirrored={isMirrored}
                       isProcessing={isProcessingFilter}
+                      onActiveIndexChange={(idx) => setTargetedSlotIndex(idx)}
                     />
                   ) : (
                     <InteractivePhoto
@@ -902,13 +935,29 @@ const CaptureScreen = React.forwardRef(({
                       photoFilter={selectedFilter}
                       isMirrored={isMirrored}
                       isProcessing={isProcessingFilter}
+                      onActiveIndexChange={(idx) => setTargetedSlotIndex(idx)}
                     />
                   )}
                 </div>
-                <div className="finalize-action-container" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2rem' }}>
-                  <button className="btn-tier-1" onClick={handleExport}>
+                <div className="finalize-action-container" style={{ display: 'flex', flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: '2rem' }}>
+                  <SecondaryButton 
+                    onClick={() => {
+                      if (targetedSlotIndex !== -1) {
+                        const newSlots = new Array(selectedFrame.slots).fill(false);
+                        newSlots[targetedSlotIndex] = true;
+                        setActiveSlots(newSlots);
+                        setCurrentSlotIndex(targetedSlotIndex);
+                      }
+                      setIsFinished(false);
+                    }}
+                    disabled={targetedSlotIndex === -1}
+                    style={{ whiteSpace: 'nowrap' }}
+                  >
+                    [ RETAKE {(targetedSlotIndex !== -1 ? (targetedSlotIndex + 1).toString().padStart(2, '0') : '--')} ]
+                  </SecondaryButton>
+                  <CtaButton onClick={handleExport}>
                     {t('printComposition')}
-                  </button>
+                  </CtaButton>
                 </div>
               </div>
             </div>

@@ -4,6 +4,7 @@ import GalleryCheckoutModal from '../shared/GalleryCheckoutModal';
 import styles from './04-Checkout.module.css';
 import { entranceAqcuisitionLayout } from '../../utils/transitions';
 import { TRANSLATIONS } from '../../constants/translations';
+import { CtaButton } from '../../ui';
 
 const PrintManifestScreen = ({ finalImage, printCopies, setPrintCopies, initialCopies, isCheckoutOpen, setIsCheckoutOpen, transactionTime, amountPaid, onNext, devFreeFlow, setIsTimerPaused, checkoutMode, setCheckoutMode, onTimeout, sessionHash, bypassMode = false, language = 'EN' }) => {
   const t = (key) => {
@@ -30,7 +31,7 @@ const PrintManifestScreen = ({ finalImage, printCopies, setPrintCopies, initialC
     timelineRef.current = tl;
 
     entranceAqcuisitionLayout(tl, {
-      duration: 1400,
+      duration: 700,
       elements: {
         watermark: watermarkRef.current,
         qtyEngine: qtyEngineRef.current,
@@ -44,9 +45,9 @@ const PrintManifestScreen = ({ finalImage, printCopies, setPrintCopies, initialC
       tl.add(visualAxisRef.current, {
         translateX: ['8vw', '5vw'],
         opacity: [0, 1],
-        duration: 750,
+        duration: 450,
         easing: 'easeOutCubic'
-      }, 100);
+      }, 50);
     }
 
     return () => {
@@ -236,11 +237,11 @@ const PrintManifestScreen = ({ finalImage, printCopies, setPrintCopies, initialC
             </div>
             <div className={styles.dataRow}>
               <span className={styles.dataLabel}>{t('sessionRef')}</span>
-              <span className={styles.dataValue}>KERN V4.2 // {sessionHash}</span>
+              <span className={styles.dataValue}>DEMO V1.0 // {sessionHash}</span>
             </div>
           </div>
 
-          <button className="btn-tier-1" onClick={() => {
+          <CtaButton onClick={() => {
             if (safeCopies > initialCopies) {
               setCheckoutMode('PAYMENT');
               setIsCheckoutOpen(true);
@@ -249,10 +250,10 @@ const PrintManifestScreen = ({ finalImage, printCopies, setPrintCopies, initialC
               setIsCheckoutOpen(true);
             }
           }}>
-            {safeCopies > initialCopies 
-              ? (bypassMode ? t('confirmPayOperator') : t('confirmPrintPay')) 
+            {safeCopies > initialCopies
+              ? (bypassMode ? t('confirmPayOperator') : t('confirmPrintPay'))
               : t('confirmPrint')}
-          </button>
+          </CtaButton>
         </div>
       </div>
 

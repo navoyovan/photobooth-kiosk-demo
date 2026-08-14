@@ -21,6 +21,7 @@ import { FRAME_TYPES, DEFAULT_FRAME } from './constants/frames';
 import { getKioskId, getMachineUUID, syncKioskConfig } from './utils/kioskId';
 import echo from './services/echo';
 import StatusService from './services/StatusService';
+import { PrimaryButton, CtaButton, SecondaryButton } from './ui';
 
 
 
@@ -71,33 +72,15 @@ export default function App() {
   const [idleBrandLogoScale, setIdleBrandLogoScale] = useState(localStorage.getItem('PHOTOBOOTH_IDLE_BRAND_LOGO_SCALE') || '100');
   const [isBrandingDevOpen, setIsBrandingDevOpen] = useState(false);
 
-  // Real-time integration
+  // Hardware status polling
   useEffect(() => {
-    const uuid = getMachineUUID()
-    if (uuid) {
-      StatusService.start(uuid);
+    StatusService.start();
+    const devPoll = setInterval(() => setForceUpdate(prev => prev + 1), 1000);
 
-      // Poll StatusService for DevMode updates (since it's a singleton class without event emitters)
-      const devPoll = setInterval(() => setForceUpdate(prev => prev + 1), 1000);
-
-      const channel = echo.private(`kiosk.${uuid}`);
-      channel.listen('KioskCommandReceived', (e) => {
-        if (e.command === 'LOCK') {
-          setIsMaintenanceLocked(true);
-          setIsMaintenanceExiting(false);
-        }
-        if (e.command === 'UNLOCK') {
-          setIsMaintenanceExiting(true);
-        }
-        if (e.command === 'REFRESH') window.location.reload();
-      });
-
-      return () => {
-        StatusService.stop();
-        clearInterval(devPoll);
-        echo.leave(`kiosk.${uuid}`);
-      }
-    }
+    return () => {
+      StatusService.stop();
+      clearInterval(devPoll);
+    };
   }, []);
 
   // Update StatusService session state
@@ -167,19 +150,6 @@ export default function App() {
   const [cameraDevices, setCameraDevices] = useState([]);
   const [selectedDeviceId, setSelectedDeviceId] = useState("");
   const [isCameraRequested, setIsCameraRequested] = useState(false);
-  const [cameraType, setCameraType] = useState(() => {
-    // Override/cleanup any saved DSLR camera types to start fresh with webcam
-    const saved = localStorage.getItem('PHOTOBOOTH_CAMERA_TYPE');
-    if (saved === 'digicam' || saved === 'hybrid') {
-      localStorage.setItem('PHOTOBOOTH_CAMERA_TYPE', 'webcam');
-      return 'webcam';
-    }
-    return saved || 'webcam';
-  });
-  const [digicamUrl, setDigicamUrl] = useState(() => {
-    return localStorage.getItem('PHOTOBOOTH_DIGICAM_URL') || 'http://localhost:5513';
-  });
-  const [isCameraDevOpen, setIsCameraDevOpen] = useState(false);
 
   const activeFrame = selectedFrame || DEFAULT_FRAME;
 
@@ -477,7 +447,7 @@ export default function App() {
     };
 
     startCamera();
-  }, [currentStep, selectedDeviceId, isCameraRequested, cameraDevices, cameraStream, cameraType]);
+  }, [currentStep, selectedDeviceId, isCameraRequested, cameraDevices, cameraStream]);
 
 
   const transitionTimeout1 = React.useRef(null);
@@ -677,74 +647,6 @@ export default function App() {
             )}
           </div>
 
-          {/* CAMERA CONFIGURATION CONTROLS */}
-          <div className="dev-mode-indicator" style={{ marginTop: '0.5rem', backgroundColor: '#111', border: '1px solid #222', pointerEvents: 'auto' }}>
-            <div 
-              style={{ color: '#00FFFF', cursor: 'pointer', fontWeight: 900, display: 'flex', justifyContent: 'space-between', fontSize: '0.65rem', fontFamily: 'monospace' }} 
-              onClick={() => setIsCameraDevOpen(!isCameraDevOpen)}
-            >
-              <span>{isCameraDevOpen ? '▼' : '▶'} CAMERA_NERD_SETTINGS</span>
-              <span>[ {cameraType.toUpperCase()} ]</span>
-            </div>
-            {isCameraDevOpen && (
-              <div style={{ marginTop: '0.6rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', fontSize: '0.65rem', borderTop: '1px dashed #333', paddingTop: '0.5rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ color: '#777' }}>CAMERA TYPE:</span>
-                  <div style={{ display: 'flex', gap: '4px' }}>
-                    <button 
-                      onClick={() => {
-                        setCameraType('webcam');
-                        localStorage.setItem('PHOTOBOOTH_CAMERA_TYPE', 'webcam');
-                      }}
-                      style={{ 
-                        backgroundColor: cameraType === 'webcam' ? '#00FFFF' : '#000', 
-                        color: cameraType === 'webcam' ? '#000' : '#FFF', 
-                        border: '1px solid #333', 
-                        fontSize: '0.55rem', 
-                        fontFamily: 'monospace', 
-                        padding: '2px 6px',
-                        cursor: 'pointer',
-                        fontWeight: cameraType === 'webcam' ? 'bold' : 'normal'
-                      }}
-                    >
-                      WEBCAM
-                    </button>
-                    <button 
-                      disabled
-                      style={{ 
-                        backgroundColor: '#000', 
-                        color: '#444', 
-                        border: '1px solid #222', 
-                        fontSize: '0.55rem', 
-                        fontFamily: 'monospace', 
-                        padding: '2px 6px',
-                        cursor: 'not-allowed',
-                        opacity: 0.4
-                      }}
-                    >
-                      HYBRID
-                    </button>
-                    <button 
-                      disabled
-                      style={{ 
-                        backgroundColor: '#000', 
-                        color: '#444', 
-                        border: '1px solid #222', 
-                        fontSize: '0.55rem', 
-                        fontFamily: 'monospace', 
-                        padding: '2px 6px',
-                        cursor: 'not-allowed',
-                        opacity: 0.4
-                      }}
-                    >
-                      DSLR (digiCam)
-                    </button>
-                  </div>
-                </div>
-
-              </div>
-            )}
-          </div>
 
           {/* BRANDING CONFIGURATION CONTROLS */}
           <div className="dev-mode-indicator" style={{ marginTop: '0.5rem', backgroundColor: '#111', border: '1px solid #222', pointerEvents: 'auto' }}>
@@ -914,6 +816,26 @@ export default function App() {
         </div>
       )}
 
+      {/* DEV MODE 3 BUTTONS (BOTTOM-RIGHT) */}
+      {devMode && (
+        <>
+          <div style={{ position: 'absolute', bottom: '6.5rem', right: '2rem', zIndex: 10001, display: 'flex', flexDirection: 'column', gap: '0.8rem', pointerEvents: 'auto' }}>
+            <PrimaryButton>
+              PRIMARY
+            </PrimaryButton>
+            <CtaButton>
+              CTA
+            </CtaButton>
+          </div>
+
+          <div style={{ position: 'absolute', bottom: '2rem', right: '2rem', zIndex: 10001, pointerEvents: 'auto', mixBlendMode: 'difference', color: '#FFFFFF' }}>
+            <SecondaryButton>
+              SECONDARY
+            </SecondaryButton>
+          </div>
+        </>
+      )}
+
       {(isMaintenanceLocked || isMaintenanceExiting) ? (
         <OutroScreen 
           type="MAINTENANCE" 
@@ -1007,11 +929,11 @@ export default function App() {
                   setCurrentStep(2);
                 }
               }}
-              onFinish={(img) => startPageTransition(() => {
+              onFinish={(img) => {
                 setFinalImage(img);
                 setOutroType('NORMAL');
                 setCurrentStep(4);
-              })}
+              }}
               setCaptureSubState={setCaptureSubState}
               kioskId={kioskId}
               devMode={devMode}

@@ -142,13 +142,6 @@
 
 .actions button {
   flex: 1;
-  height: 42px !important; /* Thinner */
-  padding: 0 24px !important;
-  font-size: 0.7rem !important;
-  text-transform: uppercase;
-  font-family: 'Space Grotesk', sans-serif;
-  font-weight: 700;
-  border-radius: 0;
 }
 
 .footer {

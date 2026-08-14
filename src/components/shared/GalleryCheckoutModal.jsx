@@ -3,6 +3,7 @@ import { animate, createTimeline } from 'animejs';
 import styles from './GalleryCheckoutModal.module.css';
 import { getBackendUrl } from '../../utils/kioskId';
 import { TRANSLATIONS } from '../../constants/translations';
+import { SecondaryButton } from '../../ui';
 
 const GalleryCheckoutModal = ({ isOpen, onClose, onSuccess, totalPrice, initialPayment = 0, orderId = "ORD-9921", timeLeft, devFreeFlow, setIsTimerPaused, mode = 'PAYMENT', onTimeout, bypassMode = false, language = 'EN' }) => {
   const t = (key) => {
@@ -331,13 +332,12 @@ const GalleryCheckoutModal = ({ isOpen, onClose, onSuccess, totalPrice, initialP
             </button>
           )}
 
-          <button
-            className="btn-secondary"
+          <SecondaryButton
             onClick={() => handleExit(onClose)}
             style={{ width: '100%' }}
           >
             {mode === 'TIMEOUT' ? t('cancelSession') : t('editOrder')}
-          </button>
+          </SecondaryButton>
         </div>
 
         {/* Success Overlay (Checkmark) */}

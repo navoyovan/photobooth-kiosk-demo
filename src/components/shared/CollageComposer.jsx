@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect, forwardRef, useImperativeHandle } f
 import { animate, set } from 'animejs';
 import { getFrameLayout } from '../../constants/frame_layouts';
 
-const CollageComposer = forwardRef(({ photos = [], frame, photoFilter = 'none', isMirrored = false, isProcessing = false }, ref) => {
+const CollageComposer = forwardRef(({ photos = [], frame, photoFilter = 'none', isMirrored = false, isProcessing = false, onActiveIndexChange }, ref) => {
   const containerRef = useRef(null);
   const frameRef = useRef(null);
 
@@ -197,6 +197,7 @@ const CollageComposer = forwardRef(({ photos = [], frame, photoFilter = 'none', 
 
   const switchLayer = (idx) => {
     setActiveIndex(idx);
+    if (onActiveIndexChange) onActiveIndexChange(idx);
     const { cW, cH } = containerDims.current || { cW: 400, cH: 400 };
     const layout = getFrameLayout(frame);
     const slot = layout[idx] || { x: 0, y: 0, w: 100, h: 100 };
@@ -212,23 +213,6 @@ const CollageComposer = forwardRef(({ photos = [], frame, photoFilter = 'none', 
     });
     updateMetrics(idx);
   };
-
-  useEffect(() => {
-    if (!ready || photos.length === 0) return;
-
-    photoRefs.current.forEach(photoEl => {
-      if (photoEl) {
-        const wrapper = photoEl.querySelector('.lens-refocus-wrapper');
-        if (wrapper) {
-          if (isProcessing) {
-            animate(wrapper, { filter: 'blur(12px)', scale: 1.04, duration: 200, easing: 'easeOutQuad' });
-          } else {
-            animate(wrapper, { filter: 'blur(0px)', scale: 1, duration: 400, easing: 'easeOutBack(2)' });
-          }
-        }
-      }
-    });
-  }, [isProcessing, ready, photos]);
 
   return (
     <div className="composer-gallery-wrapper">
@@ -286,10 +270,11 @@ const CollageComposer = forwardRef(({ photos = [], frame, photoFilter = 'none', 
                   height: `${slot.h}%`,
                   overflow: 'hidden',
                   zIndex: activeIndex === i ? 5 : 1,
-                  transition: 'opacity 0.3s ease',
-                  opacity: isProcessing ? 0.3 : (activeIndex === i ? 1 : 0.4),
-                  pointerEvents: activeIndex === i ? 'auto' : 'none',
+                  opacity: 1,
+                  pointerEvents: 'auto',
+                  cursor: 'pointer',
                 }}
+                onClick={() => switchLayer(i)}
               >
                 <div
                   ref={el => photoRefs.current[i] = el}

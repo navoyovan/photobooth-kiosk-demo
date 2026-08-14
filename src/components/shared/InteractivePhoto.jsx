@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect, forwardRef, useImperativeHandle } f
 import { animate, set } from 'animejs';
 import { getFrameLayout } from '../../constants/frame_layouts';
 
-const InteractivePhoto = forwardRef(({ photos = [], frame, photoFilter = 'none', isMirrored = false, isProcessing = false }, ref) => {
+const InteractivePhoto = forwardRef(({ photos = [], frame, photoFilter = 'none', isMirrored = false, isProcessing = false, onActiveIndexChange }, ref) => {
   const photoRef = useRef(null);
   const boundaryRef = useRef(null); // tracks photo bounds
   const frameRef = useRef(null);
@@ -204,17 +204,6 @@ const InteractivePhoto = forwardRef(({ photos = [], frame, photoFilter = 'none',
     };
   }, []);
 
-  useEffect(() => {
-    if (!ready || !photoRef.current) return;
-    const wrapper = photoRef.current.querySelector('.lens-refocus-wrapper');
-    if (!wrapper) return;
-
-    if (isProcessing) {
-      animate(wrapper, { filter: 'blur(12px)', scale: 1.04, duration: 200, easing: 'easeOutQuad' });
-    } else {
-      animate(wrapper, { filter: 'blur(0px)', scale: 1, duration: 400, easing: 'easeOutBack(2)' });
-    }
-  }, [isProcessing, ready]);
 
   return (
     <div className="composer-gallery-wrapper">

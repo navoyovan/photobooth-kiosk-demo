@@ -1,11 +1,11 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { animate, createTimeline } from 'animejs';
 
-const IdleScreen = ({ 
-  onNext, 
-  onTransitionStart, 
-  brandType = 'text', 
-  brandText = 'Hype - Box', 
+const IdleScreen = ({
+  onNext,
+  onTransitionStart,
+  brandType = 'text',
+  brandText = 'Hype - Box',
   brandLogo = '/assets/main-logo.png',
   brandTextScale = '100',
   brandLogoScale = '100'
@@ -87,11 +87,11 @@ const IdleScreen = ({
       <div className="hero-display-content">
         <div className="hero-display-halo" />
         {showLogo ? (
-          <img 
+          <img
             ref={titleRef}
-            src={brandLogo} 
-            alt={brandText} 
-            className="hero-display-logo" 
+            src={brandLogo}
+            alt={brandText}
+            className="hero-display-logo"
             style={{ maxWidth: logoMaxWidth, maxHeight: logoMaxHeight, opacity: 0 }}
             onError={() => {
               console.warn(`[Idle] Failed to load brand logo: ${brandLogo}. Falling back to text: "${brandText}"`);
@@ -99,8 +99,8 @@ const IdleScreen = ({
             }}
           />
         ) : (
-          <h1 
-            ref={titleRef} 
+          <h1
+            ref={titleRef}
             className="hero-display-main"
             style={{ fontSize: textFontSize, letterSpacing: textLetterSpacing, opacity: 0 }}
           >
@@ -108,7 +108,7 @@ const IdleScreen = ({
           </h1>
         )}
         <div ref={ctaRef} className="hero-display-sub" style={{ opacity: 0 }}>
-          <p className="ctaLabel">TAP SCREEN TO INITIATE</p>
+          <p className="ctaLabel">TAP SCREEN TO INITIATE DEMO</p>
         </div>
       </div>
     </div>

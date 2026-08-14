@@ -1,5 +1,6 @@
 import React, { useRef, useEffect } from 'react';
 import { animate, stagger } from 'animejs';
+import { SecondaryButton } from '../../ui';
 
 const STEPS = ['Welcome', '01', '02', '03', '04', 'Pending', '05'];
 const PHASES = [
@@ -36,7 +37,7 @@ const KineticPagination = ({ currentStep, subState, isVisible, onBack, backLabel
     if (!isVisible) return;
 
     // We animate the back button independently so it doesn't trigger a container re-fade
-    const backBtn = containerRef.current.querySelector(".kinetic-back-btn");
+    const backBtn = containerRef.current.querySelector(".kinetic-back-btn, .kiosk-btn-secondary");
     if (backBtn) {
       animate(backBtn, {
         translateX: [-20, 0],
@@ -120,13 +121,12 @@ const KineticPagination = ({ currentStep, subState, isVisible, onBack, backLabel
       <div style={{ height: '3rem', marginTop: '1.2rem', display: 'flex', alignItems: 'flex-start' }}>
         {onBack && (
           <div style={{ position: 'relative', display: 'inline-block' }}>
-            <button
-              className="btn-secondary dark"
+            <SecondaryButton
+              className="kinetic-back-btn"
               onClick={onBack}
             >
               {backLabel || '← BACK'}
-            </button>
-
+            </SecondaryButton>
           </div>
         )}
       </div>

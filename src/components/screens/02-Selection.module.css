@@ -154,6 +154,9 @@
   width: 100vw;
   height: 100vh;
   z-index: 99999;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(20px) brightness(0.6);
+  -webkit-backdrop-filter: blur(20px) brightness(0.6);
 
   display: flex;
   align-items: center;
@@ -161,6 +164,14 @@
 
   opacity: 0;
   animation: modal-fade-in 0.4s ease forwards;
+}
+
+.selectionModal :global(.vf-corner) {
+  border-color: rgba(255, 255, 255, 0.7);
+}
+
+.selectionModal :global(.boundary-dashed-line-visual) {
+  border-color: rgba(255, 255, 255, 0.35);
 }
 
 .modalContent {
@@ -181,7 +192,7 @@
   position: relative;
   max-height: 55vh;
   max-width: 80vw;
-  box-shadow: 0 40px 40px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 40px 60px rgba(0, 0, 0, 0.4);
   animation: modal-slide-up 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
@@ -198,10 +209,10 @@
   font-family: 'Space Grotesk', monospace;
   font-size: 0.8rem;
   font-weight: 800;
-  color: #000;
+  color: #ffffff;
   letter-spacing: 0.1rem;
   text-transform: uppercase;
-  opacity: 0.6;
+  opacity: 0.85;
   animation: pulse-soft 2.5s ease-in-out infinite;
 }
 

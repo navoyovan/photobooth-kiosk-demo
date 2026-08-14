@@ -1,14 +1,14 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { animate, createTimeline, stagger } from 'animejs';
-import ThumbnailOrFallback from '../shared/ThumbnailOrFallback';
 import EditorialSkeletonFrame from '../shared/EditorialSkeletonFrame';
-import { useKioskBoot } from '../../hooks/useKioskBoot';
-import KioskIdentitySetup from '../shared/KioskIdentitySetup';
 import { exitEditorialLayout } from '../../utils/transitions';
 import { entranceEditorialLayout } from '../../utils/transitions';
 import { TRANSLATIONS } from '../../constants/translations';
+import { FRAME_TYPES } from '../../constants/frames';
+import { CtaButton } from '../../ui';
 import styles from './02-Selection.module.css';
 
+const CATEGORIES = ['SPACE', 'GRID'];
 
 const SelectionScreenInner = ({ onFinish, onPrepareCamera, kioskData, loading, language = 'EN' }) => {
   const t = (key) => {
@@ -20,79 +20,78 @@ const SelectionScreenInner = ({ onFinish, onPrepareCamera, kioskData, loading, l
   const colRefs = useRef([]);
   const watermarkRef = useRef(null);
   const leftPanelRef = useRef(null);
-  const [activeCategory, setActiveCategory] = useState("SPACE"); // SPACE or GRID
-  const [activeFrame, setActiveFrame] = useState(null); // Nothing selected on mount
-
-  const scrollState = useRef({ current: 0, target: 0 });
   const indicatorRef = useRef(null);
   const frameRefText = useRef(null);
   const collageRefText = useRef(null);
 
+  const [activeCategory, setActiveCategory] = useState("SPACE"); // SPACE (Frame) or GRID (Collage)
+  const [activeFrame, setActiveFrame] = useState(null); // Nothing selected on mount
+
+  const scrollState = useRef({ current: 0, target: 0 });
+  const activeFrameRef = useRef(null);
+  const autoSpeedRef = useRef(1.2); // px/frame constant drift
+
+  // Tab indicator & right panel transition
   useEffect(() => {
-    // Indicator slide
-    animate(indicatorRef.current, {
-      top: activeCategory === 'GRID' ? '6.1rem' : '0',
-      duration: 600,
-      easing: 'easeOutElastic(1, .75)'
-    });
+    const isGrid = activeCategory === 'GRID';
+    if (indicatorRef.current) {
+      animate(indicatorRef.current, {
+        top: isGrid ? '6.1rem' : '0',
+        duration: 600,
+        easing: 'easeOutElastic(1, .75)'
+      });
+    }
 
-    // FRAME Text
-    animate(frameRefText.current, {
-      translateX: activeCategory === 'SPACE' ? 0 : '3rem',
-      opacity: activeCategory === 'SPACE' ? 1 : 0.3,
-      duration: 500,
-      easing: 'easeOutCubic'
-    });
+    if (frameRefText.current) {
+      animate(frameRefText.current, {
+        translateX: !isGrid ? 0 : '3rem',
+        opacity: !isGrid ? 1 : 0.3,
+        duration: 500,
+        easing: 'easeOutCubic'
+      });
+    }
 
-    // COLLAGE Text
-    animate(collageRefText.current, {
-      translateX: activeCategory === 'GRID' ? 0 : '3rem',
-      opacity: activeCategory === 'GRID' ? 1 : 0.3,
-      duration: 500,
-      easing: 'easeOutCubic'
-    });
+    if (collageRefText.current) {
+      animate(collageRefText.current, {
+        translateX: isGrid ? 0 : '3rem',
+        opacity: isGrid ? 1 : 0.3,
+        duration: 500,
+        easing: 'easeOutCubic'
+      });
+    }
 
-    // entranceEditorialLayout(tl, { duration: 800 });
-
-    // Right Panel Fade-in
-    animate(rightPanelRef.current, {
-      translateY: [15, 0],
-      opacity: [0, 1],
-      duration: 800,
-      easing: 'easeOutQuart'
-    });
+    if (rightPanelRef.current) {
+      animate(rightPanelRef.current, {
+        translateY: [15, 0],
+        opacity: [0, 1],
+        duration: 800,
+        easing: 'easeOutQuart'
+      });
+    }
   }, [activeCategory]);
 
-  const handleFinish = (frameId) => {
-    const selectedFrameData = filteredFrames.find(f => f.id === frameId);
-    const tl = createTimeline({
-      onComplete: () => onFinish(selectedFrameData)
-    });
+  // Entrance Sequence
+  const timelineRef = useRef(null);
+  useEffect(() => {
+    if (timelineRef.current) timelineRef.current.pause();
+    const tl = createTimeline();
+    timelineRef.current = tl;
 
-    // 1. Animate modal content out (shrink and fade)
-    if (modalContentRef.current) {
-      tl.add(modalContentRef.current, {
-        scale: 0.9,
-        opacity: 0,
-        duration: 300,
-        easing: 'easeInBack(1.2)'
-      }, 0);
-    }
+    entranceEditorialLayout(tl, { duration: 800 });
 
-    // 2. Fade out the overlay backdrop
-    if (modalOverlayRef.current) {
-      tl.add(modalOverlayRef.current, {
-        opacity: 0,
-        duration: 400,
-        easing: 'linear'
-      }, 100);
-    }
+    tl.add(`.${styles.scrollCol}`, {
+      translateX: [50, 0],
+      duration: 600,
+      delay: stagger(50),
+      easing: 'easeOutQuad'
+    }, 250);
 
-    // 3. BUNDLE: Unified Editorial Exit
-    exitEditorialLayout(tl, { duration: 500 });
-  };
+    return () => {
+      if (tl) tl.pause();
+    };
+  }, []);
 
-  // Modal Animation Logic (Fixes Looping Issue)
+  // Modal Animation References & Logic
   const modalOverlayRef = useRef(null);
   const modalContentRef = useRef(null);
   useEffect(() => {
@@ -112,58 +111,34 @@ const SelectionScreenInner = ({ onFinish, onPrepareCamera, kioskData, loading, l
     }
   }, [activeFrame]);
 
-  const timelineRef = useRef(null);
+  const handleFinish = (frameId) => {
+    const selectedFrameData = filteredFrames.find(f => f.id === frameId);
+    const tl = createTimeline({
+      onComplete: () => onFinish(selectedFrameData)
+    });
 
-  useEffect(() => {
-    if (timelineRef.current) timelineRef.current.pause();
-    const tl = createTimeline();
-    timelineRef.current = tl;
+    if (modalContentRef.current) {
+      tl.add(modalContentRef.current, {
+        scale: 0.9,
+        opacity: 0,
+        duration: 300,
+        easing: 'easeInBack(1.2)'
+      }, 0);
+    }
 
-    // 1. Initial State
-    // Forced block in JSX
+    if (modalOverlayRef.current) {
+      tl.add(modalOverlayRef.current, {
+        opacity: 0,
+        duration: 400,
+        easing: 'linear'
+      }, 100);
+    }
 
-    // 2. The Master Sequence - HALVED
-    // Background Title (Deepest parallax) - HALVED
-    entranceEditorialLayout(tl, { duration: 800 });
-    // tl.add('.watermark-sideways', {
-    //   translateX: [300, 0],
-    //   opacity: [0, 0.04],
-    //   duration: 1100,
-    //   easing: 'easeOutQuart'
-    // }, 50);
+    exitEditorialLayout(tl, { duration: 500 });
+  };
 
-    // // Left Panel UI Elements - HALVED
-    // tl.add('.panel-left', {
-    //   translateX: [150, 0],
-    //   opacity: [0, 1],
-    //   duration: 650,
-    //   easing: 'easeOutCubic'
-    // }, 200);
-
-    // // Right Panel (Grid) - Slide from right
-    // tl.add('.panel-right', {
-    //   translateX: [100, 0],
-    //   opacity: [0, 1],
-    //   duration: 750,
-    //   easing: 'easeOutCubic'
-    // }, 100);
-
-    // Individual Columns stagger - Removed redundant opacity to prevent blinking
-    tl.add(`.${styles.scrollCol}`, {
-      translateX: [50, 0],
-      duration: 600,
-      delay: stagger(50),
-      easing: 'easeOutQuad'
-    }, 250);
-
-    return () => {
-      if (tl) tl.pause();
-    };
-  }, []);
-
-  // Filter & Generate Columns
+  // Filter & Generate Frames
   const filteredFrames = React.useMemo(() => {
-    // 0. If still booting, show skeletons
     if (loading) {
       return Array.from({ length: 8 }).map((_, i) => ({
         id: `skeleton-${i}`,
@@ -174,40 +149,21 @@ const SelectionScreenInner = ({ onFinish, onPrepareCamera, kioskData, loading, l
       }));
     }
 
-    // 1. Get frames from backend
-    const backendFrames = kioskData?.frames?.map(f => ({
-      id: f.id,
-      category: f.category || 'SPACE',
-      thumbnail: f.asset_path,
-      name: f.name,
-      slots: f.slots || 1,
-      slots_config: f.slots_config // Preserve punchhole config from backend
-    })) || [];
+    // Use local standalone FRAME_TYPES, with optional kioskData merge if provided
+    const sourceFrames = (kioskData?.frames && kioskData.frames.length > 0)
+      ? kioskData.frames.map(f => ({
+          id: f.id,
+          category: f.category || 'SPACE',
+          thumbnail: f.asset_path,
+          name: f.name,
+          slots: f.slots || 1,
+          slots_config: f.slots_config
+        }))
+      : FRAME_TYPES;
 
-    // 2. Add Hardcoded "Bonus" Frames (Dev / Basic)
-    const bonusFrames = [
-      {
-        id: 'bonus-basic',
-        category: 'SPACE',
-        thumbnail: '/frames/default.png',
-        name: 'polaroid',
-        slots: 1
-      },
-      {
-        id: 'bonus-collage',
-        category: 'GRID',
-        thumbnail: '/collage/default.png',
-        name: 'pinterest style',
-        slots: 4
-      }
-    ];
+    const filtered = sourceFrames.filter(f => f.category === activeCategory);
 
-    // 3. Combine and Filter by Active UI Category (SPACE vs GRID)
-    const combined = [...backendFrames, ...bonusFrames];
-    const filtered = combined.filter(f => f.category === activeCategory);
-
-    // 4. Always add a few placeholders for "Marketing Gimmick" 
-    // and ensure we have at least 6 items for the infinite loop stability
+    // Guarantee minimum items for infinite scroll stability
     const placeholderCount = Math.max(2, 6 - filtered.length);
     const placeholders = Array.from({ length: placeholderCount }).map((_, i) => ({
       id: `placeholder-${i}`,
@@ -218,29 +174,29 @@ const SelectionScreenInner = ({ onFinish, onPrepareCamera, kioskData, loading, l
     }));
 
     return [...filtered, ...placeholders];
-  }, [activeCategory, kioskData, loading]);
+  }, [activeCategory, kioskData, loading, language]);
 
+  // Construct 4 staggered infinite columns (6 repetitions each)
   const infiniteCols = React.useMemo(() => {
-    const cols = Array.from({ length: 4 }).map((_, colIndex) => {
+    return Array.from({ length: 4 }).map((_, colIndex) => {
       const base = [...filteredFrames.slice(colIndex), ...filteredFrames.slice(0, colIndex)];
       let massiveArray = [];
-      for (let i = 0; i < 6; i++) massiveArray = massiveArray.concat(base);
+      for (let i = 0; i < 6; i++) {
+        massiveArray = massiveArray.concat(base);
+      }
       return massiveArray;
     });
-    return cols;
   }, [filteredFrames]);
 
-  // Reset scroll on category change
+  // Reset scroll when category changes
   useEffect(() => {
     scrollState.current.target = 0;
     scrollState.current.current = 0;
+    activeFrameRef.current = null;
     setActiveFrame(null);
   }, [activeCategory]);
 
-  // Mirror activeFrame in a ref so the rAF loop can read it without stale closure
-  const activeFrameRef = useRef(null);
-  const autoSpeedRef = useRef(1.2); // px/frame constant drift
-
+  // High-Performance Physics, Momentum & Inertia Touch/Wheel Engine
   useEffect(() => {
     const panel = rightPanelRef.current;
     if (!panel) return;
@@ -248,15 +204,25 @@ const SelectionScreenInner = ({ onFinish, onPrepareCamera, kioskData, loading, l
     let animationFrame;
     let isDragging = false;
     let startY = 0;
-    let userVelocity = 0; // inertia from physical input
+    let userVelocity = 0;
+    let autoScrollPaused = false;
+    let autoScrollTimeout = null;
 
     const handleWheel = (e) => {
       e.preventDefault();
       userVelocity += e.deltaY * 0.4;
+
+      autoScrollPaused = true;
+      if (autoScrollTimeout) clearTimeout(autoScrollTimeout);
+      autoScrollTimeout = setTimeout(() => {
+        autoScrollPaused = false;
+      }, 1500);
     };
 
     const handleStart = (e) => {
       isDragging = true;
+      autoScrollPaused = true;
+      if (autoScrollTimeout) clearTimeout(autoScrollTimeout);
       userVelocity = 0;
       startY = e.touches ? e.touches[0].clientY : e.clientY;
     };
@@ -265,34 +231,55 @@ const SelectionScreenInner = ({ onFinish, onPrepareCamera, kioskData, loading, l
       if (!isDragging) return;
       e.preventDefault();
       const currentY = e.touches ? e.touches[0].clientY : e.clientY;
-      const delta = (startY - currentY) * 2.5;
+
+      // Divide by 0.6 scale factor for 1:1 finger tracking
+      const delta = (startY - currentY) / 0.6;
       userVelocity = delta;
+
       scrollState.current.target += delta;
+      scrollState.current.current = scrollState.current.target; // immediate stickiness
       startY = currentY;
     };
 
-    const handleEnd = () => { isDragging = false; };
+    const handleEnd = () => {
+      isDragging = false;
+      if (autoScrollTimeout) clearTimeout(autoScrollTimeout);
+      autoScrollTimeout = setTimeout(() => {
+        autoScrollPaused = false;
+      }, 1500);
+    };
 
     const smoothScroll = () => {
-      // Auto-roll: keep drifting while no frame is selected
-      if (activeFrameRef.current === null) {
+      // Auto-drift when no modal is open and not paused
+      if (activeFrameRef.current === null && !autoScrollPaused) {
         scrollState.current.target += autoSpeedRef.current;
       }
 
-      // Physical inertia: decay velocity and add to target each frame
+      // Physical momentum inertia decay
       if (!isDragging) {
         userVelocity *= 0.90;
         scrollState.current.target += userVelocity;
       }
 
-      scrollState.current.current += (scrollState.current.target - scrollState.current.current) * 0.08;
+      // Responsive dual-stage lerp
+      const lerpFactor = isDragging ? 0.35 : 0.08;
+      scrollState.current.current += (scrollState.current.target - scrollState.current.current) * lerpFactor;
 
-      // WARP LOOP: Only snap after 2 full sets to make it infrequent
+      // Accurate DOM offset warp snapping
       const firstCol = colRefs.current[0];
       if (firstCol && firstCol.scrollHeight > 0) {
-        const singleSetHeight = firstCol.scrollHeight / 6;
+        let singleSetHeight = firstCol.scrollHeight / 6;
+        const totalItems = firstCol.children.length;
+        if (totalItems > 0 && totalItems % 6 === 0) {
+          const baseLength = totalItems / 6;
+          const firstItem = firstCol.children[0];
+          const nextSetItem = firstCol.children[baseLength];
+          if (firstItem && nextSetItem) {
+            singleSetHeight = nextSetItem.offsetTop - firstItem.offsetTop;
+          }
+        }
+
         const currentPx = scrollState.current.current * 0.6;
-        //tweak the snap
         const threshold = singleSetHeight * 2;
         if (Math.abs(currentPx) > threshold) {
           const snapAmount = singleSetHeight / 0.6;
@@ -302,16 +289,12 @@ const SelectionScreenInner = ({ onFinish, onPrepareCamera, kioskData, loading, l
         }
       }
 
+      // Apply parallax column transforms
       colRefs.current.forEach((col, index) => {
         if (!col) return;
         const direction = index % 2 === 0 ? 1 : -1;
-
-        // BASE CENTER: Start every stick at its own middle (set 3 of 6)
         const baseMiddle = -(col.scrollHeight / 2);
-
-        // APPLY DELTA: Add or subtract based on direction
         const delta = scrollState.current.current * 0.6 * direction;
-
         col.style.transform = `translateY(${baseMiddle + delta}px)`;
       });
 
@@ -322,6 +305,7 @@ const SelectionScreenInner = ({ onFinish, onPrepareCamera, kioskData, loading, l
     panel.addEventListener('touchstart', handleStart, { passive: false });
     panel.addEventListener('touchmove', handleMove, { passive: false });
     panel.addEventListener('touchend', handleEnd);
+    panel.addEventListener('touchcancel', handleEnd);
     panel.addEventListener('mousedown', handleStart);
     panel.addEventListener('mousemove', handleMove, { passive: false });
     panel.addEventListener('mouseup', handleEnd);
@@ -334,20 +318,17 @@ const SelectionScreenInner = ({ onFinish, onPrepareCamera, kioskData, loading, l
       panel.removeEventListener('touchstart', handleStart);
       panel.removeEventListener('touchmove', handleMove);
       panel.removeEventListener('touchend', handleEnd);
+      panel.removeEventListener('touchcancel', handleEnd);
       panel.removeEventListener('mousedown', handleStart);
       panel.removeEventListener('mousemove', handleMove);
       panel.removeEventListener('mouseup', handleEnd);
       panel.removeEventListener('mouseleave', handleEnd);
       cancelAnimationFrame(animationFrame);
     };
-  }, [onPrepareCamera]); // Only once, uses refs for all dynamic values
-
+  }, []);
 
   return (
-    <div ref={screenRef} className={styles.layout} >
-      {/* EXIT OVERLAY */}
-
-
+    <div ref={screenRef} className={styles.layout}>
       {/* KIRI: Informasi & Kontrol */}
       <div ref={leftPanelRef} className="panel-left">
         {/* Giant Rotated Bleeding Title */}
@@ -385,7 +366,7 @@ const SelectionScreenInner = ({ onFinish, onPrepareCamera, kioskData, loading, l
       </div>
 
       {/* KANAN: Grid Alternating Scroll */}
-      <div className="panel-right" style={{ zIndex: 1 }} ref={rightPanelRef}>
+      <div className="panel-right" style={{ zIndex: 1, touchAction: 'none' }} ref={rightPanelRef}>
         <div className={styles.gridWrapper}>
           {infiniteCols.map((colData, colIndex) => (
             <div
@@ -420,16 +401,15 @@ const SelectionScreenInner = ({ onFinish, onPrepareCamera, kioskData, loading, l
             </div>
           ))}
         </div>
-
       </div>
 
-      {/* Glass Backdrop Overlay (Moved to top level to cover both panels) */}
+      {/* Preview & Selection Modal */}
       {activeFrame !== null && (() => {
         const selected = filteredFrames.find(f => f.id === activeFrame);
         if (!selected) return null;
         return (
           <div
-            className={`${styles.selectionModal} milky-mica-background`}
+            className={styles.selectionModal}
             ref={modalOverlayRef}
             onClick={() => { activeFrameRef.current = null; setActiveFrame(null); }}
           >
@@ -452,26 +432,24 @@ const SelectionScreenInner = ({ onFinish, onPrepareCamera, kioskData, loading, l
 
               <div className={styles.note}>{t('previewTapDismiss')}</div>
 
-              <button
-                className="btn-tier-1"
+              <CtaButton
                 onClick={() => {
                   onPrepareCamera?.();
                   handleFinish(activeFrame);
                 }}
               >
                 {t('confirmSelection')}
-              </button>
+              </CtaButton>
             </div>
           </div>
         );
       })()}
-
     </div>
   );
 };
 
-const SelectionScreen = ({ kioskData, loading, ...props }) => {
-  return <SelectionScreenInner kioskData={kioskData || { frames: [] }} loading={loading} {...props} />;
+const SelectionScreen = (props) => {
+  return <SelectionScreenInner {...props} />;
 };
 
 export default SelectionScreen;

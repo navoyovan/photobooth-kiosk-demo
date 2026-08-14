@@ -3,6 +3,7 @@ import { animate } from 'animejs';
 import styles from './SessionRecoveryModal.module.css';
 import { getFrameLayout } from '../../constants/frame_layouts';
 import { TRANSLATIONS } from '../../constants/translations';
+import { PrimaryButton, SecondaryButton } from '../../ui';
 
 
 const SessionRecoveryModal = ({ isOpen, onContinue, onDiscard, sessionData, language = 'EN' }) => {
@@ -131,12 +132,12 @@ const SessionRecoveryModal = ({ isOpen, onContinue, onDiscard, sessionData, lang
         </div>
 
         <div className={styles.actions}>
-          <button className="btn-primary" onClick={onContinue} style={{ marginTop: 0 }}>
+          <PrimaryButton onClick={onContinue} style={{ marginTop: 0 }}>
             {t('resumeSessionBtn')}
-          </button>
-          <button className="btn-secondary" onClick={onDiscard}>
+          </PrimaryButton>
+          <SecondaryButton onClick={onDiscard}>
             {t('discardResetBtn')}
-          </button>
+          </SecondaryButton>
         </div>
 
         <div className={styles.footer}>

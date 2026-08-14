@@ -4,7 +4,7 @@ import { exitEditorialLayout } from '../../utils/transitions';
 import { entranceEditorialLayout } from '../../utils/transitions';
 import GalleryCheckoutModal from '../shared/GalleryCheckoutModal';
 import SessionRecoveryModal from '../shared/SessionRecoveryModal';
-import StatusService from '../../services/StatusService';
+import { CtaButton } from '../../ui';
 import { TRANSLATIONS } from '../../constants/translations';
 import styles from './01-Payment.module.css';
 
@@ -223,28 +223,6 @@ const PaymentScreen = forwardRef(({ onBack, onSuccess, printCopies, setPrintCopi
         zIndex: 10
       }}
     >
-      {/* EDITORIAL TELEMETRY HUD */}
-      <div className={styles.telemetryHud}>
-        <div className={styles.telemetryRow}>
-          <span className={styles.telemetryLabel}>{t('optics')}</span>
-          <div className={styles.telemetryValueGroup}>
-            <span className={styles.telemetryValue}>
-              {StatusService.camera === 'ready' ? t('calibratedReady') : t('sensorMalfunction')}
-            </span>
-            <div className={`${styles.ledDot} ${StatusService.camera === 'ready' ? styles.ledHealthy : styles.ledWarning}`}></div>
-          </div>
-        </div>
-
-        <div className={styles.telemetryRow}>
-          <span className={styles.telemetryLabel}>{t('printMedia')}</span>
-          <div className={styles.telemetryValueGroup}>
-            <span className={styles.telemetryValue}>
-              {StatusService.printer === 'ready' ? `85% ${t('capacity')}` : t('mediaDepleted')}
-            </span>
-            <div className={`${styles.ledDot} ${StatusService.printer === 'ready' ? styles.ledHealthy : styles.ledWarning}`}></div>
-          </div>
-        </div>
-      </div>
 
       {/* PANEL KIRI: Kendali & Instruksi */}
       <div ref={leftPanelRef} className="panel-left">
@@ -253,14 +231,14 @@ const PaymentScreen = forwardRef(({ onBack, onSuccess, printCopies, setPrintCopi
 
         {/* Floating Language Switcher */}
         <div className={styles.langToggleContainer}>
-          <button 
+          <button
             className={`${styles.langBtn} ${language === 'EN' ? styles.active : ''}`}
             onClick={() => setLanguage('EN')}
           >
             EN
           </button>
           <span className={styles.langDivider}>/</span>
-          <button 
+          <button
             className={`${styles.langBtn} ${language === 'ID' ? styles.active : ''}`}
             onClick={() => setLanguage('ID')}
           >
@@ -383,9 +361,9 @@ const PaymentScreen = forwardRef(({ onBack, onSuccess, printCopies, setPrintCopi
             </div>
           </div>
 
-          <button className={`btn-tier-1 ${styles.confirmBtn}`} onClick={handleConfirmCheckout} disabled={isLoading}>
+          <CtaButton className={styles.confirmBtn} onClick={handleConfirmCheckout} disabled={isLoading}>
             {isLoading ? t('pleaseWait') : (bypassMode ? t('payWithOperator') : t('generatePaymentQR'))}
-          </button>
+          </CtaButton>
         </div>
 
         <div className={styles.priceDisplay} style={{ textAlign: 'center' }}>
@@ -410,27 +388,18 @@ const PaymentScreen = forwardRef(({ onBack, onSuccess, printCopies, setPrintCopi
           textAlign: 'center',
           opacity: 0.4
         }}>
-          SYSTEM ID: {kioskId} / TERMINAL: LIVE
+          SYSTEM ID: DEM0 UNIT
         </div>
 
       </div>
 
       {/* DEV CONTROLS */}
       {devMode && (
-        <div style={{ position: 'absolute', bottom: '2rem', right: '2rem', display: 'flex', gap: '0.5rem' }}>
-          <button className="dev-btn" onClick={() => { setCoupon("HYPE20"); validateCoupon(); }}>[DEV] Promo Success</button>
+        <div style={{ position: 'absolute', bottom: '2rem', right: '2rem', display: 'flex', gap: '0.5rem', zIndex: 10000 }}>
+          <button className="dev-btn" onClick={() => { setCoupon("HYPE20"); validateCoupon(); }}>[DEV] Promo OK</button>
           <button className="dev-btn" onClick={() => { setCoupon("WRONG"); validateCoupon(); }}>[DEV] Promo Fail</button>
-          <button className="dev-btn" onClick={handlePaymentSuccess} style={{ color: 'var(--accent-color)' }}>[DEV] Pay Success</button>
+          <button className="dev-btn" onClick={handlePaymentSuccess} style={{ color: 'var(--accent-color)' }}>[DEV] Pay OK</button>
           <button className="dev-btn" onClick={handlePaymentFailed} style={{ color: '#ff4444' }}>[DEV] Pay Fail</button>
-          <button
-            className="dev-btn"
-            onClick={() => {
-              console.log("Mock WebSocket: Paid!");
-              handlePaymentSuccess();
-            }}
-          >
-            [DEV] Websocket TEST-PAYMENT-SUCCESS
-          </button>
         </div>
       )}
 

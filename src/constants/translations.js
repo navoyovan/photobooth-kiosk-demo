@@ -1,7 +1,7 @@
 export const TRANSLATIONS = {
   EN: {
     // PaymentScreen
-    secureWatermark: "Secure",
+    secureWatermark: "SECURE",
     paymentTitle: "Payment",
     stepCopies: "CHOOSE HOW MANY COPIES YOU NEED.",
     stepPayStand: "PAY AT THE PHYSICAL STAND TO ACTIVATE KIOSK.",
@@ -114,11 +114,11 @@ export const TRANSLATIONS = {
     completeLabel: "COMPLETE",
     lastStepLabel: "LAST STEP",
     resumeSessionBtn: "RESUME SESSION",
-    discardResetBtn: "← DISCARD AND RESET"
+    discardResetBtn: "DISCARD AND RESET"
   },
   ID: {
     // PaymentScreen
-    secureWatermark: "Aman",
+    secureWatermark: "AMAN",
     paymentTitle: "Transaksi",
     stepCopies: "TENTUKAN MAU CETAK BERAPA FOTO.",
     stepPayStand: "BAYAR DI KASIR BIAR KIOSK AKTIF.",
@@ -139,7 +139,7 @@ export const TRANSLATIONS = {
     mediaDepleted: "Kertas Habis",
 
     // SelectionScreen
-    selectCanvasWatermark: "PILIH KANVAS LO",
+    selectCanvasWatermark: "PILIH KANVAS",
     frame: "FRAME",
     collage: "KOLASE",
     previewTapDismiss: "[ PRATINJAU ] — KETUK DI LUAR BUAT KELUAR",
@@ -231,6 +231,6 @@ export const TRANSLATIONS = {
     completeLabel: "SELESAI",
     lastStepLabel: "LANGKAH TERAKHIR",
     resumeSessionBtn: "LANJUT SESI",
-    discardResetBtn: "← MULAI BARU AJA"
+    discardResetBtn: "MULAI BARU AJA"
   }
 };
