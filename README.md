@@ -31,3 +31,12 @@ Not included:
 ## Technology
 
 Built as a demonstration of interactive kiosk experiences, combining frontend interaction, image processing, and digital content delivery.
+
+## Screenshots
+
+[]
+
+## License
+
+This project is available under the Hypebox Demo License.
+See LICENSE
