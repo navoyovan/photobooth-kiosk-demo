@@ -1,6 +1,6 @@
-# Hypebox Demo
+# Hype-box Demo
 
-A self-contained photobooth experience demo built to showcase the core experience behind **Hypebox** — a modern digital photobooth platform.
+A self-contained photobooth experience demo built to showcase the core experience behind **Hype-box**: a modern digital photobooth platform.
 
 Capture photos, apply layouts, generate photostrips, and share the result through QR download.
 
@@ -38,5 +38,5 @@ Built as a demonstration of interactive kiosk experiences, combining frontend in
 
 ## License
 
-This project is available under the Hypebox Demo License.
+This project is available under the Hype-box Demo License.
 See LICENSE
