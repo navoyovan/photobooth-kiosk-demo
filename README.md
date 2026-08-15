@@ -1,5 +1,7 @@
 # Hype-box Demo
 
+![Interface Screen 1](public/assets/tist.png)
+
 A self-contained photobooth experience demo built to showcase the core experience behind **Hype-box**: a modern digital photobooth platform.
 
 Capture photos, apply layouts, generate photostrips, and share the result through QR download.
@@ -33,7 +35,6 @@ Built as a demonstration of interactive kiosk experiences, combining frontend in
 
 ## Screenshots
 
-![Interface Screen 1](public/assets/tist.png)
 ![Interface Screen 2](public/assets/tast.png)
 ![Interface Screen 3](public/assets/tost.png)
 ![Interface Screen 4](public/assets/tust.png)
