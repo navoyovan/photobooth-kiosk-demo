@@ -33,7 +33,10 @@ Built as a demonstration of interactive kiosk experiences, combining frontend in
 
 ## Screenshots
 
-[]
+![Interface Screen 1](public/assets/tist.png)
+![Interface Screen 2](public/assets/tust.png)
+![Interface Screen 3](public/assets/tost.png)
+![Interface Screen 4](public/assets/tast.png)
 
 ## License
 

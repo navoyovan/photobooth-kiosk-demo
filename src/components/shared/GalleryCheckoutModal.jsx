@@ -3,7 +3,55 @@ import { animate, createTimeline } from 'animejs';
 import styles from './GalleryCheckoutModal.module.css';
 import { getBackendUrl } from '../../utils/kioskId';
 import { TRANSLATIONS } from '../../constants/translations';
-import { SecondaryButton, PrimaryButton } from '../../ui';
+import { SecondaryButton, PrimaryButton, CtaButton } from '../../ui';
+
+// ---------------------------------------------------------------------------
+// HYPEBOX DEMO INTRODUCTION SCREEN
+// Rendered in place of the payment UI when mode === 'PAYMENT'.
+// Keeps the modal shell (backdrop + .modal div + entrance/exit animation)
+// but replaces all inner content with the demo intro.
+// ---------------------------------------------------------------------------
+const DemoIntroContent = ({ onStart, onClose, modalRef, successOverlayRef }) => (
+  <div className={styles.demoRoot}>
+    {/* Brand */}
+    <div className={styles.demoBrand}>
+      <span className={styles.demoBrandName}>HYPE-Box</span>
+      <span className={styles.demoBrandSub}>INTERACTIVE PHOTO EXPERIENCE</span>
+    </div>
+
+    {/* Framed preview area — corner-bracket treatment preserved */}
+    <div className={`qr-box ${styles.demoPreviewBox}`} style={{ position: 'relative' }}>
+      <div className="vf-corner tl"></div>
+      <div className="vf-corner tr"></div>
+      <div className="vf-corner bl"></div>
+      <div className="vf-corner br"></div>
+
+      <img
+        src="/assets/payment_qty.png"
+        alt="Sample photo experience preview"
+        className={styles.demoPreviewImg}
+      />
+
+      {/* <span className={styles.demoPreviewLabel}>PREVIEW / 01</span> */}
+    </div>
+
+    {/* Tagline */}
+    <div className={styles.demoTagline}>CAPTURE — CUSTOMIZE — EXPORT</div>
+
+    {/* Actions */}
+    <div className={styles.demoActions}>
+      <CtaButton onClick={onStart} style={{ width: '100%' }}>
+        START EXPERIENCE ↗
+      </CtaButton>
+      <SecondaryButton onClick={onClose} style={{ width: '100%' }}>
+        CANCEL
+      </SecondaryButton>
+    </div>
+
+    {/* Footer system label */}
+    <div className={styles.demoFooter}>DEMO UNIT / SYSTEM 01</div>
+  </div>
+);
 
 const GalleryCheckoutModal = ({ isOpen, onClose, onSuccess, totalPrice, initialPayment = 0, orderId = "ORD-9921", timeLeft, devFreeFlow, setIsTimerPaused, mode = 'PAYMENT', onTimeout, bypassMode = false, language = 'EN' }) => {
   const t = (key) => {
@@ -16,6 +64,7 @@ const GalleryCheckoutModal = ({ isOpen, onClose, onSuccess, totalPrice, initialP
   const [error, setError] = useState(null);
   const [timeoutCountdown, setTimeoutCountdown] = useState(10);
   const [isCountdownPaused, setIsCountdownPaused] = useState(false);
+  const [agreedToUpload, setAgreedToUpload] = useState(true);
   const modalRef = useRef();
   const backdropRef = useRef();
   const qrRef = useRef();
@@ -93,11 +142,10 @@ const GalleryCheckoutModal = ({ isOpen, onClose, onSuccess, totalPrice, initialP
     }
   }, [isOpen, mode, timeoutCountdown, isCountdownPaused]);
 
-  // WebSocket logic (Laravel Reverb Mock)
+  // WebSocket & QR generation logic
   useEffect(() => {
-    if (!isOpen || mode !== 'PAYMENT') return;
-
-    if (bypassMode) {
+    // In PAYMENT mode (Hypebox Intro), CONFIRM mode, or bypass mode, skip QRIS generation
+    if (!isOpen || mode === 'PAYMENT' || mode === 'CONFIRM' || mode === 'TIMEOUT' || bypassMode) {
       setIsLoading(false);
       return;
     }
@@ -124,8 +172,8 @@ const GalleryCheckoutModal = ({ isOpen, onClose, onSuccess, totalPrice, initialP
         const data = await response.json();
         setQrData(data);
       } catch (err) {
-        console.error('Fetch error:', err);
-        setError('Hardware Network Error');
+        // Suppress console error in standalone demo mode and provide mock QR
+        setQrData({ qr_string: "00020101021226580016ID.CO.SHOPEE.WWW01189360091800000000005204581253033605802ID5911HYPEBOX KIOSK6007JAKARTA61051234062070703A016304" });
       } finally {
         setIsLoading(false);
       }
@@ -188,7 +236,7 @@ const GalleryCheckoutModal = ({ isOpen, onClose, onSuccess, totalPrice, initialP
       opacity: 0,
       duration: 800,
       easing: 'linear',
-      onComplete: onSuccess
+      onComplete: () => onSuccess?.(agreedToUpload)
     }, '-=500');
   };
 
@@ -200,6 +248,128 @@ const GalleryCheckoutModal = ({ isOpen, onClose, onSuccess, totalPrice, initialP
 
   if (!active) return null;
 
+  // --- DEMO INTRODUCTION SCREEN (mode === 'PAYMENT') ---
+  // Entirely replaces the payment/QR UI with the Hypebox intro screen.
+  // The backdrop + modal shell + entrance/exit animation are all reused.
+  if (mode === 'PAYMENT') {
+    return (
+      <div
+        ref={backdropRef}
+        className={styles.backdrop}
+        style={{ opacity: 0, pointerEvents: isOpen ? 'auto' : 'none' }}
+      >
+        <div
+          ref={modalRef}
+          className={`${styles.modal} ${styles.demoModal}`}
+          style={{ opacity: 0 }}
+        >
+          <DemoIntroContent
+            onStart={handlePaymentSuccess}
+            onClose={onClose}
+            modalRef={modalRef}
+            successOverlayRef={successOverlayRef}
+          />
+
+          {/* Success Overlay (reused) */}
+          <div
+            ref={successOverlayRef}
+            className={styles.successOverlay}
+            style={{ pointerEvents: 'none' }}
+          >
+            <div className={styles.checkmark}>✓</div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // --- DEMO CONFIRMATION SCREEN (mode === 'CONFIRM') ---
+  if (mode === 'CONFIRM') {
+    return (
+      <div
+        ref={backdropRef}
+        className={styles.backdrop}
+        style={{ opacity: 0, pointerEvents: isOpen ? 'auto' : 'none' }}
+      >
+        <div
+          ref={modalRef}
+          className={`${styles.modal} ${styles.demoModal}`}
+          style={{ opacity: 0 }}
+        >
+          <div className={styles.confirmRoot}>
+            {/* Top Section: Demo Session */}
+            <div className={styles.confirmSection}>
+              <span className={styles.sectionTag}>{t('demoSessionTag')}</span>
+              <h2 className={styles.sectionHeadline}>{t('youreInDemo')}</h2>
+              <p className={styles.sectionBody}>{t('demoUnavailableFeatures')}</p>
+            </div>
+
+            {/* Divider 1 */}
+            <div className={styles.confirmDivider} />
+
+            {/* Middle Section: Digital Delivery */}
+            <div className={styles.confirmSection}>
+              <span className={styles.sectionTag}>{t('digitalDeliveryTitle')}</span>
+              <p className={styles.sectionBody}>{t('digitalDeliveryDesc')}</p>
+
+              {/* Checkbox Consent */}
+              <div 
+                className={styles.consentRow}
+                onClick={() => setAgreedToUpload(!agreedToUpload)}
+              >
+                <span className={`${styles.consentBracket} ${!agreedToUpload ? styles.unticked : ''}`}>
+                  {agreedToUpload ? '[ ■ ]' : '[   ]'}
+                </span>
+                <span className={`${styles.consentText} ${!agreedToUpload ? styles.strikethrough : ''}`}>
+                  {t('agreeUploadConsent')}
+                </span>
+              </div>
+            </div>
+
+            {/* Divider 2 */}
+            <div className={styles.confirmDivider} />
+
+            {/* Bottom Section: Retention Policy */}
+            <div className={styles.confirmSection}>
+              <span className={styles.sectionTag}>{t('retentionPolicyTitle')}</span>
+              <p className={styles.sectionBody}>{t('retentionPolicyDesc')}</p>
+            </div>
+
+            {/* Divider 3 */}
+            <div className={styles.confirmDivider} />
+
+            {/* Actions Block */}
+            <div className={styles.confirmActions}>
+              <CtaButton
+                onClick={handlePaymentSuccess}
+                style={{ width: '100%' }}
+              >
+                {t('continueBtn')}
+              </CtaButton>
+
+              <SecondaryButton
+                onClick={() => handleExit(onClose)}
+                style={{ width: '100%' }}
+              >
+                {t('closeBtn')}
+              </SecondaryButton>
+            </div>
+          </div>
+
+          {/* Success Overlay (reused) */}
+          <div
+            ref={successOverlayRef}
+            className={styles.successOverlay}
+            style={{ pointerEvents: 'none' }}
+          >
+            <div className={styles.checkmark}>✓</div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // --- TIMEOUT MODE (Fallback / Operator) ---
   return (
     <div
       ref={backdropRef}
@@ -213,9 +383,7 @@ const GalleryCheckoutModal = ({ isOpen, onClose, onSuccess, totalPrice, initialP
       >
         {/* Header (Editorial Hook) */}
         <h2 className={styles.header}>
-          {mode === 'PAYMENT' 
-            ? (bypassMode ? t('operatorAuthRequired') : t('acquisitionCertificate')) 
-            : mode === 'TIMEOUT' ? t('sessionTimingOut') : t('confirmPrintOrder')}
+          {mode === 'TIMEOUT' ? t('sessionTimingOut') : t('confirmPrintOrder')}
         </h2>
 
         {/* The Artifact QR Code / Message Box */}
@@ -223,12 +391,6 @@ const GalleryCheckoutModal = ({ isOpen, onClose, onSuccess, totalPrice, initialP
           ref={qrRef}
           className="qr-box"
           style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '240px' }}
-          onClick={(e) => {
-            if (devFreeFlow && e.detail === 2) {
-              console.log("[DevFreeFlow] Double-tap QR skip triggered.");
-              handlePaymentSuccess();
-            }
-          }}
         >
           <div className="vf-corner tl"></div>
           <div className="vf-corner tr"></div>
@@ -236,44 +398,7 @@ const GalleryCheckoutModal = ({ isOpen, onClose, onSuccess, totalPrice, initialP
           <div className="vf-corner br"></div>
           <div className="boundary-dashed-line-visual"></div>
 
-          {mode === 'PAYMENT' ? (
-            bypassMode ? (
-              <div className="bypass-operator-display" style={{ textAlign: 'center', padding: '1.5rem' }}>
-                <div style={{ fontSize: '3rem', marginBottom: '0.8rem', animation: 'pulse 1.5s infinite' }}>🛎️</div>
-                <div style={{ fontSize: '1rem', fontWeight: 800, fontFamily: 'Space Grotesk', color: '#ffaa00', letterSpacing: '0.05rem', marginBottom: '0.4rem' }}>
-                  {t('manualPaymentBypass')}
-                </div>
-                <p style={{ fontSize: '0.8rem', opacity: 0.7, maxWidth: '280px', margin: '0 auto', lineHeight: '1.4', color: '#111' }}>
-                  {t('pleasePayOperator').replace('{amount}', (totalPrice - initialPayment).toLocaleString())}
-                </p>
-                <div style={{ fontSize: '0.65rem', color: '#ffaa00', fontWeight: 700, marginTop: '0.8rem', letterSpacing: '0.1rem' }}>
-                  {t('operatorAccessRequired')}
-                </div>
-              </div>
-            ) : isLoading ? (
-              <div className="spinner-sleek animate-spin" style={{
-                width: '40px',
-                height: '40px',
-                border: '3px solid rgba(0,0,0,0.1)',
-                borderTopColor: '#111',
-                borderRadius: '50%',
-                margin: 'auto'
-              }}></div>
-            ) : error ? (
-              <div className="payment-error-state" style={{ textAlign: 'center', padding: '2rem' }}>
-                <div style={{ fontSize: '2.5rem', marginBottom: '1.5rem' }}>⚠️</div>
-                <span className="qr-placeholder-text" style={{ fontSize: '0.75rem', fontWeight: 600, color: "#ff4444", letterSpacing: '0.1rem', fontFamily: 'Space Grotesk' }}>
-                  {t('hardwareNetworkError').toUpperCase()}
-                </span>
-              </div>
-            ) : (
-              <img
-                src={qrData?.qr_url}
-                alt="Artifact QR"
-                className={styles.qrImage}
-              />
-            )
-          ) : mode === 'TIMEOUT' ? (
+          {mode === 'TIMEOUT' ? (
             <div className="timeout-countdown-display" style={{ textAlign: 'center' }}>
               <div style={{ fontSize: '5rem', fontWeight: 900, fontFamily: 'Neue Machina', color: '#ff4444', lineHeight: 1 }}>
                 {timeoutCountdown}
@@ -294,41 +419,20 @@ const GalleryCheckoutModal = ({ isOpen, onClose, onSuccess, totalPrice, initialP
           )}
         </div>
 
-        {/* Summary (Minimalist & Clear) */}
-        {(totalPrice - initialPayment > 0) && (
-          <div className={styles.summary}>
-            <span className={styles.label}>
-              {t('acquisitionValue')}
-            </span>
-            <span className={styles.value}>
-              Rp {(qrData?.amount || (totalPrice - initialPayment)).toLocaleString()}
-            </span>
-          </div>
-        )}
-
         {/* Expiry Indicator */}
         <div className={styles.expiry}>
-          {mode === 'PAYMENT' ? (bypassMode ? t('verifyCustomerPayment') : t('qrValidUntil').replace('{time}', formatTime(timeLeft))) :
-            mode === 'TIMEOUT' ? t('printNowPreventLoss') :
-              t('additionalPrintsAdded')}
+          {mode === 'TIMEOUT' ? t('printNowPreventLoss') : t('additionalPrintsAdded')}
         </div>
 
         {/* Execute Block */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', width: '100%', marginTop: 'auto' }}>
-          {(mode !== 'PAYMENT' || bypassMode) && (
-            <PrimaryButton
-              ref={primaryBtnRef}
-              onClick={handlePaymentSuccess}
-              style={{
-                width: '100%',
-                ...(bypassMode && mode === 'PAYMENT' ? { background: '#ffaa00', color: '#000000' } : {})
-              }}
-            >
-              {mode === 'TIMEOUT' ? t('confirmPrintNow') :
-               mode === 'PAYMENT' ? (initialPayment === 0 ? t('authorizeStartSession') : t('authorizePrint')) :
-               t('yesConfirmPrint')}
-            </PrimaryButton>
-          )}
+          <PrimaryButton
+            ref={primaryBtnRef}
+            onClick={handlePaymentSuccess}
+            style={{ width: '100%' }}
+          >
+            {mode === 'TIMEOUT' ? t('confirmPrintNow') : t('yesConfirmPrint')}
+          </PrimaryButton>
 
           <SecondaryButton
             onClick={() => handleExit(onClose)}

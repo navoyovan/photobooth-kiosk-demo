@@ -4,7 +4,7 @@ import { animate, createTimeline } from 'animejs';
 const IdleScreen = ({
   onNext,
   onTransitionStart,
-  brandText = 'Hype - Box',
+  brandText = 'HYPE-BOX',
   brandTextScale = '100',
 }) => {
   const screenRef = useRef();

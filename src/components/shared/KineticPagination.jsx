@@ -4,7 +4,7 @@ import { SecondaryButton } from '../../ui';
 
 const STEPS = ['Welcome', '01', '02', '03', '04', 'Pending', '05'];
 const PHASES = [
-  { id: 'PYMT', steps: [1] },
+  { id: 'HELO', steps: [1] },
   { id: 'CNVS', steps: [2] },
   { id: 'CPTR', steps: [3] },
   { id: 'PRNT', steps: [4, 5] }
@@ -56,17 +56,15 @@ const KineticPagination = ({ currentStep, subState, isVisible, onBack, backLabel
     });
   }, [isVisible, !!onBack, backLabel]);
 
-  // 3. PHASE ITEMS (Staggered animation only when visible)
+  // 3. PHASE ITEMS (Staggered translation without overriding CSS opacity)
   useEffect(() => {
     if (!isVisible) return;
 
-    const phaseItems = containerRef.current.querySelectorAll(".phase-item");
-    if (phaseItems.length > 0) {
-      animate(phaseItems, {
-        translateX: [10, 0],
-        opacity: [0, 1],
+    const tracker = containerRef.current.querySelector(".kinetic-phase-tracker");
+    if (tracker) {
+      animate(tracker, {
+        translateX: [15, 0],
         duration: 600,
-        delay: stagger(50),
         easing: 'easeOutQuad'
       });
     }

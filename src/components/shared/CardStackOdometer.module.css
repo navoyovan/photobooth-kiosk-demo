@@ -1,0 +1,280 @@
+/* Shared CardStackOdometer Module Styles */
+
+.combinedContainer {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+
+/* =========================================================================
+   1. ODOMETER STEPPER
+   ========================================================================= */
+
+.qtyEngineAxis {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.8rem;
+  user-select: none;
+  z-index: 20;
+}
+
+.qtyEngineAxis.standaloneLarge {
+  position: absolute;
+  left: 6rem;
+  top: 50%;
+  transform: translateY(-50%);
+  gap: 1.5rem;
+  opacity: 0; /* Entrance timeline handles opacity */
+}
+
+@keyframes accentPulseLight {
+  0%, 100% {
+    color: rgba(0, 0, 0, 0.5);
+  }
+  50% {
+    color: var(--accent-color, #00ffff);
+  }
+}
+
+@keyframes accentPulseDark {
+  0%, 100% {
+    color: rgba(255, 255, 255, 0.6);
+  }
+  50% {
+    color: var(--accent-color, #00ffff);
+  }
+}
+
+.qtyStepperBtn {
+  font-family: 'Syne', sans-serif;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  line-height: 1;
+  transition: color 0.2s, transform 0.2s;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Theme: Light */
+.themeLight .qtyStepperBtn {
+  font-size: 3rem;
+  color: rgba(0, 0, 0, 0.5);
+  animation: accentPulseLight 2s infinite ease-in-out;
+}
+.themeLight .qtyStepperBtn:hover:not(:disabled) {
+  color: #000000;
+  animation-play-state: paused;
+}
+.themeLight .qtyStepperBtn:active:not(:disabled) {
+  color: var(--accent-color, #00ffff);
+  transform: scale(1.15);
+}
+
+/* Theme: Dark */
+.themeDark .qtyStepperBtn {
+  font-size: 4rem;
+  color: rgba(255, 255, 255, 0.6);
+  padding: 0.5rem;
+  animation: accentPulseDark 2s infinite ease-in-out;
+}
+.themeDark .qtyStepperBtn:hover:not(:disabled) {
+  color: #ffffff;
+  animation-play-state: paused;
+}
+.themeDark .qtyStepperBtn:active:not(:disabled) {
+  color: var(--accent-color, #00ffff);
+  transform: scale(1.1);
+}
+
+.qtyStepperBtn:disabled {
+  opacity: 0.2;
+  cursor: not-allowed;
+  animation: none;
+}
+
+/* Odometer Window & Tape */
+.qtyOdometerWindow {
+  overflow: hidden;
+  position: relative;
+  display: flex;
+  justify-content: center;
+  touch-action: none;
+  cursor: grab;
+  user-select: none;
+}
+
+.qtyOdometerWindow:active,
+.qtyOdometerWindow.isDragging {
+  cursor: grabbing;
+}
+
+.sizeCompact .qtyOdometerWindow {
+  height: 100px;
+  width: 250px;
+}
+
+.sizeLarge .qtyOdometerWindow {
+  height: 140px;
+  width: 300px;
+}
+
+.qtyOdometerTape {
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.45s cubic-bezier(0.23, 1, 0.32, 1);
+  width: 100%;
+  pointer-events: none;
+}
+
+.qtyOdometerDigit {
+  font-family: 'Syne', sans-serif;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  margin: 0;
+}
+
+@keyframes pulseSoftLocal {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
+}
+
+.themeLight .qtyOdometerDigit {
+  color: #111111;
+  animation: pulseSoftLocal 2s infinite ease-in-out;
+}
+
+.themeDark .qtyOdometerDigit {
+  color: #FFFFFF;
+  mix-blend-mode: difference;
+  animation: pulseSoftLocal 2s infinite ease-in-out;
+}
+
+.sizeCompact .qtyOdometerDigit {
+  font-size: 6rem;
+  line-height: 100px;
+  height: 100px;
+}
+
+.sizeLarge .qtyOdometerDigit {
+  font-size: 8rem;
+  line-height: 140px;
+  height: 140px;
+}
+
+/* =========================================================================
+   2. UNO CARD STACK
+   ========================================================================= */
+
+.unoVisualAxis {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.unoVisualAxisDark {
+  opacity: 0; /* Animated by entrance layout in checkout */
+}
+
+.unoVisualFloat {
+  animation: floatingUno 6s ease-in-out infinite;
+}
+
+.sizeCompact .unoVisualFloat {
+  animation: floatingUnoCompact 5s ease-in-out infinite;
+}
+
+@keyframes floatingUno {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-20px);
+  }
+}
+
+@keyframes floatingUnoCompact {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+.noFloat {
+  animation: none !important;
+  transform: translateY(0) !important;
+}
+
+.unoStackContainer {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  will-change: transform;
+}
+
+.sizeCompact .unoStackContainer {
+  width: 250px;
+  height: 350px;
+}
+
+.sizeLarge .unoStackContainer {
+  /* Fits fluid viewport in checkout */
+  position: relative;
+}
+
+.unoCard {
+  position: absolute;
+  background: transparent;
+  border: none;
+  transform-origin: center center;
+  transition: transform 0.65s cubic-bezier(0.16, 1, 0.3, 1), filter 0.4s ease, opacity 0.35s ease;
+  will-change: transform, opacity, filter;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Compact Card (Payment/Initiate) */
+.sizeCompact .unoCard {
+  height: 350px;
+  width: auto;
+  box-shadow: none;
+}
+
+.sizeCompact .unoCard img {
+  height: 350px;
+  width: auto;
+  display: block;
+  filter: drop-shadow(0 14px 25px rgba(0, 0, 0, 0.12));
+}
+
+/* Large Card (Checkout/Darkroom) */
+.sizeLarge .unoCard {
+  box-shadow: 0 50px 120px rgba(0, 0, 0, 0.25);
+}
+
+.sizeLarge .unoCard img {
+  max-height: 75vh;
+  max-width: 50vw;
+  width: auto;
+  height: auto;
+  display: block;
+}

@@ -6,7 +6,7 @@ import { TRANSLATIONS } from '../../constants/translations';
 import { CtaButton, SecondaryButton } from '../../ui';
 
 
-const SessionRecoveryModal = ({ isOpen, onContinue, onDiscard, sessionData, language = 'EN' }) => {
+const SessionRecoveryModal = ({ isOpen, onContinue, onDiscard, sessionData, savedSession, language = 'EN' }) => {
   const t = (key) => {
     return TRANSLATIONS[language]?.[key] || TRANSLATIONS['EN']?.[key] || key;
   };
@@ -58,9 +58,10 @@ const SessionRecoveryModal = ({ isOpen, onContinue, onDiscard, sessionData, lang
 
   if (!active) return null;
 
-  const { capturedPhotos = [], selectedFrame, currentStep } = sessionData;
+  const data = sessionData || savedSession || {};
+  const { capturedPhotos = [], selectedFrame = null, currentStep = 1 } = data;
   const totalSlots = selectedFrame?.slots || 1;
-  const photosTaken = capturedPhotos.filter(p => !!p).length;
+  const photosTaken = Array.isArray(capturedPhotos) ? capturedPhotos.filter(p => !!p).length : 0;
 
   const filledPhotos = Array.from({ length: totalSlots }).map((_, i) => capturedPhotos[i] || '/taken_pic/default.png');
   const layout = selectedFrame ? getFrameLayout(selectedFrame) : [];
@@ -141,7 +142,7 @@ const SessionRecoveryModal = ({ isOpen, onContinue, onDiscard, sessionData, lang
         </div>
 
         <div className={styles.footer}>
-          CERTIFICATE_ID: {sessionData.timestamp} // AUTH_HANDSHAKE: OK
+          CERTIFICATE_ID: {data?.timestamp || Date.now()} // AUTH_HANDSHAKE: OK
         </div>
       </div>
     </div>

@@ -14,13 +14,13 @@ import ExportScreen from './components/screens/05-Export';
 import OutroScreen from './components/screens/06-Outro';
 
 import KineticPagination from './components/shared/KineticPagination';
-import KioskIdentitySetup from './components/shared/KioskIdentitySetup';
 import CommunityGalleryModal from './components/shared/CommunityGalleryModal';
 import { useKioskBoot } from './hooks/useKioskBoot';
 import { FRAME_TYPES, DEFAULT_FRAME } from './constants/frames';
 import { getKioskId, getMachineUUID, syncKioskConfig } from './utils/kioskId';
-import { PrimaryButton, CtaButton, SecondaryButton } from './ui';
+import { PrimaryButton, CtaButton, SecondaryButton, SquareWaveLoader } from './ui';
 import PrintCalibrationSheet from './components/shared/PrintCalibrationSheet';
+import exportStyles from './components/screens/05-Export.module.css';
 
 
 
@@ -51,11 +51,11 @@ export default function App() {
   const [finalImage, setFinalImage] = useState(null);
   const [amountPaid, setAmountPaid] = useState(0);
   const [isOutroExiting, setIsOutroExiting] = useState(false);
-  const [isSetupOpen, setIsSetupOpen] = useState(false);
   const [showGallery, setShowGallery] = useState(false);
   const [isMaintenanceLocked, setIsMaintenanceLocked] = useState(false);
   const [isMaintenanceExiting, setIsMaintenanceExiting] = useState(false);
   const [isDonating, setIsDonating] = useState(true);
+  const [allowCloudUpload, setAllowCloudUpload] = useState(true);
 
   // Advanced Nerd Printer HUD States
   const [isPrinterDevOpen, setIsPrinterDevOpen] = useState(false);
@@ -63,8 +63,8 @@ export default function App() {
   const [devPrintScale, setDevPrintScale] = useState(localStorage.getItem('PHOTOBOOTH_PRINT_SCALE') || '100');
   const [devPrintRotation, setDevPrintRotation] = useState(localStorage.getItem('PHOTOBOOTH_PRINT_ROTATION') || '0');
 
-  const [idleBrandText, setIdleBrandText] = useState(localStorage.getItem('PHOTOBOOTH_IDLE_BRAND_TEXT') || 'Hype - Box');
-  const [idleBrandTextScale, setIdleBrandTextScale] = useState(localStorage.getItem('PHOTOBOOTH_IDLE_BRAND_TEXT_SCALE') || '100');
+  const [idleBrandText, setIdleBrandText] = useState('HYPE-BOX');
+  const [idleBrandTextScale, setIdleBrandTextScale] = useState('100');
   const [isBrandingDevOpen, setIsBrandingDevOpen] = useState(false);
 
   // Telemetry HUD Animation Logic
@@ -89,26 +89,27 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    const el = document.querySelector('.telemetry-anchor-top-right');
+    if (!el) return;
+
     if (isTelemetryVisible) {
-      animate('.telemetry-anchor-top-right', {
+      animate(el, {
         translateX: [100, 0],
         opacity: [0, 1],
         duration: 800,
         easing: 'easeOutCubic',
         onBegin: () => {
-          const el = document.querySelector('.telemetry-anchor-top-right');
-          if (el) el.style.pointerEvents = 'auto';
+          el.style.pointerEvents = 'auto';
         }
       });
     } else {
-      animate('.telemetry-anchor-top-right', {
+      animate(el, {
         translateX: 100,
         opacity: 0,
         duration: 600,
         easing: 'easeInCubic',
         onComplete: () => {
-          const el = document.querySelector('.telemetry-anchor-top-right');
-          if (el) el.style.pointerEvents = 'none';
+          el.style.pointerEvents = 'none';
         }
       });
     }
@@ -230,7 +231,7 @@ export default function App() {
   useEffect(() => {
     syncKioskConfig();
     const handleKeydown = (e) => {
-      if (e.key.toLowerCase() === 'p') {
+      if (e.key === '`') {
         setDevMode(prev => {
           const next = !prev;
           if (next) {
@@ -338,6 +339,7 @@ export default function App() {
     if (data.sessionTime !== undefined) setSessionTime(data.sessionTime);
     if (data.transactionTime !== undefined) setTransactionTime(data.transactionTime);
     if (data.sessionHash) setSessionHash(data.sessionHash);
+    setIsCheckoutModalOpen(false);
 
     // Analyze Progress to Set Destination
     const hasRealPhotos = data.capturedPhotos && data.capturedPhotos.some(p => p && !p.includes('default.png'));
@@ -468,7 +470,6 @@ export default function App() {
 
   return (
     <div ref={appRef} className="app-wrapper" style={{ position: 'relative', width: '100vw', height: '100vh' }}>
-      <KioskIdentitySetup forceShow={isSetupOpen} onClose={() => setIsSetupOpen(false)} />
       <CommunityGalleryModal isOpen={showGallery} onClose={() => setShowGallery(false)} />
 
       <FloatingPhotos
@@ -486,11 +487,11 @@ export default function App() {
         subState={captureSubState}
         isVisible={currentStep > 0 && currentStep < 6 && !isMaintenanceLocked}
         backLabel={
-          currentStep === 1 ? 'Cancel Session' :
+          currentStep === 1 ? (isCheckoutModalOpen ? null : 'Cancel Session') :
             currentStep === 3 ? (captureSubState === 'compositing' ? 'Retake Photos' : 'Change Frame') :
               currentStep === 4 ? ((isCheckoutModalOpen || sessionTime <= 0) ? null : 'Back to Editing') : null
         }
-        onBack={(currentStep === 1 || currentStep === 3 || (currentStep === 4 && !isCheckoutModalOpen && sessionTime > 0)) ? () => {
+        onBack={((currentStep === 1 && !isCheckoutModalOpen) || currentStep === 3 || (currentStep === 4 && !isCheckoutModalOpen && sessionTime > 0)) ? () => {
           if (currentStep === 1) {
             paymentRef.current?.exit();
           }
@@ -530,13 +531,8 @@ export default function App() {
 
       {/* DEV MODE GLOBAL INDICATOR */}
       {devMode && (
-        <div className="dev-mode-indicator-group" style={{ pointerEvents: 'none', zIndex: 2147483647, position: 'fixed', top: '2rem', left: '2rem' }}>
+        <div className="dev-mode-indicator-group" style={{ pointerEvents: 'none', zIndex: 2147483647, position: 'fixed', top: '2rem', left: '2rem', alignItems: 'flex-start', textAlign: 'left' }}>
           <div className="dev-mode-indicator">Diagnostics Mode — {kioskData?.vendor_name || 'MASTER'}</div>
-          {localStorage.getItem('machine_token') ? (
-            <div className="dev-mode-indicator status-tag registered">REGISTRATION: AUTHORIZED [{kioskData?.readable_id || 'LOCAL'}]</div>
-          ) : (
-            <div className="dev-mode-indicator status-tag pending">REGISTRATION: PENDING_ACTIVATION</div>
-          )}
 
           {/* NERD CONFIGURATION CONTROLS */}
           <div className="dev-mode-indicator" style={{ marginTop: '0.5rem', backgroundColor: '#111', border: '1px solid #222', pointerEvents: 'auto' }}>
@@ -630,10 +626,7 @@ export default function App() {
                   <input
                     type="text"
                     value={idleBrandText}
-                    onChange={(e) => {
-                      setIdleBrandText(e.target.value);
-                      localStorage.setItem('PHOTOBOOTH_IDLE_BRAND_TEXT', e.target.value);
-                    }}
+                    onChange={(e) => setIdleBrandText(e.target.value)}
                     style={{ backgroundColor: '#000', border: '1px solid #333', color: '#fff', fontSize: '0.6rem', fontFamily: 'monospace', padding: '2px 4px', width: '130px', textAlign: 'right' }}
                   />
                 </div>
@@ -646,10 +639,7 @@ export default function App() {
                     min="50"
                     max="200"
                     value={idleBrandTextScale}
-                    onChange={(e) => {
-                      setIdleBrandTextScale(e.target.value);
-                      localStorage.setItem('PHOTOBOOTH_IDLE_BRAND_TEXT_SCALE', e.target.value);
-                    }}
+                    onChange={(e) => setIdleBrandTextScale(e.target.value)}
                     style={{ flex: 1 }}
                   />
                 </div>
@@ -680,25 +670,6 @@ export default function App() {
                     AUTHORIZE
                   </button>
                 )}
-                <button
-                  className={`telemetry-dev-skip-minimal ${devFreeFlow ? 'active' : ''}`}
-                  onClick={() => setDevFreeFlow(!devFreeFlow)}
-                  style={{ color: devFreeFlow ? '#00FF00' : '#FF0000', borderColor: devFreeFlow ? '#00FF00' : '#FF0000' }}
-                >
-                  FREE_FLOW: {devFreeFlow ? 'ON' : 'OFF'}
-                </button>
-                <button
-                  className={`telemetry-dev-skip-minimal ${bypassMode ? 'active' : ''}`}
-                  onClick={() => {
-                    const next = !bypassMode;
-                    setBypassMode(next);
-                    localStorage.setItem('PHOTOBOOTH_BYPASS_MODE', next ? 'true' : 'false');
-                  }}
-                  style={{ color: bypassMode ? '#ffaa00' : '#888', borderColor: bypassMode ? '#ffaa00' : '#333' }}
-                >
-                  BYPASS: {bypassMode ? 'ON' : 'OFF'}
-                </button>
-                <button className="telemetry-dev-skip-minimal" onClick={() => setIsSetupOpen(true)}>SETUP</button>
                 <button className="telemetry-dev-skip-minimal" onClick={() => setShowGallery(true)} style={{ color: '#00FFFF', borderColor: '#00FFFF' }}>GALLERY</button>
                 <button className="telemetry-dev-skip-minimal exit" onClick={handleAbort}>END</button>
               </>
@@ -707,10 +678,24 @@ export default function App() {
         </div>
       )}
 
-      {/* DEV MODE 3 BUTTONS (BOTTOM-RIGHT) */}
+      {/* DEV MODE 3 BUTTONS & QR BOX PREVIEW (BOTTOM-RIGHT) */}
       {devMode && (
         <>
-          <div style={{ position: 'absolute', bottom: '6.5rem', right: '2rem', zIndex: 10001, display: 'flex', flexDirection: 'column', gap: '0.8rem', pointerEvents: 'auto' }}>
+          {/* QR LOADING BOX PREVIEW */}
+          <div style={{ position: 'fixed', bottom: '2rem', right: '19rem', zIndex: 10001, pointerEvents: 'auto' }}>
+            <div className="qr-box" style={{ width: '160px', height: '160px', margin: 0, position: 'relative', background: '#FFFFFF', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.2)' }}>
+              <div className="vf-corner tl"></div>
+              <div className="vf-corner tr"></div>
+              <div className="vf-corner bl"></div>
+              <div className="vf-corner br"></div>
+              <div className={exportStyles.qrContainer}>
+                <SquareWaveLoader color="#111111" size={12} gap={8} />
+              </div>
+            </div>
+          </div>
+
+          {/* PRIMARY & CTA BUTTONS */}
+          <div style={{ position: 'fixed', bottom: '6.5rem', right: '2rem', zIndex: 10001, display: 'flex', flexDirection: 'column', gap: '0.8rem', pointerEvents: 'auto' }}>
             <PrimaryButton>
               PRIMARY
             </PrimaryButton>
@@ -719,7 +704,8 @@ export default function App() {
             </CtaButton>
           </div>
 
-          <div style={{ position: 'absolute', bottom: '2rem', right: '2rem', zIndex: 10001, pointerEvents: 'auto', mixBlendMode: 'difference', color: '#FFFFFF' }}>
+          {/* SECONDARY BUTTON WITH DIRECT DIFFERENCE BLEND */}
+          <div style={{ position: 'fixed', bottom: '2rem', right: '2rem', zIndex: 10001, pointerEvents: 'auto', mixBlendMode: 'difference', color: '#FFFFFF' }}>
             <SecondaryButton>
               SECONDARY
             </SecondaryButton>
@@ -757,6 +743,7 @@ export default function App() {
               ref={paymentRef}
               onBack={handleReset}
               onSuccess={(paid) => {
+                setIsCheckoutModalOpen(false);
                 setAmountPaid(paid);
                 setInitialCopies(printCopies);
                 startPageTransition(() => setCurrentStep(2));
@@ -774,6 +761,8 @@ export default function App() {
               bypassMode={bypassMode}
               language={language}
               setLanguage={setLanguage}
+              isCheckoutOpen={isCheckoutModalOpen}
+              setIsCheckoutOpen={setIsCheckoutModalOpen}
             />
           )}
 
@@ -820,6 +809,7 @@ export default function App() {
               onFinish={(img) => {
                 setFinalImage(img);
                 setOutroType('NORMAL');
+                setIsCheckoutModalOpen(false);
                 setCurrentStep(4);
               }}
               setCaptureSubState={setCaptureSubState}
@@ -844,7 +834,10 @@ export default function App() {
               setIsCheckoutOpen={setIsCheckoutModalOpen}
               transactionTime={transactionTime}
               amountPaid={amountPaid}
-              onNext={() => setCurrentStep(5)}
+              onNext={(agreed) => {
+                setAllowCloudUpload(agreed !== false);
+                setCurrentStep(5);
+              }}
               devFreeFlow={devFreeFlow}
               setIsTimerPaused={setIsTimerPaused}
               checkoutMode={checkoutMode}
@@ -870,6 +863,7 @@ export default function App() {
               sessionHash={sessionHash}
               selectedFrame={selectedFrame}
               language={language}
+              allowCloudUpload={allowCloudUpload}
             />
           )}
 

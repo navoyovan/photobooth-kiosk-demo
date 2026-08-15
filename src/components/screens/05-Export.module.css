@@ -108,24 +108,32 @@
 .bracket {
   font-family: monospace;
   font-size: 1rem;
-  color: rgba(255, 255, 255, 0.3);
+  color: rgba(255, 255, 255, 0.4);
   font-weight: 900;
   min-width: 30px;
+  transition: all 0.2s ease;
 }
 
 .isDonating .bracket {
-  color: var(--accent-color, #f86910);
-  text-shadow: 0 0 15px rgba(248, 105, 16, 0.4);
+  color: #FFFFFF;
+  text-shadow: none;
 }
 
 .donateLabel {
   font-family: 'Space Grotesk', monospace;
   font-size: 0.75rem;
-  color: rgba(255, 255, 255, 0.6);
+  color: rgba(255, 255, 255, 0.4);
   letter-spacing: 0.1em;
   font-weight: 600;
-  transition: color 0.2s ease;
+  transition: all 0.2s ease;
   white-space: nowrap;
+}
+
+.donateLabel.strikethrough {
+  text-decoration: line-through;
+  text-decoration-color: rgba(255, 255, 255, 0.6);
+  text-decoration-thickness: 1.5px;
+  color: rgba(255, 255, 255, 0.35);
 }
 
 .isDonating .donateLabel {
@@ -163,7 +171,7 @@
   color: #08080c;
   font-family: 'Space Grotesk', monospace;
   font-size: 0.8rem;
-  fontWeight: bold;
+  font-weight: bold;
   letter-spacing: 0.1em;
   text-align: center;
   padding: 1rem;
@@ -189,6 +197,7 @@
   border: 3px solid rgba(0, 0, 0, 0.05);
   border-top: 3px solid #00ffff;
   border-radius: 50%;
+  animation: spin 1s linear infinite;
 }
 
 .loadingLabel {
@@ -202,4 +211,60 @@
   text-transform: uppercase;
   color: #ef4444;
   font-weight: 700;
+}
+
+/* -------------------------------------------------------------------------
+   OPTED-OUT / DISABLED CLOUD UPLOAD QR BOX
+   ------------------------------------------------------------------------- */
+.disabledQrBox {
+  border: 2px solid #ff3b30 !important;
+  box-shadow: 0 0 25px rgba(255, 59, 48, 0.25) !important;
+  background: #FFFFFF !important;
+  position: relative !important;
+  overflow: hidden !important;
+}
+
+.disabledCrossOverlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-color: rgba(255, 255, 255, 0.05);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100%25' height='100%25'%3E%3Cline x1='0' y1='0' x2='100%25' y2='100%25' stroke='%23ff3b30' stroke-width='2' stroke-linecap='square'/%3E%3Cline x1='0' y1='100%25' x2='100%25' y2='0' stroke='%23ff3b30' stroke-width='2' stroke-linecap='square'/%3E%3C/svg%3E");
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  z-index: 10;
+}
+
+.disabledContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  width: 100%;
+  height: 100%;
+  padding: 1.5rem;
+  text-align: center;
+  z-index: 5;
+  box-sizing: border-box;
+}
+
+.disabledTag {
+  font-family: 'Space Grotesk', monospace;
+  font-size: 0.65rem;
+  font-weight: 800;
+  color: #ff3b30;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  background: rgba(255, 59, 48, 0.1);
+  border: 1px solid rgba(255, 59, 48, 0.3);
+  padding: 0.2rem 0.6rem;
+}
+
+.disabledSub {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 0.68rem;
+  color: #777777;
+  line-height: 1.4;
+  max-width: 180px;
 }

@@ -1,14 +1,16 @@
-import React, { useState, useRef, useEffect, forwardRef, useImperativeHandle } from 'react';
-import { animate, createTimeline, stagger } from 'animejs';
+import React, { useState, useRef, useEffect, useLayoutEffect, forwardRef, useImperativeHandle } from 'react';
+import { animate, createTimeline } from 'animejs';
 import { exitEditorialLayout } from '../../utils/transitions';
 import { entranceEditorialLayout } from '../../utils/transitions';
 import GalleryCheckoutModal from '../shared/GalleryCheckoutModal';
 import SessionRecoveryModal from '../shared/SessionRecoveryModal';
+import CardStackOdometer from '../shared/CardStackOdometer';
+import InfoModal from '../shared/InfoModal';
 import { CtaButton } from '../../ui';
 import { TRANSLATIONS } from '../../constants/translations';
 import styles from './01-Payment.module.css';
 
-const PaymentScreen = forwardRef(({ onBack, onSuccess, printCopies, setPrintCopies, timerDisplay, transactionTime, devMode = false, setIsTimerPaused, kioskId, devFreeFlow, onRestoreSession, selectedFrame, bypassMode = false, language = 'EN', setLanguage }, ref) => {
+const PaymentScreen = forwardRef(({ onBack, onSuccess, printCopies, setPrintCopies, timerDisplay, transactionTime, setIsTimerPaused, kioskId, onRestoreSession, selectedFrame, bypassMode = false, devFreeFlow = false, language = 'EN', setLanguage, isCheckoutOpen, setIsCheckoutOpen }, ref) => {
   const t = (key) => {
     return TRANSLATIONS[language]?.[key] || TRANSLATIONS['EN']?.[key] || key;
   };
@@ -16,18 +18,12 @@ const PaymentScreen = forwardRef(({ onBack, onSuccess, printCopies, setPrintCopi
   const screenRef = useRef();
   const leftPanelRef = useRef();
   const rightPanelRef = useRef();
-  const odoDigitRef = useRef();
 
-  // State
-  const [coupon, setCoupon] = useState("");
-  const [promoStatus, setPromoStatus] = useState("idle"); // idle, checking, success, failed
-  const [price, setPrice] = useState(40000);
-  const [originalPrice, setOriginalPrice] = useState(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [qrData, setQrData] = useState(null);
-  const [paymentStatus, setPaymentStatus] = useState("pending"); // pending, success, failed
-  const [isCheckoutModalOpen, setIsCheckoutModalOpen] = useState(false);
+  const [internalCheckoutOpen, setInternalCheckoutOpen] = useState(false);
+  const isCheckoutModalOpen = isCheckoutOpen !== undefined ? isCheckoutOpen : internalCheckoutOpen;
+  const setIsCheckoutModalOpen = setIsCheckoutOpen || setInternalCheckoutOpen;
+
+  const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
   const [showRecoveryModal, setShowRecoveryModal] = useState(false);
   const [savedSession, setSavedSession] = useState(null);
 
@@ -37,8 +33,13 @@ const PaymentScreen = forwardRef(({ onBack, onSuccess, printCopies, setPrintCopi
     if (rawSession) {
       try {
         const session = JSON.parse(rawSession);
-        // Only show if it's not too old (e.g., last 30 minutes) and amountPaid > 0
-        if (Date.now() - session.timestamp < 30 * 60 * 1000 && (session.amountPaid || 0) > 0) {
+        const isRecent = Date.now() - session.timestamp < 30 * 60 * 1000;
+        const hasSessionState = (session.currentStep > 1) ||
+          (session.selectedFrame !== null && session.selectedFrame !== undefined) ||
+          (Array.isArray(session.capturedPhotos) && session.capturedPhotos.some(p => !!p)) ||
+          ((session.amountPaid || 0) > 0);
+
+        if (isRecent && hasSessionState) {
           setSavedSession(session);
           setShowRecoveryModal(true);
         } else {
@@ -64,42 +65,23 @@ const PaymentScreen = forwardRef(({ onBack, onSuccess, printCopies, setPrintCopi
   };
 
   const timelineRef = useRef(null);
-  useEffect(() => {
-
+  useLayoutEffect(() => {
     if (timelineRef.current) timelineRef.current.pause();
     const tl = createTimeline();
     timelineRef.current = tl;
 
-    // Fade in the milky-mica-background
     tl.add(screenRef.current, {
       opacity: [0, 1],
       duration: 800,
       easing: 'easeOutQuad'
     }, 0);
 
-    //fade in watermark, panel kiri, panel kanan
     entranceEditorialLayout(tl, { duration: 800 });
 
     return () => {
       if (tl) tl.pause();
     };
   }, []);
-
-  useEffect(() => {
-    let rawPrice = 40000 + (printCopies - 1) * 20000;
-    if (promoStatus === "success") {
-      setOriginalPrice(rawPrice);
-      setPrice(rawPrice * 0.8);
-    } else {
-      setPrice(rawPrice);
-      setOriginalPrice(null);
-    }
-  }, [printCopies, promoStatus]);
-
-
-  const handleConfirmCheckout = () => {
-    setIsCheckoutModalOpen(true);
-  };
 
   const handleCancel = () => {
     animate(screenRef.current, {
@@ -116,81 +98,19 @@ const PaymentScreen = forwardRef(({ onBack, onSuccess, printCopies, setPrintCopi
   }));
 
   const handlePaymentSuccess = () => {
-    if (paymentStatus === "success") return;
-
-    // 1. Pause the timer globally
-    setIsTimerPaused(true);
-
-    // 2. Set local success status
-    setPaymentStatus("success");
-
-    // 3. Delay before transitioning to next screen - TIGHT HANDSHAKE
-    setTimeout(() => {
-      const exitTl = createTimeline({
-        onComplete: () => {
-          setIsTimerPaused(false);
-          onSuccess(price);
-        }
-      });
-
-      // BUNDLE: Unified Editorial Exit
-      exitEditorialLayout(exitTl, { duration: 400 });
-
-    }, 2000); // 2 second celebration delay
-  };
-
-  const handlePaymentFailed = () => {
-    setPaymentStatus("failed");
-    // Status animation handled by useEffect below
-  };
-
-  const handlePaymentRetry = () => {
-    setIsCheckoutModalOpen(true);
-  };
-
-  const [showNumpad, setShowNumpad] = useState(false);
-  const numpadRef = useRef();
-
-
-  // Animation for numpad appearance (Pushing Input Up)
-  useEffect(() => {
-    if (showNumpad && numpadRef.current) {
-      animate(numpadRef.current, {
-        height: [0, 'auto'],
-        opacity: [0, 1],
-        marginTop: [0, 16],
-        duration: 400,
-        easing: 'easeOutCubic'
-      });
-    }
-  }, [showNumpad]);
-
-  const handleNumpadPress = (val) => {
-    if (promoStatus === "success") return;
-    if (val === "DEL") {
-      setCoupon(prev => prev.slice(0, -1));
-    } else if (coupon.length < 8) {
-      setCoupon(prev => prev + val);
-    }
-  };
-
-  const validateCoupon = () => {
-    if (!coupon) {
-      setShowNumpad(false);
-      return;
-    }
-    setPromoStatus("checking");
-
-    // Simulate API call
-    setTimeout(() => {
-      if (coupon === "HYPE20") {
-        setPromoStatus("success");
-        setShowNumpad(false);
-      } else {
-        setPromoStatus("failed");
-        setTimeout(() => setPromoStatus("idle"), 2000);
+    setIsTimerPaused?.(true);
+    const exitTl = createTimeline({
+      onComplete: () => {
+        setIsTimerPaused?.(false);
+        onSuccess(0);
       }
-    }, 1500);
+    });
+
+    exitEditorialLayout(exitTl, { duration: 450 });
+  };
+
+  const handleConfirmCheckout = () => {
+    setIsCheckoutModalOpen(true);
   };
 
   const handleSetCopies = (val) => {
@@ -198,38 +118,23 @@ const PaymentScreen = forwardRef(({ onBack, onSuccess, printCopies, setPrintCopi
     setPrintCopies(val);
   };
 
-  // Punchy QTY Animation
-  useEffect(() => {
-    if (odoDigitRef.current) {
-      animate(odoDigitRef.current, {
-        scale: [0.8, 1],
-        opacity: [0, 1],
-        duration: 400,
-        easing: 'easeOutBack(1.7)'
-      });
-    }
-  }, [printCopies]);
-
-  const getRotation = (i) => {
-    const seeds = [1.2, -0.8, 1.9, -1.5, 0.5, -1.2, 1.7, -0.3, 0.9, -1.8];
-    return seeds[i % seeds.length];
-  };
+  const isAnyModalOpen = isCheckoutModalOpen || isInfoModalOpen || showRecoveryModal;
 
   return (
     <div
       ref={screenRef}
-      className={`milky-mica-background ${isCheckoutModalOpen ? 'is-solid-mode' : ''} screen-container ${styles.screen}`}
+      className={`milky-mica-background ${isAnyModalOpen ? 'is-solid-mode' : ''} screen-container ${styles.screen}`}
       style={{
-        zIndex: 10
+        zIndex: 10,
+        opacity: 0
       }}
     >
-
-      {/* PANEL KIRI: Kendali & Instruksi */}
+      {/* PANEL KIRI: Kendali & Demo Overview */}
       <div ref={leftPanelRef} className="panel-left">
         {/* The Giant Watermark */}
-        <h2 className="watermark-sideways">{t('secureWatermark')}</h2>
+        <h2 className="watermark-sideways">{t('demoWatermark')}</h2>
 
-        {/* Floating Language Switcher */}
+        {/* Floating Language Switcher & Info Action */}
         <div className={styles.langToggleContainer}>
           <button
             className={`${styles.langBtn} ${language === 'EN' ? styles.active : ''}`}
@@ -244,9 +149,19 @@ const PaymentScreen = forwardRef(({ onBack, onSuccess, printCopies, setPrintCopi
           >
             ID
           </button>
+
+          <span className={styles.infoDivider}>|</span>
+
+          <button
+            className={styles.infoBtn}
+            onClick={() => setIsInfoModalOpen(true)}
+            aria-label="About Hypebox"
+          >
+            {t('infoBtnLabel')}
+          </button>
         </div>
 
-        <div style={{ width: '100%', marginTop: 'auto', marginBottom: 'auto', paddingBottom: '5rem', zIndex: 20 }}>
+        <div style={{ width: '100%', marginTop: '8rem', marginBottom: 'auto', paddingBottom: '3rem', zIndex: 20 }}>
           {/* The Hero Overlap Title */}
           <div className="side-display-container">
             <div className="side-display-bullet">▌</div>
@@ -254,58 +169,24 @@ const PaymentScreen = forwardRef(({ onBack, onSuccess, printCopies, setPrintCopi
           </div>
 
           <div className={styles.instructionList}>
-
             <div className={styles.instructionStep}>
               <span className={styles.instructionNum}>01.</span>
-              <p className={styles.instructionText}>{t('stepCopies')}</p>
+              <p className={styles.instructionText}>{t('demoStep1')}</p>
             </div>
             <div className={styles.instructionStep}>
               <span className={styles.instructionNum}>02.</span>
-              <p className={styles.instructionText}>
-                {bypassMode ? t('stepPayStand') : t('stepConfirmQR')}
-              </p>
+              <p className={styles.instructionText}>{t('demoStep2')}</p>
             </div>
-
-          </div>
-
-          <div className={styles.promoContainer}>
-            <span className={styles.promoLabel}>{t('promoLabel')}</span>
-            <div
-              className={`${styles.promoInput} ${promoStatus === 'checking' ? styles.statusChecking : ''} ${promoStatus === 'success' ? styles.statusSuccess : ''} ${promoStatus === 'failed' ? styles.statusFailed : ''} ${showNumpad ? styles.focused : ''}`}
-              onClick={() => setShowNumpad(!showNumpad)}
-            >
-              {coupon || (showNumpad ? "" : <span style={{ color: "rgba(var(--theme-text-muted-rgb), 0.5)" }}>{t('promoPlaceholder')}</span>)}
-              {showNumpad && <span className={styles.blinkingCursor}>|</span>}
+            <div className={styles.instructionStep}>
+              <span className={styles.instructionNum}>03.</span>
+              <p className={styles.instructionText}>{t('demoStep3')}</p>
             </div>
-            {promoStatus === "checking" && <span className={`${styles.couponStatusMsg} ${styles.statusChecking}`}>{t('promoChecking')}</span>}
-            {promoStatus === "success" && <span className={`${styles.couponStatusMsg} ${styles.statusSuccess}`}>{t('promoApplied')}</span>}
-            {promoStatus === "failed" && <span className={`${styles.couponStatusMsg} ${styles.statusFailed}`}>{t('promoInvalid')}</span>}
-
-            {promoStatus !== "success" && showNumpad && (
-              <div ref={numpadRef} className={styles.numpad} style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
-                {["1", "2", "3", "A", "4", "5", "6", "B", "7", "8", "9", "C", "D", "E", "F", "0", "DEL", "OK"].map(key => (
-                  <button
-                    key={key}
-                    className={`${styles.numpadBtn} ${key === "OK" ? styles.actionOk : ""} ${key === "DEL" ? styles.actionDel : ""}`}
-                    style={{ gridColumn: (key === "OK" || key === "DEL") ? 'span 2' : 'span 1' }}
-                    onClick={() => {
-                      if (key === "OK") validateCoupon();
-                      else handleNumpadPress(key);
-                    }}
-                  >
-                    {key}
-                  </button>
-                ))}
-              </div>
-            )}
           </div>
         </div>
-
       </div>
 
-      {/* PANEL KANAN: Transaksi */}
+      {/* PANEL KANAN: Configuration & Action */}
       <div ref={rightPanelRef} className="panel-right panel-center-content">
-
         <div className={styles.checkoutPhase}>
           <div className={styles.checkoutBody}>
             <div className="qr-box" style={{ width: '600px', height: '250px', position: 'relative', overflow: 'visible', background: '#fff' }}>
@@ -316,69 +197,26 @@ const PaymentScreen = forwardRef(({ onBack, onSuccess, printCopies, setPrintCopi
               <div className="boundary-dashed-line-visual"></div>
 
               <div className={styles.qrBoxContent}>
-                <div className={styles.qtyEngineAxis}>
-                  <button className={styles.qtyStepperBtn} onClick={() => handleSetCopies(printCopies + 1)}>+</button>
-                  <div className={styles.qtyOdometerWindow}>
-                    <div
-                      className={styles.qtyOdometerTape}
-                      style={{ transform: `translateY(${(1 - printCopies) * 100}px)` }}
-                    >
-                      {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => (
-                        <div key={n} ref={printCopies === n ? odoDigitRef : null} className={styles.qtyOdometerDigit}>
-                          {n.toString().padStart(2, '0')}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  <button className={styles.qtyStepperBtn} onClick={() => handleSetCopies(printCopies - 1)}>-</button>
-                </div>
-
-                <div className={styles.unoVisualAxis}>
-                  <div className={styles.unoStackContainer}>
-                    {Array.from({ length: printCopies }).map((_, index) => {
-                      const mid = (printCopies - 1) / 2;
-                      const targetX = (index - mid) * -10;
-                      const targetY = (index - mid) * 10;
-                      const targetRotate = getRotation(index);
-                      return (
-                        <div
-                          key={index}
-                          className={styles.unoCard}
-                          style={{
-                            zIndex: index,
-                            transform: `translate(${targetX}px, ${targetY}px) rotate(${targetRotate}deg)`,
-                            filter: `brightness(${100 - (printCopies - index - 1) * 1.1}%)`,
-                          }}
-                        >
-                          <img src={selectedFrame?.thumbnail || "/assets/payment_qty.png"} alt={`Placeholder ${index + 1}`} />
-
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
+                <CardStackOdometer
+                  count={printCopies}
+                  onChange={handleSetCopies}
+                  imageSrc={selectedFrame?.thumbnail || "/assets/payment_qty.png"}
+                  size="compact"
+                  min={1}
+                  max={10}
+                />
               </div>
             </div>
           </div>
 
-          <CtaButton className={styles.confirmBtn} onClick={handleConfirmCheckout} disabled={isLoading}>
-            {isLoading ? t('pleaseWait') : (bypassMode ? t('payWithOperator') : t('generatePaymentQR'))}
+          <CtaButton className={styles.confirmBtn} onClick={handleConfirmCheckout}>
+            {bypassMode ? t('payWithOperator') : t('generatePaymentQR')}
           </CtaButton>
         </div>
 
-        <div className={styles.priceDisplay} style={{ textAlign: 'center' }}>
-          {originalPrice && <span className={styles.originalPrice} style={{ fontSize: '1.4rem' }}>Rp {originalPrice.toLocaleString()}</span>}
-          <div className={styles.priceMonument}>Rp {price.toLocaleString()}</div>
-        </div>
-
-        {timerDisplay && (
-          <div className={`timer-sleek pulse ${paymentStatus !== 'pending' ? 'paused' : ''}`} style={{ fontSize: '2rem', marginTop: '1rem' }}>
-            {timerDisplay}
-          </div>
-        )}
 
         <div style={{
-          marginTop: '3rem',
+          marginTop: '2.5rem',
           fontFamily: 'Space Grotesk',
           fontSize: '0.8rem',
           fontWeight: 700,
@@ -386,31 +224,21 @@ const PaymentScreen = forwardRef(({ onBack, onSuccess, printCopies, setPrintCopi
           textTransform: 'uppercase',
           letterSpacing: '0.1rem',
           textAlign: 'center',
-          opacity: 0.4
+          lineHeight: '1.6',
+          maxWidth: '380px'
         }}>
-          SYSTEM ID: DEM0 UNIT
+          {t('demoHint')}
         </div>
-
       </div>
 
-      {/* DEV CONTROLS */}
-      {devMode && (
-        <div style={{ position: 'absolute', bottom: '2rem', right: '2rem', display: 'flex', gap: '0.5rem', zIndex: 10000 }}>
-          <button className="dev-btn" onClick={() => { setCoupon("HYPE20"); validateCoupon(); }}>[DEV] Promo OK</button>
-          <button className="dev-btn" onClick={() => { setCoupon("WRONG"); validateCoupon(); }}>[DEV] Promo Fail</button>
-          <button className="dev-btn" onClick={handlePaymentSuccess} style={{ color: 'var(--accent-color)' }}>[DEV] Pay OK</button>
-          <button className="dev-btn" onClick={handlePaymentFailed} style={{ color: '#ff4444' }}>[DEV] Pay Fail</button>
-        </div>
-      )}
-
-      {/* PAYMENT MODAL */}
+      {/* DEMO INTRODUCTION MODAL */}
       <GalleryCheckoutModal
         isOpen={isCheckoutModalOpen}
         onClose={() => setIsCheckoutModalOpen(false)}
         onSuccess={handlePaymentSuccess}
-        totalPrice={price}
+        totalPrice={0}
         initialPayment={0}
-        orderId={`PHB-${Math.floor(Date.now() / 1000)}`}
+        orderId={`DEMO-${Math.floor(Date.now() / 1000)}`}
         timeLeft={transactionTime}
         devFreeFlow={devFreeFlow}
         setIsTimerPaused={setIsTimerPaused}
@@ -419,18 +247,22 @@ const PaymentScreen = forwardRef(({ onBack, onSuccess, printCopies, setPrintCopi
         language={language}
       />
 
-      {/* RECOVERY MODAL */}
       <SessionRecoveryModal
         isOpen={showRecoveryModal}
+        sessionData={savedSession}
+        savedSession={savedSession}
         onContinue={handleContinueSession}
         onDiscard={handleDiscardSession}
-        sessionData={savedSession || {}}
         language={language}
       />
 
+      <InfoModal
+        isOpen={isInfoModalOpen}
+        onClose={() => setIsInfoModalOpen(false)}
+        language={language}
+      />
     </div>
   );
 });
-
 
 export default PaymentScreen;

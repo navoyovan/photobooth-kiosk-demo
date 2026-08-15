@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useLayoutEffect, useState } from 'react';
 import { animate, stagger } from 'animejs';
 import { convertToWebP, saveToLocalStarfield } from '../../utils/imageProcessor';
 import { TRANSLATIONS } from '../../constants/translations';
@@ -15,7 +15,7 @@ const OutroScreen = ({ finalImage, type = 'NORMAL', isDonating, onReset, onExitS
   const [timeLeft, setTimeLeft] = useState(10);
   const hasTriggeredRef = useRef(false);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (variant === 'NORMAL') {
       // Entrance: Background fade and Text Zoom In
       animate(screenRef.current, {
@@ -64,17 +64,9 @@ const OutroScreen = ({ finalImage, type = 'NORMAL', isDonating, onReset, onExitS
         easing: 'easeOutQuad'
       });
 
-      animate('.consent-image-preview', {
+      animate('.consent-actions', {
+        translateY: [15, 0],
         opacity: [0, 1],
-        scale: [0.8, 1],
-        duration: 1200,
-        easing: 'easeOutQuart'
-      });
-
-      animate('.consent-actions button', {
-        translateY: [20, 0],
-        opacity: [0, 1],
-        delay: stagger(100, { start: 400 }),
         duration: 600,
         easing: 'easeOutCubic'
       });
@@ -153,40 +145,27 @@ const OutroScreen = ({ finalImage, type = 'NORMAL', isDonating, onReset, onExitS
 
   if (variant === 'CONSENT') {
     return (
-      <div ref={screenRef} className="hero-display-layout outro consent-mode">
-        <div className="hero-display-content" style={{ gap: '2rem', padding: '0 10vw' }}>
-          <div className="hero-display-halo" />
+      <div 
+        ref={screenRef} 
+        className="hero-display-layout outro active consent-mode"
+        style={{ pointerEvents: 'auto', zIndex: 60, opacity: 0 }}
+      >
+        <div className="hero-display-content" style={{ gap: '2rem', padding: '0 10vw', pointerEvents: 'auto' }}>
+          <div className="hero-display-halo" style={{ pointerEvents: 'none' }} />
 
           <h1 className="hero-display-main" style={{ fontSize: '3.5rem', marginBottom: '0.5rem', letterSpacing: '-0.1rem' }}>
             {t('grantExhibitionRights')}
           </h1>
 
-          {/* <div className="consent-image-preview" style={{
-            height: '35vh',
-            aspectRatio: '1/1',
-            background: 'rgba(255,255,255,0.05)',
-            border: '1px solid rgba(255,255,255,0.1)',
-            backdropFilter: 'blur(10px)',
-            boxShadow: '0 40px 100px rgba(0,0,0,0.8)',
-            zIndex: 10,
-            overflow: 'hidden',
-            padding: '8px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center'
-          }}>
-            {finalImage && <img src={finalImage} alt="Final Preview" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />}
-          </div> */}
-
           <p className="hero-display-sub" style={{ fontSize: '0.9rem', letterSpacing: '0.3rem', maxWidth: '800px', lineHeight: '1.8', opacity: 0.8 }}>
             {t('exhibitionRightsDesc')}
           </p>
 
-          <div className="consent-actions" style={{ display: 'flex', gap: '2rem', zIndex: 10, marginTop: '1rem' }}>
-            <SecondaryButton onClick={handleDecline} disabled={isSaving} style={{ minWidth: '200px', mixBlendMode: 'difference', color: '#FFFFFF' }}>
+          <div className="consent-actions" style={{ display: 'flex', gap: '2rem', zIndex: 100, position: 'relative', pointerEvents: 'auto', marginTop: '1rem', opacity: 0 }}>
+            <SecondaryButton onClick={handleDecline} disabled={isSaving} style={{ minWidth: '200px', mixBlendMode: 'difference', color: '#FFFFFF', pointerEvents: 'auto', cursor: 'pointer' }}>
               {t('decline')}
             </SecondaryButton>
-            <CtaButton onClick={handleAccept} disabled={isSaving} style={{ minWidth: '240px' }}>
+            <CtaButton onClick={handleAccept} disabled={isSaving} style={{ minWidth: '240px', pointerEvents: 'auto', cursor: 'pointer' }}>
               {isSaving ? t('securing') : `${t('acceptPublish')} (${timeLeft}S)`}
             </CtaButton>
           </div>
@@ -196,9 +175,13 @@ const OutroScreen = ({ finalImage, type = 'NORMAL', isDonating, onReset, onExitS
   }
 
   return (
-    <div ref={screenRef} className="hero-display-layout outro">
-      <div className="hero-display-content">
-        <div className="hero-display-halo" />
+    <div 
+      ref={screenRef} 
+      className="hero-display-layout outro active"
+      style={{ pointerEvents: 'auto', zIndex: 60, opacity: 0 }}
+    >
+      <div className="hero-display-content" style={{ pointerEvents: 'auto' }}>
+        <div className="hero-display-halo" style={{ pointerEvents: 'none' }} />
         <h1 className="hero-display-main hero-display-text" style={type === 'MAINTENANCE' ? { color: '#ef4444' } : undefined}>{currentMsg[0]}</h1>
         <p className="hero-display-sub hero-display-text" style={type === 'MAINTENANCE' ? { color: '#ef4444', opacity: 0.8, letterSpacing: '0.2rem' } : undefined}>{currentMsg[1]}</p>
       </div>

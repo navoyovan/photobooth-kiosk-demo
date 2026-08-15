@@ -121,112 +121,6 @@
   flex-direction: column;
 }
 
-.promoContainer {
-  margin-top: 3rem;
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-  padding-left: 3.5rem;
-}
-
-.promoLabel {
-  font-family: 'Space Grotesk', sans-serif;
-  font-size: 0.65rem;
-  letter-spacing: 0.1em;
-  color: #888888;
-  text-transform: uppercase;
-  margin-bottom: 0.5rem;
-  display: block;
-}
-
-.promoInput {
-  border: none;
-  border-bottom: 2px solid #111111;
-  background: transparent;
-  padding: 0.5rem 0;
-  border-radius: 0;
-  outline: none;
-  font-family: 'Syne', sans-serif;
-  font-size: 1.25rem;
-  font-weight: 800;
-  color: #111111;
-  width: 100%;
-  display: flex;
-  align-items: center;
-}
-
-.promoInput.focused {
-  border-bottom-color: var(--accent-color);
-}
-
-.blinkingCursor {
-  width: 3px;
-  height: 24px;
-  background: #000;
-  margin-left: 4px;
-  animation: pulse-soft 0.8s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-}
-
-.couponStatusMsg {
-  font-family: 'Space Grotesk', sans-serif;
-  font-size: 0.8rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  margin-top: 0.5rem;
-  display: block;
-}
-
-.numpad {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 0.75rem;
-  margin-top: 1.5rem;
-  width: 100%;
-}
-
-.numpadBtn {
-  height: 3.5rem;
-  background: rgba(0, 0, 0, 0.03);
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  font-family: 'Syne', sans-serif;
-  font-weight: 800;
-  font-size: 1.1rem;
-  color: #111;
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.numpadBtn:hover {
-  background: rgba(0, 0, 0, 0.06);
-  border-color: rgba(0, 0, 0, 0.2);
-}
-
-.numpadBtn:active {
-  background: #000;
-  color: var(--accent-color);
-  transform: scale(0.96);
-}
-
-.numpadBtn.actionDel {
-  color: #888;
-  font-weight: 400;
-  font-size: 0.8rem;
-  letter-spacing: 0.05rem;
-}
-
-.numpadBtn.actionOk {
-  background: #111;
-  color: var(--accent-color);
-  border-color: #111;
-}
-
-.numpadBtn.actionOk:hover {
-  background: #222;
-}
-
 .priceDisplay {
   margin-top: 2rem;
 }
@@ -521,6 +415,38 @@
   font-weight: 500;
   font-family: 'Space Grotesk', sans-serif;
   user-select: none;
+}
+
+.infoDivider {
+  color: rgba(var(--theme-text-muted-rgb, 102, 102, 102), 0.2);
+  font-size: 0.85rem;
+  font-weight: 300;
+  font-family: 'Space Grotesk', sans-serif;
+  user-select: none;
+  margin: 0 0.4rem;
+}
+
+.infoBtn {
+  background: transparent;
+  border: none;
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 800;
+  font-size: 0.85rem;
+  letter-spacing: 0.08rem;
+  color: rgba(var(--theme-text-muted-rgb, 102, 102, 102), 0.8);
+  cursor: pointer;
+  padding: 0.2rem 0.6rem;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  text-decoration: none;
+  outline: none;
+}
+
+.infoBtn:hover {
+  color: var(--accent-color, #00ffff);
+  transform: translateX(2px);
 }
 
 /* COMPONENT LIBRARY BUTTON SANDBOX */

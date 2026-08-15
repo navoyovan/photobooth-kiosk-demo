@@ -5,9 +5,9 @@ import { convertToWebP, saveToLocalStarfield } from '../../utils/imageProcessor'
 import { getBackendUrl, getMachineUUID } from '../../utils/kioskId';
 import { TRANSLATIONS } from '../../constants/translations';
 import styles from './05-Export.module.css';
-import { PrimaryButton } from '../../ui';
+import { PrimaryButton, SquareWaveLoader } from '../../ui';
 
-const ExportScreen = ({ finalImage, capturedPhotos = [], printCopies, onFinish, kioskId, devFreeFlow, sessionHash, selectedFrame, language = 'EN' }) => {
+const ExportScreen = ({ finalImage, capturedPhotos = [], printCopies, onFinish, kioskId, devFreeFlow, sessionHash, selectedFrame, language = 'EN', allowCloudUpload = true }) => {
   const t = (key) => {
     return TRANSLATIONS[language]?.[key] || TRANSLATIONS['EN']?.[key] || key;
   };
@@ -27,49 +27,132 @@ const ExportScreen = ({ finalImage, capturedPhotos = [], printCopies, onFinish, 
   const [uploadError, setUploadError] = useState(false);
   const [resolvedHash, setResolvedHash] = useState(sessionHash);
 
+  // Helper to convert base64 data URL to Blob for multipart upload
+  const base64ToBlob = (dataUrl) => {
+    try {
+      const arr = dataUrl.split(',');
+      const mime = arr[0].match(/:(.*?);/)?.[1] || 'image/jpeg';
+      const bstr = atob(arr[1]);
+      let n = bstr.length;
+      const u8arr = new Uint8Array(n);
+      while (n--) {
+        u8arr[n] = bstr.charCodeAt(n);
+      }
+      return new Blob([u8arr], { type: mime });
+    } catch (e) {
+      console.error('[Export] Error converting base64 to blob:', e);
+      return null;
+    }
+  };
+
+  // Primary Provider: Tmpfiles.org (Renders preview page with download button)
+  const uploadToTmpfiles = async (dataUrl, hash) => {
+    const blob = base64ToBlob(dataUrl);
+    if (!blob) throw new Error('Could not convert base64 to blob');
+
+    const formData = new FormData();
+    formData.append('file', blob, `hypebox_${hash || 'photo'}.jpg`);
+
+    const res = await fetch('https://tmpfiles.org/api/v1/upload', {
+      method: 'POST',
+      body: formData,
+    });
+    if (!res.ok) throw new Error(`Tmpfiles HTTP ${res.status}`);
+    const data = await res.json();
+    if (data.status === 'success' && data.data?.url) {
+      // Returns the official viewing page (e.g. https://tmpfiles.org/123456/photo.jpg)
+      return data.data.url;
+    }
+    throw new Error(data.message || 'Tmpfiles upload error');
+  };
+
+  // Secondary Fallback: FreeImage.host
+  const uploadToFreeImage = async (dataUrl) => {
+    const base64Content = dataUrl.includes(',') ? dataUrl.split(',')[1] : dataUrl;
+    const formData = new FormData();
+    formData.append('key', '6d207e02198a847aa98d0a2a901485a5');
+    formData.append('action', 'upload');
+    formData.append('source', base64Content);
+    formData.append('format', 'json');
+
+    const res = await fetch('https://freeimage.host/api/1/upload', {
+      method: 'POST',
+      body: formData,
+    });
+    if (!res.ok) throw new Error(`FreeImage HTTP ${res.status}`);
+    const data = await res.json();
+    if (data.status_code === 200 && data.image?.url) {
+      return data.image.url;
+    }
+    throw new Error(data.error?.message || 'FreeImage upload error');
+  };
+
   useEffect(() => {
     let active = true;
+
+    if (!allowCloudUpload) {
+      setUploading(false);
+      setDownloadUrl('');
+      setResolvedHash(sessionHash);
+      return;
+    }
+
     const uploadSession = async () => {
+      const startTime = Date.now();
+      const minDuration = 2500; // Allow SquareWaveLoader to complete full wave cycle
+
       try {
         setUploading(true);
         setUploadError(false);
 
-        const backendUrl = getBackendUrl();
-        const response = await fetch(`${backendUrl}/api/kiosk/upload-session`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            kiosk_uuid: getMachineUUID(),
-            final_image: finalImage,
-            raw_photos: capturedPhotos,
-            session_hash: sessionHash,
-            frame_id: selectedFrame?.id,
-          }),
-        });
+        let viewingUrl = null;
 
-        if (!response.ok) {
-          throw new Error(`Upload response status: ${response.status}`);
-        }
-
-        const data = await response.json();
-        if (active) {
-          if (data.success) {
-            setDownloadUrl(data.download_url);
-            if (data.hash) {
-              setResolvedHash(data.hash);
-            }
-          } else {
-            throw new Error(data.message || 'Upload failed');
+        // 1. Try Tmpfiles.org (Viewer Page)
+        try {
+          viewingUrl = await uploadToTmpfiles(finalImage, sessionHash);
+        } catch (err1) {
+          console.warn('[Export] Tmpfiles failed, falling back to FreeImage:', err1);
+          // 2. Fallback to FreeImage.host
+          try {
+            viewingUrl = await uploadToFreeImage(finalImage);
+          } catch (err2) {
+            console.warn('[Export] FreeImage failed too:', err2);
           }
         }
+
+        const validUrl = viewingUrl || `https://hypebox.id/archive/${sessionHash || 'demo'}`;
+
+        // Preload QR Code image before flipping upload state so it never displays broken alt text
+        const qrCodeApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(validUrl)}`;
+        await new Promise((resolve) => {
+          const img = new Image();
+          img.onload = () => resolve(true);
+          img.onerror = () => resolve(false);
+          img.src = qrCodeApiUrl;
+        });
+
+        // Ensure loader has its full cinematic moment
+        const elapsed = Date.now() - startTime;
+        if (elapsed < minDuration) {
+          await new Promise((r) => setTimeout(r, minDuration - elapsed));
+        }
+
+        if (active) {
+          if (!viewingUrl) {
+            setUploadError(true);
+          }
+          setDownloadUrl(validUrl);
+          setResolvedHash(sessionHash);
+        }
       } catch (err) {
-        console.error('[Export] Upload failed:', err);
+        console.error('[Export] All upload providers failed:', err);
+        const elapsed = Date.now() - startTime;
+        if (elapsed < minDuration) {
+          await new Promise((r) => setTimeout(r, minDuration - elapsed));
+        }
         if (active) {
           setUploadError(true);
-          // Local fallback
-          setDownloadUrl(`${getBackendUrl()}/download/offline-fallback`);
+          setDownloadUrl(`https://hypebox.id/archive/${sessionHash || 'demo'}`);
         }
       } finally {
         if (active) {
@@ -80,12 +163,21 @@ const ExportScreen = ({ finalImage, capturedPhotos = [], printCopies, onFinish, 
 
     if (finalImage) {
       uploadSession();
+    } else {
+      // Fallback demo timeout if no finalImage present
+      const timer = setTimeout(() => {
+        if (active) {
+          setDownloadUrl(`https://hypebox.id/archive/${sessionHash || 'demo'}`);
+          setUploading(false);
+        }
+      }, 2500);
+      return () => clearTimeout(timer);
     }
 
     return () => {
       active = false;
     };
-  }, [finalImage, capturedPhotos]);
+  }, [finalImage, sessionHash, allowCloudUpload]);
 
   useEffect(() => {
     if (timelineRef.current) timelineRef.current.pause();
@@ -172,16 +264,25 @@ const ExportScreen = ({ finalImage, capturedPhotos = [], printCopies, onFinish, 
         <div className={styles.topSection}>
           <h1 className={styles.telemetryTitle}>{t('digitalArchiveTitle')}</h1>
 
-          <div className="qr-box" style={{ margin: '1rem 0 2.5rem 0', alignSelf: 'flex-start', position: 'relative', width: '280px', height: '280px', background: '#fff' }}>
+          <div
+            className={`qr-box ${!allowCloudUpload ? styles.disabledQrBox : ''}`}
+            style={{ margin: '1rem 0 2.5rem 0', alignSelf: 'flex-start', position: 'relative', width: '280px', height: '280px', background: '#fff' }}
+          >
             <div className="qr-crop-marks">
               <span></span>
             </div>
 
-            {uploading ? (
+            {!allowCloudUpload ? (
+              <>
+                <div className={styles.disabledCrossOverlay} />
+                <div className={styles.disabledContainer}>
+                  <span className={styles.disabledTag}>{t('uploadOptedOut')}</span>
+                  <p className={styles.disabledSub}>{t('uploadOptedOutDesc')}</p>
+                </div>
+              </>
+            ) : uploading ? (
               <div className={styles.qrContainer}>
-                <div className={styles.qrScannerLine} />
-                <div className={styles.loaderRing} />
-                <span className={styles.loadingLabel}>{t('syncingVault')}</span>
+                <SquareWaveLoader color="#111111" size={12} gap={8} />
               </div>
             ) : (
               <img
@@ -209,10 +310,10 @@ const ExportScreen = ({ finalImage, capturedPhotos = [], printCopies, onFinish, 
               {t('sessionId')} // {resolvedHash}
             </div>
             <div className={styles.metadataItem}>
-              {t('artifactLink')} // {uploading ? t('statusTransmitting') : (downloadUrl.replace(/^https?:\/\//, '').substring(0, 26) + (downloadUrl.length > 26 ? '...' : ''))}
+              {t('artifactLink')} // {!allowCloudUpload ? t('linkOptedOut') : (uploading ? t('statusTransmitting') : (downloadUrl.replace(/^https?:\/\//, '').substring(0, 26) + (downloadUrl.length > 26 ? '...' : '')))}
             </div>
             <div className={styles.metadataItem}>
-              {t('statusLabel')} // {uploading ? t('statusTransmitting') : (uploadError ? t('statusOffline') : t('statusEncrypted'))}
+              {t('statusLabel')} // {!allowCloudUpload ? t('statusOptedOut') : (uploading ? t('statusTransmitting') : (uploadError ? t('statusOffline') : t('statusEncrypted')))}
             </div>
           </div>
 
@@ -241,7 +342,7 @@ const ExportScreen = ({ finalImage, capturedPhotos = [], printCopies, onFinish, 
               <span className={styles.bracket}>
                 {isProcessingDonation ? '[ … ]' : (isDonating ? '[ ■ ]' : '[   ]')}
               </span>
-              <span className={styles.donateLabel}>
+              <span className={`${styles.donateLabel} ${!isDonating ? styles.strikethrough : ''}`}>
                 {isProcessingDonation ? t('syncingVault') : t('exhibitionRightsConsent')}
               </span>
             </div>

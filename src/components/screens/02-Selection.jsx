@@ -334,7 +334,7 @@ const SelectionScreenInner = ({ onFinish, onPrepareCamera, kioskData, loading, l
         {/* Giant Rotated Bleeding Title */}
         <h2 ref={watermarkRef} className="watermark-sideways">{t('selectCanvasWatermark')}</h2>
 
-        <div style={{ display: 'flex', flexDirection: 'column', flexGrow: 1, justifyItems: 'flex-start', justifyContent: 'center', zIndex: 20 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', flexGrow: 1, justifyItems: 'flex-start', justifyContent: 'flex-start', marginTop: '8rem', marginBottom: 'auto', zIndex: 20 }}>
           <div className="side-display-container">
             <div ref={indicatorRef} className="side-display-bullet">{'▌'}</div>
             <div

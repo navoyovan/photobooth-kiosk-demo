@@ -128,14 +128,20 @@ const FloatingPhotos = ({ previousImage, isOutro, isVisible, isTransformed, show
       return { x: px, y: py };
     };
 
+    // Unified 30-slot photo pool: Replaces default placeholders 1-by-1, then FIFO circular buffer
+    const getActivePool = () => {
+      const comm = communityImages.slice(0, 30);
+      const remainingPlaceholders = loadedImages.slice(comm.length, 30);
+      const pool = [...comm, ...remainingPlaceholders];
+      return pool.length > 0 ? pool : loadedImages;
+    };
+
     if (photosRef.current.length < numPhotos) {
       const needed = numPhotos - photosRef.current.length;
       for (let i = 0; i < needed; i++) {
         const pos = getSpawnPos();
-
-        const activePlaceholders = loadedImages.slice(0, Math.max(0, loadedImages.length - communityImages.length));
-        const pool = [...activePlaceholders, ...communityImages];
-        const selectedImg = pool.length > 0 ? pool[Math.floor(Math.random() * pool.length)] : null;
+        const pool = getActivePool();
+        const selectedImg = pool.length > 0 ? pool[i % pool.length] : null;
 
         photosRef.current.push({
           x: pos.x, y: pos.y, z: Math.random() * animProps.current.maxDepth,
@@ -165,8 +171,7 @@ const FloatingPhotos = ({ previousImage, isOutro, isVisible, isTransformed, show
           if (isOutroRef.current && prevImgRef.current) {
             photo.imageObject = prevImgRef.current;
           } else {
-            const activePlaceholders = loadedImages.slice(0, Math.max(0, loadedImages.length - communityImages.length));
-            const pool = [...activePlaceholders, ...communityImages];
+            const pool = getActivePool();
             photo.imageObject = pool.length > 0 ? pool[Math.floor(Math.random() * pool.length)] : null;
           }
           photo.baseHeight = (350 + Math.random() * 350);

@@ -105,3 +105,247 @@
   margin: 0;
   /* Flush left */
 }
+
+/* -------------------------------------------------------------------------
+   HYPEBOX DEMO INTRODUCTION SCREEN
+   Applied only when mode === 'PAYMENT' — modal shell dimensions unchanged.
+   ------------------------------------------------------------------------- */
+
+.demoModal {
+  /* Override default padding for tighter editorial control */
+  padding: 3.5rem 4rem 3rem;
+  gap: 0;
+}
+
+.demoRoot {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  width: 100%;
+  gap: 0;
+}
+
+/* --- Brand block --- */
+.demoBrand {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.3rem;
+  margin-bottom: 2.2rem;
+}
+
+.demoBrandName {
+  font-family: 'Syne', sans-serif;
+  font-weight: 900;
+  font-size: 2.4rem;
+  color: #111;
+  /* letter-spacing: 0.18rem; */
+  text-transform: uppercase;
+  line-height: 1;
+}
+
+.demoBrandSub {
+  font-family: 'Space Grotesk', monospace;
+  font-size: 0.6rem;
+  padding-left: 0.1rem;
+  font-weight: 500;
+  color: #AAA;
+  letter-spacing: 0.2rem;
+  text-transform: uppercase;
+}
+
+/* --- Preview box --- */
+.demoPreviewBox {
+  width: 100%;
+  height: auto;
+  overflow: hidden;
+  display: block;
+  margin-bottom: 0;
+  flex-shrink: 0;
+}
+
+.demoPreviewImg {
+  width: 100%;
+  height: auto;
+  display: block;
+  filter: grayscale(15%) contrast(1.05);
+}
+
+.demoPreviewLabel {
+  position: absolute;
+  bottom: 0.6rem;
+  right: 0.75rem;
+  font-family: 'Space Grotesk', monospace;
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.15rem;
+  text-transform: uppercase;
+  /* Fluorescent pink accent */
+  color: #FF2D78;
+  background: rgba(255, 255, 255, 0.88);
+  padding: 0.15rem 0.35rem;
+  pointer-events: none;
+}
+
+/* --- Tagline --- */
+.demoTagline {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: #888;
+  letter-spacing: 0.22rem;
+  text-transform: uppercase;
+  margin-top: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+/* --- Actions block --- */
+.demoActions {
+  display: flex;
+  flex-direction: column;
+  gap: 1.4rem;
+  width: 100%;
+  margin-bottom: 0;
+}
+
+/* --- Footer label --- */
+.demoFooter {
+  font-family: 'Space Grotesk', monospace;
+  font-size: 0.55rem;
+  font-weight: 500;
+  color: #CCC;
+  letter-spacing: 0.18rem;
+  text-transform: uppercase;
+  margin-top: 1.8rem;
+  align-self: flex-start;
+}
+
+/* -------------------------------------------------------------------------
+   DEMO CONFIRMATION & DIGITAL DELIVERY CONSENT MODAL (mode === 'CONFIRM')
+   ------------------------------------------------------------------------- */
+.confirmRoot {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  width: 100%;
+  gap: 1.35rem;
+}
+
+.confirmSection {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  width: 100%;
+}
+
+.sectionTag {
+  font-family: 'Space Grotesk', monospace;
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: #888888;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  margin-bottom: 0.4rem;
+}
+
+.sectionHeadline {
+  font-family: 'Syne', sans-serif;
+  font-weight: 800;
+  font-size: 1.65rem;
+  color: #111111;
+  text-transform: uppercase;
+  letter-spacing: -0.01em;
+  line-height: 1.15;
+  margin-bottom: 0.6rem;
+}
+
+.sectionBody {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 0.85rem;
+  line-height: 1.55;
+  color: #555555;
+}
+
+.confirmDivider {
+  width: 100%;
+  height: 1px;
+  background: rgba(0, 0, 0, 0.1);
+  margin: 0.4rem 0;
+}
+
+.consentRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  margin-top: 1rem;
+  cursor: pointer;
+  user-select: none;
+  width: 100%;
+  padding: 0.2rem 0;
+}
+
+.consentBracket {
+  font-family: monospace;
+  font-size: 0.95rem;
+  font-weight: 900;
+  color: #111111;
+  min-width: 22px;
+  line-height: 1.2;
+}
+
+.consentText {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #222222;
+  line-height: 1.4;
+  transition: all 0.2s ease;
+}
+
+.consentText.strikethrough {
+  text-decoration: line-through;
+  text-decoration-color: #111111;
+  text-decoration-thickness: 1.5px;
+  color: #888888;
+}
+
+.consentBracket.unticked {
+  color: #888888;
+}
+
+.consentRow:hover .consentText {
+  color: #000000;
+}
+
+.consentRow:hover .consentText.strikethrough {
+  color: #555555;
+}
+
+.confirmActions {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  gap: 0.8rem;
+  margin-top: 0.4rem;
+}
+
+.textCloseBtn {
+  background: transparent;
+  border: none;
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: #888888;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  cursor: pointer;
+  padding: 0.6rem;
+  width: 100%;
+  text-align: center;
+  transition: color 0.2s ease;
+  outline: none;
+}
+
+.textCloseBtn:hover {
+  color: #111111;
+}

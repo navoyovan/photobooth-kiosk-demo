@@ -4,25 +4,40 @@
 
 const DB_NAME = 'HypeBox_Community';
 const STORE_NAME = 'starfield_photos';
-const MAX_PHOTOS = 50; 
+const MAX_PHOTOS = 30; 
 
 const openDB = () => {
     return new Promise((resolve, reject) => {
-        console.log("[CommunityDB] Opening Connection...");
-        const request = indexedDB.open(DB_NAME, 1);
+        // Open with higher schema version (20) to surpass any legacy versions
+        const request = indexedDB.open(DB_NAME, 20);
         request.onupgradeneeded = (e) => {
-            console.log("[CommunityDB] Upgrading Schema...");
             const db = e.target.result;
             if (!db.objectStoreNames.contains(STORE_NAME)) {
                 db.createObjectStore(STORE_NAME, { keyPath: 'id', autoIncrement: true });
             }
         };
         request.onsuccess = (e) => {
-            console.log("[CommunityDB] Connection Established.");
             resolve(e.target.result);
         };
         request.onerror = (e) => {
             console.error("[CommunityDB] Connection Error:", e.target.error);
+            // If there is an existing database with a conflicting version, auto-reset cleanly
+            if (e.target.error?.name === 'VersionError') {
+                const delReq = indexedDB.deleteDatabase(DB_NAME);
+                delReq.onsuccess = () => {
+                    const retry = indexedDB.open(DB_NAME, 1);
+                    retry.onupgradeneeded = (ev) => {
+                        const db = ev.target.result;
+                        if (!db.objectStoreNames.contains(STORE_NAME)) {
+                            db.createObjectStore(STORE_NAME, { keyPath: 'id', autoIncrement: true });
+                        }
+                    };
+                    retry.onsuccess = (ev) => resolve(ev.target.result);
+                    retry.onerror = (ev) => reject(ev.target.error);
+                };
+                delReq.onerror = () => reject(e.target.error);
+                return;
+            }
             reject(e.target.error);
         };
     });
