@@ -27,7 +27,7 @@ const DemoIntroContent = ({ onStart, onClose, modalRef, successOverlayRef }) => 
       <div className="vf-corner br"></div>
 
       <img
-        src="/assets/payment_qty.png"
+        src="/assets/payment_qty.webp"
         alt="Sample photo experience preview"
         className={styles.demoPreviewImg}
       />
@@ -313,7 +313,7 @@ const GalleryCheckoutModal = ({ isOpen, onClose, onSuccess, totalPrice, initialP
               <p className={styles.sectionBody}>{t('digitalDeliveryDesc')}</p>
 
               {/* Checkbox Consent */}
-              <div 
+              <div
                 className={styles.consentRow}
                 onClick={() => setAgreedToUpload(!agreedToUpload)}
               >

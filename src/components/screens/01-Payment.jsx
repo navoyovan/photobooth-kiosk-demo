@@ -200,7 +200,7 @@ const PaymentScreen = forwardRef(({ onBack, onSuccess, printCopies, setPrintCopi
                 <CardStackOdometer
                   count={printCopies}
                   onChange={handleSetCopies}
-                  imageSrc={selectedFrame?.thumbnail || "/assets/payment_qty.png"}
+                  imageSrc={selectedFrame?.thumbnail || "/assets/payment_qty.webp"}
                   size="compact"
                   min={1}
                   max={10}

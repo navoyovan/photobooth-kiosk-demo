@@ -60,7 +60,7 @@ export const OdometerStepper = forwardRef(({
     setDragOffset(0);
     try {
       e.currentTarget.setPointerCapture(e.pointerId);
-    } catch (_) {}
+    } catch (_) { }
   };
 
   const handlePointerMove = (e) => {
@@ -90,7 +90,7 @@ export const OdometerStepper = forwardRef(({
     setDragOffset(0);
     try {
       e.currentTarget.releasePointerCapture(e.pointerId);
-    } catch (_) {}
+    } catch (_) { }
   };
 
   // Mouse wheel scroll support
@@ -176,7 +176,7 @@ export const OdometerStepper = forwardRef(({
  */
 export const UnoCardStack = forwardRef(({
   count = 1,
-  imageSrc = '/assets/payment_qty.png',
+  imageSrc = '/assets/payment_qty.webp',
   size = 'compact',
   cardRefs,
   className = ''
@@ -255,7 +255,7 @@ export const UnoCardStack = forwardRef(({
 const CardStackOdometer = ({
   count = 1,
   onChange,
-  imageSrc = '/assets/payment_qty.png',
+  imageSrc = '/assets/payment_qty.webp',
   size = 'compact',
   theme = 'light',
   min = 1,

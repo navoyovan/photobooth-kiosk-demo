@@ -1,6 +1,6 @@
 # Hype-box Demo
 
-![Interface Screen 1](public/assets/tist.png)
+![Interface Screen 1](public/assets/tist.webp)
 
 A self-contained photobooth experience demo built to showcase the core experience behind **Hype-box**: a modern digital photobooth platform.
 
@@ -35,9 +35,9 @@ Built as a demonstration of interactive kiosk experiences, combining frontend in
 
 ## Screenshots
 
-![Interface Screen 2](public/assets/tast.png)
-![Interface Screen 3](public/assets/tost.png)
-![Interface Screen 4](public/assets/tust.png)
+![Interface Screen 2](public/assets/tast.webp)
+![Interface Screen 3](public/assets/tost.webp)
+![Interface Screen 4](public/assets/tust.webp)
 
 ## License
 

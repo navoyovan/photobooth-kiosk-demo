@@ -8,7 +8,8 @@ export const TRANSLATIONS = {
     demoStep3: "INSTANT DIGITAL EXPORT VIA MOBILE QR.",
     demoHint: "TAP START TO BEGIN INTERACTIVE SESSION",
     startExperience: "START EXPERIENCE ↗",
-    infoBtnLabel: "INFO ↗",
+    infoBtnLabel: "INFO ⓘ",
+
     aboutTagline: "EXPERIENCE PLATFORM",
     aboutTitle: "ABOUT HYPE-BOX",
     aboutHeadline: "A DIGITAL PHOTOBOOTH EXPERIENCE BUILT FOR PHYSICAL SPACES.",
@@ -155,7 +156,8 @@ export const TRANSLATIONS = {
     demoStep3: "EKSPOR ARSIP DIGITAL LEWAT QR HP.",
     demoHint: "KETUK MULAI UNTUK MEMULAI SESI",
     startExperience: "MULAI SEKARANG ↗",
-    infoBtnLabel: "INFO ↗",
+    infoBtnLabel: "INFO ⓘ",
+
     aboutTagline: "PLATFORM PENGALAMAN",
     aboutTitle: "TENTANG HYPE-BOX",
     aboutHeadline: "PENGALAMAN PHOTOBOOTH DIGITAL UNTUK RUANG FISIK.",
