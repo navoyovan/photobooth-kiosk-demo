@@ -3,7 +3,7 @@ import { animate, createTimeline } from 'animejs';
 import styles from './GalleryCheckoutModal.module.css';
 import { getBackendUrl } from '../../utils/kioskId';
 import { TRANSLATIONS } from '../../constants/translations';
-import { SecondaryButton } from '../../ui';
+import { SecondaryButton, PrimaryButton } from '../../ui';
 
 const GalleryCheckoutModal = ({ isOpen, onClose, onSuccess, totalPrice, initialPayment = 0, orderId = "ORD-9921", timeLeft, devFreeFlow, setIsTimerPaused, mode = 'PAYMENT', onTimeout, bypassMode = false, language = 'EN' }) => {
   const t = (key) => {
@@ -316,20 +316,18 @@ const GalleryCheckoutModal = ({ isOpen, onClose, onSuccess, totalPrice, initialP
         {/* Execute Block */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', width: '100%', marginTop: 'auto' }}>
           {(mode !== 'PAYMENT' || bypassMode) && (
-            <button
+            <PrimaryButton
               ref={primaryBtnRef}
-              className="btn-tier-1"
               onClick={handlePaymentSuccess}
               style={{
                 width: '100%',
-                backgroundColor: (bypassMode && mode === 'PAYMENT') ? '#ffaa00' : undefined,
-                color: (bypassMode && mode === 'PAYMENT') ? '#000000' : undefined,
+                ...(bypassMode && mode === 'PAYMENT' ? { background: '#ffaa00', color: '#000000' } : {})
               }}
             >
               {mode === 'TIMEOUT' ? t('confirmPrintNow') :
                mode === 'PAYMENT' ? (initialPayment === 0 ? t('authorizeStartSession') : t('authorizePrint')) :
                t('yesConfirmPrint')}
-            </button>
+            </PrimaryButton>
           )}
 
           <SecondaryButton

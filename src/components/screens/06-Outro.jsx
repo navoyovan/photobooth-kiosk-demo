@@ -2,6 +2,7 @@ import React, { useRef, useEffect, useState } from 'react';
 import { animate, stagger } from 'animejs';
 import { convertToWebP, saveToLocalStarfield } from '../../utils/imageProcessor';
 import { TRANSLATIONS } from '../../constants/translations';
+import { CtaButton, SecondaryButton } from '../../ui';
 
 const OutroScreen = ({ finalImage, type = 'NORMAL', isDonating, onReset, onExitStart, language = 'EN', triggerExit = false }) => {
   const t = (key) => {
@@ -182,12 +183,12 @@ const OutroScreen = ({ finalImage, type = 'NORMAL', isDonating, onReset, onExitS
           </p>
 
           <div className="consent-actions" style={{ display: 'flex', gap: '2rem', zIndex: 10, marginTop: '1rem' }}>
-            <button className="btn-secondary dark" onClick={handleDecline} disabled={isSaving} style={{ minWidth: '200px' }}>
+            <SecondaryButton onClick={handleDecline} disabled={isSaving} style={{ minWidth: '200px', mixBlendMode: 'difference', color: '#FFFFFF' }}>
               {t('decline')}
-            </button>
-            <button className="btn-primary" onClick={handleAccept} disabled={isSaving} style={{ minWidth: '240px' }}>
+            </SecondaryButton>
+            <CtaButton onClick={handleAccept} disabled={isSaving} style={{ minWidth: '240px' }}>
               {isSaving ? t('securing') : `${t('acceptPublish')} (${timeLeft}S)`}
-            </button>
+            </CtaButton>
           </div>
         </div>
       </div>

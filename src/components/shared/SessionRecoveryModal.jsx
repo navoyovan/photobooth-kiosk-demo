@@ -3,7 +3,7 @@ import { animate } from 'animejs';
 import styles from './SessionRecoveryModal.module.css';
 import { getFrameLayout } from '../../constants/frame_layouts';
 import { TRANSLATIONS } from '../../constants/translations';
-import { PrimaryButton, SecondaryButton } from '../../ui';
+import { CtaButton, SecondaryButton } from '../../ui';
 
 
 const SessionRecoveryModal = ({ isOpen, onContinue, onDiscard, sessionData, language = 'EN' }) => {
@@ -66,13 +66,13 @@ const SessionRecoveryModal = ({ isOpen, onContinue, onDiscard, sessionData, lang
   const layout = selectedFrame ? getFrameLayout(selectedFrame) : [];
 
   return (
-    <div 
-      ref={overlayRef} 
+    <div
+      ref={overlayRef}
       className={styles.overlay}
       style={{ opacity: 0, pointerEvents: isOpen ? 'auto' : 'none' }}
     >
-      <div 
-        ref={modalRef} 
+      <div
+        ref={modalRef}
         className={styles.modal}
         style={{ opacity: 0 }}
       >
@@ -82,66 +82,66 @@ const SessionRecoveryModal = ({ isOpen, onContinue, onDiscard, sessionData, lang
 
         <div className={styles.previewContainer}>
           <div className={styles.previewMeta}>
-             <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>{t('progressLabel')}</span>
-                <span className={styles.metaValue}>{Math.round((photosTaken / totalSlots) * 100)}% {t('completeLabel')}</span>
-             </div>
-             <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>{t('lastStepLabel')}</span>
-                <span className={styles.metaValue}>{['IDLE', 'PAYMENT', 'SELECTION', 'CAPTURE', 'CHECKOUT', 'EXPORT'][currentStep] || 'PROCESSING'}</span>
-             </div>
+            <div className={styles.metaItem}>
+              <span className={styles.metaLabel}>{t('progressLabel')}</span>
+              <span className={styles.metaValue}>{Math.round((photosTaken / totalSlots) * 100)}% {t('completeLabel')}</span>
+            </div>
+            <div className={styles.metaItem}>
+              <span className={styles.metaLabel}>{t('lastStepLabel')}</span>
+              <span className={styles.metaValue}>{['IDLE', 'PAYMENT', 'SELECTION', 'CAPTURE', 'CHECKOUT', 'EXPORT'][currentStep] || 'PROCESSING'}</span>
+            </div>
           </div>
 
           <div className={styles.visualStack}>
             <div className={styles.framePreview}>
-               {selectedFrame ? (
-                 <img src={selectedFrame.thumbnail} alt="Frame" className={styles.frameImg} style={{ zIndex: 10, position: 'relative', pointerEvents: 'none' }} />
-               ) : (
-                 <img src="/taken_pic/default.png" alt="Default" className={styles.frameImg} style={{ opacity: 0.1, zIndex: 10, position: 'relative' }} />
-               )}
-               
-               <div className={styles.photosGrid} style={{ padding: 0 }}>
-                  {filledPhotos.map((photo, i) => {
-                     const slot = layout[i] || { x: 0, y: 0, w: 100, h: 100 };
-                     return (
-                       <div 
-                         key={i} 
-                         className={styles.photoSlot}
-                         style={{
-                           position: 'absolute',
-                           left: `${slot.x}%`,
-                           top: `${slot.y}%`,
-                           width: `${slot.w}%`,
-                           height: `${slot.h}%`,
-                           borderRadius: 0,
-                           background: 'transparent'
-                         }}
-                       >
-                         <img 
-                           src={photo} 
-                           alt={`Slot ${i}`} 
-                           className={styles.capturedImg} 
-                           style={{ opacity: capturedPhotos[i] ? 1 : 0.4 }} 
-                         />
-                       </div>
-                     );
-                  })}
-               </div>
+              {selectedFrame ? (
+                <img src={selectedFrame.thumbnail} alt="Frame" className={styles.frameImg} style={{ zIndex: 10, position: 'relative', pointerEvents: 'none' }} />
+              ) : (
+                <img src="/taken_pic/default.png" alt="Default" className={styles.frameImg} style={{ opacity: 0.1, zIndex: 10, position: 'relative' }} />
+              )}
+
+              <div className={styles.photosGrid} style={{ padding: 0 }}>
+                {filledPhotos.map((photo, i) => {
+                  const slot = layout[i] || { x: 0, y: 0, w: 100, h: 100 };
+                  return (
+                    <div
+                      key={i}
+                      className={styles.photoSlot}
+                      style={{
+                        position: 'absolute',
+                        left: `${slot.x}%`,
+                        top: `${slot.y}%`,
+                        width: `${slot.w}%`,
+                        height: `${slot.h}%`,
+                        borderRadius: 0,
+                        background: 'transparent'
+                      }}
+                    >
+                      <img
+                        src={photo}
+                        alt={`Slot ${i}`}
+                        className={styles.capturedImg}
+                        style={{ opacity: capturedPhotos[i] ? 1 : 0.4 }}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           </div>
         </div>
 
         <div className={styles.actions}>
-          <PrimaryButton onClick={onContinue} style={{ marginTop: 0 }}>
-            {t('resumeSessionBtn')}
-          </PrimaryButton>
           <SecondaryButton onClick={onDiscard}>
             {t('discardResetBtn')}
           </SecondaryButton>
+          <CtaButton onClick={onContinue} style={{ marginTop: 0 }}>
+            {t('resumeSessionBtn')}
+          </CtaButton>
         </div>
 
         <div className={styles.footer}>
-           CERTIFICATE_ID: {sessionData.timestamp} // AUTH_HANDSHAKE: OK
+          CERTIFICATE_ID: {sessionData.timestamp} // AUTH_HANDSHAKE: OK
         </div>
       </div>
     </div>

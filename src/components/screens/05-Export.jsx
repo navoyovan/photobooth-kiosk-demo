@@ -1,11 +1,11 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { createPortal } from 'react-dom';
 import { animate, createTimeline } from 'animejs';
 import { entranceAqcuisitionLayout } from '../../utils/transitions';
 import { convertToWebP, saveToLocalStarfield } from '../../utils/imageProcessor';
 import { getBackendUrl, getMachineUUID } from '../../utils/kioskId';
 import { TRANSLATIONS } from '../../constants/translations';
 import styles from './05-Export.module.css';
+import { PrimaryButton } from '../../ui';
 
 const ExportScreen = ({ finalImage, capturedPhotos = [], printCopies, onFinish, kioskId, devFreeFlow, sessionHash, selectedFrame, language = 'EN' }) => {
   const t = (key) => {
@@ -21,9 +21,6 @@ const ExportScreen = ({ finalImage, capturedPhotos = [], printCopies, onFinish, 
   const timelineRef = useRef(null);
   const [isDonating, setIsDonating] = useState(true);
   const [isProcessingDonation, setIsProcessingDonation] = useState(false);
-  const [isPrintImageLoaded, setIsPrintImageLoaded] = useState(false);
-  const [isLandscapePrint, setIsLandscapePrint] = useState(false);
-  const printScale = localStorage.getItem('PHOTOBOOTH_PRINT_SCALE') || '100';
 
   const [uploading, setUploading] = useState(true);
   const [downloadUrl, setDownloadUrl] = useState('');
@@ -103,23 +100,6 @@ const ExportScreen = ({ finalImage, capturedPhotos = [], printCopies, onFinish, 
       }
     });
 
-    // // Ghost Watermark (Deepest parallax)
-    // tl.add('.ghost-watermark', {
-    //   translateX: ['-35%', '-50%'],
-    //   translateY: ['-50%', '-50%'],
-    //   opacity: [0, 1],
-    //   duration: 1400,
-    //   easing: 'easeOutQuart'
-    // }, 50);
-
-    // Main Telemetry Panel (Right axis)
-    // tl.add('.telemetry-right-axis', {
-    //   translateY: [100, 0],
-    //   opacity: [0, 1],
-    //   duration: 800,
-    //   easing: 'easeOutCubic'
-    // }, 200);
-
     // Footer Progress & Button
     if (footerRef.current) {
       tl.add(footerRef.current, {
@@ -157,47 +137,6 @@ const ExportScreen = ({ finalImage, capturedPhotos = [], printCopies, onFinish, 
     }, 50);
     return () => clearInterval(interval);
   }, [printCopies]);
-
-  // --- EPSON SL-D500 PHYSICAL PRINT ENGINE SPOOLER ---
-  useEffect(() => {
-    if (isPrintImageLoaded) {
-      // Inject dynamic page size style to force Chrome's print dialog to auto-recognize orientation
-      const styleId = 'dynamic-print-page-style';
-      let styleEl = document.getElementById(styleId);
-      if (!styleEl) {
-        styleEl = document.createElement('style');
-        styleEl.id = styleId;
-        document.head.appendChild(styleEl);
-      }
-      styleEl.innerHTML = `
-        @media print {
-          @page {
-            size: ${isLandscapePrint ? '6in 4in' : '4in 6in'} !important;
-            margin: 0 !important;
-          }
-        }
-      `;
-      
-      return () => {
-        const el = document.getElementById(styleId);
-        if (el) el.remove();
-      };
-    }
-  }, [isPrintImageLoaded, isLandscapePrint]);
-
-  useEffect(() => {
-    if (finalImage && isPrintImageLoaded) {
-      console.log(`[Printer] Spooling print job to Epson SL-D500. Copies requested: ${printCopies} (via unified multi-page document)`);
-      
-      // Safety timeout to ensure layout engine stabilizes before printing freezes JS
-      const timer = setTimeout(() => {
-        console.log(`[Printer] Directing print job trigger`);
-        window.print();
-      }, 500);
-
-      return () => clearTimeout(timer);
-    }
-  }, [finalImage, isPrintImageLoaded, printCopies]);
 
   const handleManualExit = async () => {
     animate(screenRef.current, {
@@ -307,41 +246,18 @@ const ExportScreen = ({ finalImage, capturedPhotos = [], printCopies, onFinish, 
               </span>
             </div>
 
-            <button
-              className={`btn-primary ${styles.finishBtn}`}
+            <PrimaryButton
               onClick={handleManualExit}
               disabled={isProcessingDonation || progress < 100}
-              style={{ opacity: progress < 100 ? 0.3 : 1, cursor: progress < 100 ? 'not-allowed' : 'pointer', width: '100%', maxWidth: '30rem' }}
+              style={{ opacity: progress < 100 ? 0.3 : 1, cursor: progress < 100 ? 'not-allowed' : 'pointer' }}
             >
               {isProcessingDonation ? t('wait') : (progress < 100 ? t('materializing') : t('endSession'))}
-            </button>
+            </PrimaryButton>
           </div>
         </div>
 
       </div>
       
-      {/* Clean, off-screen print target for physical print engine */}
-      {createPortal(
-        <>
-          {Array.from({ length: Number(printCopies) || 1 }).map((_, index) => (
-            <div key={index} className={`print-only-container ${isLandscapePrint ? 'landscape-print' : 'portrait-print'}`} style={{ transform: `scale(${Number(printScale) / 100})`, transformOrigin: 'center' }}>
-              <img 
-                src={finalImage || "/taken_pic/default.png"} 
-                alt={`Epson SL-D500 Collage Print Copy ${index + 1}`} 
-                onLoad={(e) => {
-                  if (index === 0) {
-                    const isLandscape = e.target.naturalWidth > e.target.naturalHeight;
-                    console.log(`[Printer] Physical print image loaded. Size: ${e.target.naturalWidth}x${e.target.naturalHeight}. Landscape: ${isLandscape}`);
-                    setIsLandscapePrint(isLandscape);
-                    setIsPrintImageLoaded(true);
-                  }
-                }}
-              />
-            </div>
-          ))}
-        </>,
-        document.body
-      )}
     </div>
   );
 };

@@ -1,5 +1,5 @@
-import React, { useEffect, useRef, useMemo, useState } from 'react';
-import { animate, cubicBezier } from 'animejs';
+import React, { useEffect, useRef, useState } from 'react';
+import { animate } from 'animejs';
 import { getCommunityPhotoUrls } from '../../utils/imageProcessor';
 
 const FloatingPhotos = ({ previousImage, isOutro, isVisible, isTransformed, showPhotos = true, grayscale = false }) => {
@@ -10,20 +10,25 @@ const FloatingPhotos = ({ previousImage, isOutro, isVisible, isTransformed, show
   const showPhotosRef = useRef(showPhotos);
   const globalPhotosOpacity = useRef({ value: showPhotos ? 1 : 0 });
 
-  // Pre-load all collage images
-  const loadedImages = useMemo(() => {
-    const localPhotos = [
-      '/starfield/1.webp', '/starfield/2.webp', '/starfield/3.webp', '/starfield/4.webp', '/starfield/5.webp',
-      '/starfield/6.webp', '/starfield/7.webp', '/starfield/8.webp', '/starfield/9.webp', '/starfield/10.webp',
-      '/starfield/11.webp', '/starfield/12.webp', '/starfield/13.webp', '/starfield/14.webp', '/starfield/15.webp',
-      '/starfield/16.webp', '/starfield/17.webp', '/starfield/18.webp', '/starfield/19.webp', '/starfield/20.webp',
-      '/starfield/21.webp', '/starfield/22.webp', '/starfield/23.webp', '/starfield/24.webp', '/starfield/25.webp',
-      '/starfield/26.webp', '/starfield/27.webp', '/starfield/28.webp', '/starfield/29.webp', '/starfield/30.webp',
-    ];
-    return localPhotos.map(src => {
-      const img = new Image();
-      img.src = src;
-      return img;
+  // FIX 1 + 2: Zero-padded paths + async decode — images only enter the pool after verified ready
+  const [loadedImages, setLoadedImages] = useState([]);
+
+  useEffect(() => {
+    const localPhotos = Array.from({ length: 30 }, (_, i) =>
+      `/starfield/${String(i + 1).padStart(2, '0')}.webp`
+    );
+    Promise.all(
+      localPhotos.map(src => {
+        const img = new Image();
+        img.src = src;
+        return img.decode()
+          .then(() => img)
+          .catch(() => null); // silently drop 404s or decode errors
+      })
+    ).then(results => {
+      const valid = results.filter(Boolean);
+      console.log(`[Starfield] Decoded ${valid.length}/${localPhotos.length} local images.`);
+      setLoadedImages(valid);
     });
   }, []);
 
@@ -128,10 +133,9 @@ const FloatingPhotos = ({ previousImage, isOutro, isVisible, isTransformed, show
       for (let i = 0; i < needed; i++) {
         const pos = getSpawnPos();
 
-        // replace nganu itunya first in first out
         const activePlaceholders = loadedImages.slice(0, Math.max(0, loadedImages.length - communityImages.length));
-        const masterPool = [...activePlaceholders, ...communityImages];
-        const selectedImg = masterPool[Math.floor(Math.random() * masterPool.length)];
+        const pool = [...activePlaceholders, ...communityImages];
+        const selectedImg = pool.length > 0 ? pool[Math.floor(Math.random() * pool.length)] : null;
 
         photosRef.current.push({
           x: pos.x, y: pos.y, z: Math.random() * animProps.current.maxDepth,
@@ -161,10 +165,9 @@ const FloatingPhotos = ({ previousImage, isOutro, isVisible, isTransformed, show
           if (isOutroRef.current && prevImgRef.current) {
             photo.imageObject = prevImgRef.current;
           } else {
-            // "Replace one-by-one" logic: as community grows, placeholders shrink
             const activePlaceholders = loadedImages.slice(0, Math.max(0, loadedImages.length - communityImages.length));
-            const masterPool = [...activePlaceholders, ...communityImages];
-            photo.imageObject = masterPool[Math.floor(Math.random() * masterPool.length)];
+            const pool = [...activePlaceholders, ...communityImages];
+            photo.imageObject = pool.length > 0 ? pool[Math.floor(Math.random() * pool.length)] : null;
           }
           photo.baseHeight = (350 + Math.random() * 350);
         }
@@ -196,16 +199,15 @@ const FloatingPhotos = ({ previousImage, isOutro, isVisible, isTransformed, show
           projectedX + scaledWidth > 0 && projectedX - scaledWidth < canvas.width &&
           projectedY + scaledHeight > 0 && projectedY - scaledHeight < canvas.height
         ) {
-          ctx.save();
-          ctx.translate(projectedX, projectedY);
-          ctx.globalAlpha = Math.max(0, opacity * globalPhotosOpacity.current.value);
-          if (photo.imageObject && photo.imageObject.complete && photo.imageObject.naturalHeight !== 0) {
+          // FIX 3: Only draw if image is fully ready — no gray fillRect fallback
+          if (photo.imageObject && photo.imageObject.complete && photo.imageObject.naturalHeight > 0) {
+            ctx.save();
+            ctx.translate(projectedX, projectedY);
+            ctx.globalAlpha = Math.max(0, opacity * globalPhotosOpacity.current.value);
             ctx.drawImage(photo.imageObject, -scaledWidth / 2, -scaledHeight / 2, scaledWidth, scaledHeight);
-          } else {
-            ctx.fillStyle = '#d1cec7';
-            ctx.fillRect(-scaledWidth / 2, -scaledHeight / 2, scaledWidth, scaledHeight);
+            ctx.restore();
           }
-          ctx.restore();
+          // If not ready: skip silently — the 60fps loop will draw it next tick
         }
       });
 

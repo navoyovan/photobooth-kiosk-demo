@@ -367,7 +367,7 @@ const PaymentScreen = forwardRef(({ onBack, onSuccess, printCopies, setPrintCopi
         </div>
 
         <div className={styles.priceDisplay} style={{ textAlign: 'center' }}>
-          {originalPrice && <span className={styles.originalPrice} style={{ fontSize: '2rem' }}>Rp {originalPrice.toLocaleString()}</span>}
+          {originalPrice && <span className={styles.originalPrice} style={{ fontSize: '1.4rem' }}>Rp {originalPrice.toLocaleString()}</span>}
           <div className={styles.priceMonument}>Rp {price.toLocaleString()}</div>
         </div>
 

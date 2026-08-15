@@ -19,9 +19,8 @@ import CommunityGalleryModal from './components/shared/CommunityGalleryModal';
 import { useKioskBoot } from './hooks/useKioskBoot';
 import { FRAME_TYPES, DEFAULT_FRAME } from './constants/frames';
 import { getKioskId, getMachineUUID, syncKioskConfig } from './utils/kioskId';
-import echo from './services/echo';
-import StatusService from './services/StatusService';
 import { PrimaryButton, CtaButton, SecondaryButton } from './ui';
+import PrintCalibrationSheet from './components/shared/PrintCalibrationSheet';
 
 
 
@@ -57,40 +56,16 @@ export default function App() {
   const [isMaintenanceLocked, setIsMaintenanceLocked] = useState(false);
   const [isMaintenanceExiting, setIsMaintenanceExiting] = useState(false);
   const [isDonating, setIsDonating] = useState(true);
-  const [, setForceUpdate] = useState(0);
 
   // Advanced Nerd Printer HUD States
   const [isPrinterDevOpen, setIsPrinterDevOpen] = useState(false);
   const [devPrinterName, setDevPrinterName] = useState(localStorage.getItem('PHOTOBOOTH_PRINTER_NAME') || 'Epson SL-D500');
   const [devPrintScale, setDevPrintScale] = useState(localStorage.getItem('PHOTOBOOTH_PRINT_SCALE') || '100');
+  const [devPrintRotation, setDevPrintRotation] = useState(localStorage.getItem('PHOTOBOOTH_PRINT_ROTATION') || '0');
 
-  // Idle Screen Brand Configuration
-  const [idleBrandType, setIdleBrandType] = useState(localStorage.getItem('PHOTOBOOTH_IDLE_BRAND_TYPE') || 'logo'); // Default to logo
   const [idleBrandText, setIdleBrandText] = useState(localStorage.getItem('PHOTOBOOTH_IDLE_BRAND_TEXT') || 'Hype - Box');
-  const [idleBrandLogo, setIdleBrandLogo] = useState(localStorage.getItem('PHOTOBOOTH_IDLE_BRAND_LOGO') || '/assets/main-logo.png');
   const [idleBrandTextScale, setIdleBrandTextScale] = useState(localStorage.getItem('PHOTOBOOTH_IDLE_BRAND_TEXT_SCALE') || '100');
-  const [idleBrandLogoScale, setIdleBrandLogoScale] = useState(localStorage.getItem('PHOTOBOOTH_IDLE_BRAND_LOGO_SCALE') || '100');
   const [isBrandingDevOpen, setIsBrandingDevOpen] = useState(false);
-
-  // Hardware status polling
-  useEffect(() => {
-    StatusService.start();
-    const devPoll = setInterval(() => setForceUpdate(prev => prev + 1), 1000);
-
-    return () => {
-      StatusService.stop();
-      clearInterval(devPoll);
-    };
-  }, []);
-
-  // Update StatusService session state
-  useEffect(() => {
-    if (currentStep > 0 && currentStep < 6) {
-      StatusService.setStatus('session');
-    } else {
-      StatusService.setStatus('idle'); // or online
-    }
-  }, [currentStep]);
 
   // Telemetry HUD Animation Logic
   // Telemetry HUD Animation Logic (Visible from Selection to Checkout, hidden in Export/Outro)
@@ -562,13 +537,6 @@ export default function App() {
           ) : (
             <div className="dev-mode-indicator status-tag pending">REGISTRATION: PENDING_ACTIVATION</div>
           )}
-          
-          <div className="dev-mode-indicator" style={{ marginTop: '0.5rem', backgroundColor: '#1a1a1a', border: '1px solid #333' }}>
-            <strong style={{ color: '#aaa', fontSize: '0.7rem', display: 'block', marginBottom: '0.2rem' }}>LIVE HEALTH:</strong>
-            PRINTER: <span style={{ color: StatusService.printer === 'ready' ? '#0f0' : '#f00' }}>{StatusService.printer.toUpperCase()}</span> | 
-            CAMERA: <span style={{ color: StatusService.camera === 'ready' ? '#0f0' : '#f00' }}>{StatusService.camera.toUpperCase()}</span> | 
-            STATUS: <span style={{ color: '#0ff' }}>{StatusService.status.toUpperCase()}</span>
-          </div>
 
           {/* NERD CONFIGURATION CONTROLS */}
           <div className="dev-mode-indicator" style={{ marginTop: '0.5rem', backgroundColor: '#111', border: '1px solid #222', pointerEvents: 'auto' }}>
@@ -639,75 +607,28 @@ export default function App() {
                   >
                     RUN TEST PRINT
                   </button>
-                  <span style={{ color: '#888', fontSize: '0.6rem' }}>
-                    LINK: {StatusService.isLocalBackend ? 'LOCAL_API (Real)' : 'FALLBACK (Blind)'}
-                  </span>
                 </div>
               </div>
             )}
           </div>
 
 
-          {/* BRANDING CONFIGURATION CONTROLS */}
+          {/* IDLE BRANDING CONTROLS */}
           <div className="dev-mode-indicator" style={{ marginTop: '0.5rem', backgroundColor: '#111', border: '1px solid #222', pointerEvents: 'auto' }}>
-            <div 
-              style={{ color: '#00FFFF', cursor: 'pointer', fontWeight: 900, display: 'flex', justifyContent: 'space-between', fontSize: '0.65rem', fontFamily: 'monospace' }} 
+            <div
+              style={{ color: '#00FFFF', cursor: 'pointer', fontWeight: 900, display: 'flex', justifyContent: 'space-between', fontSize: '0.65rem', fontFamily: 'monospace' }}
               onClick={() => setIsBrandingDevOpen(!isBrandingDevOpen)}
             >
               <span>{isBrandingDevOpen ? '▼' : '▶'} IDLE_BRANDING_SETTINGS</span>
-              <span>[ {idleBrandType.toUpperCase()} ]</span>
             </div>
             {isBrandingDevOpen && (
               <div style={{ marginTop: '0.6rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', fontSize: '0.65rem', borderTop: '1px dashed #333', paddingTop: '0.5rem' }}>
-                
-                {/* Brand Type Toggle */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ color: '#777' }}>DISPLAY TYPE:</span>
-                  <div style={{ display: 'flex', gap: '4px' }}>
-                    <button 
-                      onClick={() => {
-                        setIdleBrandType('text');
-                        localStorage.setItem('PHOTOBOOTH_IDLE_BRAND_TYPE', 'text');
-                      }}
-                      style={{ 
-                        backgroundColor: idleBrandType === 'text' ? '#00FFFF' : '#000', 
-                        color: idleBrandType === 'text' ? '#000' : '#FFF', 
-                        border: '1px solid #333', 
-                        fontSize: '0.55rem', 
-                        fontFamily: 'monospace', 
-                        padding: '2px 6px',
-                        cursor: 'pointer',
-                        fontWeight: idleBrandType === 'text' ? 'bold' : 'normal'
-                      }}
-                    >
-                      TEXT
-                    </button>
-                    <button 
-                      onClick={() => {
-                        setIdleBrandType('logo');
-                        localStorage.setItem('PHOTOBOOTH_IDLE_BRAND_TYPE', 'logo');
-                      }}
-                      style={{ 
-                        backgroundColor: idleBrandType === 'logo' ? '#00FFFF' : '#000', 
-                        color: idleBrandType === 'logo' ? '#000' : '#FFF', 
-                        border: '1px solid #333', 
-                        fontSize: '0.55rem', 
-                        fontFamily: 'monospace', 
-                        padding: '2px 6px',
-                        cursor: 'pointer',
-                        fontWeight: idleBrandType === 'logo' ? 'bold' : 'normal'
-                      }}
-                    >
-                      LOGO
-                    </button>
-                  </div>
-                </div>
 
-                {/* Brand Text Customizer */}
+                {/* Brand Text */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span style={{ color: '#777' }}>BRAND TEXT:</span>
-                  <input 
-                    type="text" 
+                  <input
+                    type="text"
                     value={idleBrandText}
                     onChange={(e) => {
                       setIdleBrandText(e.target.value);
@@ -717,54 +638,24 @@ export default function App() {
                   />
                 </div>
 
-                {/* Brand Logo Path Customizer */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ color: '#777' }}>LOGO ASSET:</span>
-                  <input 
-                    type="text" 
-                    value={idleBrandLogo}
-                    onChange={(e) => {
-                      setIdleBrandLogo(e.target.value);
-                      localStorage.setItem('PHOTOBOOTH_IDLE_BRAND_LOGO', e.target.value);
-                    }}
-                    style={{ backgroundColor: '#000', border: '1px solid #333', color: '#fff', fontSize: '0.6rem', fontFamily: 'monospace', padding: '2px 4px', width: '130px', textAlign: 'right' }}
-                  />
-                </div>
-
-                {/* Brand Text Scale Customizer */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ color: '#777' }}>TEXT SCALE (%):</span>
-                  <input 
-                    type="number" 
+                {/* Text Scale Slider */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ color: '#777' }}>TEXT SCALE: {idleBrandTextScale}%</span>
+                  <input
+                    type="range"
+                    min="50"
+                    max="200"
                     value={idleBrandTextScale}
                     onChange={(e) => {
                       setIdleBrandTextScale(e.target.value);
                       localStorage.setItem('PHOTOBOOTH_IDLE_BRAND_TEXT_SCALE', e.target.value);
                     }}
-                    style={{ backgroundColor: '#000', border: '1px solid #333', color: '#fff', fontSize: '0.6rem', fontFamily: 'monospace', padding: '2px 4px', width: '60px', textAlign: 'right' }}
-                  />
-                </div>
-
-                {/* Brand Logo Scale Customizer */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ color: '#777' }}>LOGO SCALE (%):</span>
-                  <input 
-                    type="number" 
-                    value={idleBrandLogoScale}
-                    onChange={(e) => {
-                      setIdleBrandLogoScale(e.target.value);
-                      localStorage.setItem('PHOTOBOOTH_IDLE_BRAND_LOGO_SCALE', e.target.value);
-                    }}
-                    style={{ backgroundColor: '#000', border: '1px solid #333', color: '#fff', fontSize: '0.6rem', fontFamily: 'monospace', padding: '2px 4px', width: '60px', textAlign: 'right' }}
+                    style={{ flex: 1 }}
                   />
                 </div>
 
               </div>
             )}
-          </div>
-          <div className="dev-mode-controls" style={{ pointerEvents: 'auto', display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '0.5rem' }}>
-            <button className="telemetry-dev-skip-minimal" onClick={() => { StatusService.togglePrinterMock(); }}>TGL_PRINTER</button>
-            <button className="telemetry-dev-skip-minimal" onClick={() => { StatusService.toggleCameraMock(); }}>TGL_CAMERA</button>
           </div>
           <div className="dev-mode-controls" style={{ pointerEvents: 'auto', display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '0.5rem' }}>
             {!isMaintenanceLocked && (
@@ -856,11 +747,8 @@ export default function App() {
                 setIsTunneling(false);
               }}
               onTransitionStart={() => setIsTunneling(true)}
-              brandType={idleBrandType}
               brandText={idleBrandText}
-              brandLogo={idleBrandLogo}
               brandTextScale={idleBrandTextScale}
-              brandLogoScale={idleBrandLogoScale}
             />
           )}
 
@@ -998,56 +886,15 @@ export default function App() {
         </>
       )}
 
-      {/* Test sheet template (Only active when printing outside Export screen) */}
-      {currentStep !== 5 && createPortal(
-        <div className="print-only-container portrait-print" style={{ transform: `scale(${Number(devPrintScale) / 100})`, transformOrigin: 'center' }}>
-          <div style={{ 
-            width: '4in', 
-            height: '6in', 
-            backgroundColor: '#ffffff', 
-            color: '#000000', 
-            display: 'flex', 
-            flexDirection: 'column', 
-            justifyContent: 'center', 
-            alignItems: 'center', 
-            fontFamily: 'monospace', 
-            padding: '0.4in', 
-            boxSizing: 'border-box', 
-            border: '6px double #000000',
-            textAlign: 'center'
-          }}>
-            <h2 style={{ margin: '0 0 5px 0', fontSize: '20px', fontWeight: 900, letterSpacing: '2px' }}>HYPE-BOX</h2>
-            <h4 style={{ margin: '0 0 15px 0', fontSize: '10px', letterSpacing: '4px', color: '#666' }}>CALIBRATION SHEET</h4>
-            
-            <div style={{ 
-              border: '2px dashed #000000', 
-              width: '100%', 
-              height: '2.2in', 
-              display: 'flex', 
-              flexDirection: 'column',
-              justifyContent: 'center', 
-              alignItems: 'center', 
-              fontSize: '9px',
-              gap: '5px',
-              padding: '10px',
-              boxSizing: 'border-box'
-            }}>
-              <strong>ALIGNMENT MARKER</strong>
-              <div style={{ width: '40px', height: '40px', border: '1px solid #000', borderRadius: '50%', position: 'relative', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                <div style={{ width: '100%', height: '1px', backgroundColor: '#000', position: 'absolute' }}></div>
-                <div style={{ height: '100%', width: '1px', backgroundColor: '#000', position: 'absolute' }}></div>
-              </div>
-              <span>4" x 6" PORTRAIT</span>
-            </div>
-
-            <div style={{ fontSize: '7.5px', marginTop: '20px', textAlign: 'left', width: '100%', display: 'flex', flexDirection: 'column', gap: '3px', borderTop: '1px solid #000', paddingTop: '10px' }}>
-              <div><strong>PRINTER:</strong> {devPrinterName}</div>
-              <div><strong>SCALE:</strong> {devPrintScale}%</div>
-              <div><strong>FINGERPRINT:</strong> {machineUUID}</div>
-              <div><strong>TIMESTAMP:</strong> {new Date().toLocaleString()}</div>
-            </div>
-          </div>
-        </div>,
+      {/* Calibration sheet — always active, sole print target for every window.print() */}
+      {createPortal(
+        <PrintCalibrationSheet
+          printerName={devPrinterName}
+          scale={devPrintScale}
+          rotation={devPrintRotation}
+          machineUUID={machineUUID}
+          style={{ transform: `scale(${Number(devPrintScale) / 100}) rotate(${Number(devPrintRotation)}deg)`, transformOrigin: 'center' }}
+        />,
         document.body
       )}
 
