@@ -43,3 +43,4 @@ Built as a demonstration of interactive kiosk experiences, combining frontend in
 
 This project is available under the Hype-box Demo License.
 See LICENSE.md
+[LICENSE.md](LICENSE.md)
