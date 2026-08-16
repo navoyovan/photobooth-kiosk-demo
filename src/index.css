@@ -37,6 +37,46 @@
   user-select: none;
 }
 
+html {
+  font-size: 16px;
+  -webkit-text-size-adjust: 100%;
+}
+
+/* Fluid root scale for smaller monitors / laptops (< 1600px) */
+@media (max-width: 1600px) {
+  html {
+    font-size: 14px;
+  }
+}
+
+/* Small Laptops (< 1366px) */
+@media (max-width: 1366px) {
+  html {
+    font-size: 12px;
+  }
+}
+
+/* Tablets Landscape / Large iPad (< 1180px) */
+@media (max-width: 1180px) {
+  html {
+    font-size: 11px;
+  }
+}
+
+/* Tablets Portrait / iPad (< 900px) */
+@media (max-width: 900px) {
+  html {
+    font-size: 9px;
+  }
+}
+
+/* Mobile Phones (< 600px) */
+@media (max-width: 600px) {
+  html {
+    font-size: 6px;
+  }
+}
+
 body {
   /* Default ke font mekanis untuk keseluruhan UI */
   font-family: 'Syne', 'Space Grotesk', sans-serif;
@@ -217,7 +257,7 @@ body {
 .panel-left {
   width: 35%;
   height: 100%;
-  padding: 4rem 0rem 4rem 7.5rem;
+  padding: 4rem 1rem 4rem clamp(2rem, 5vw, 7.5rem);
 
   display: flex;
 
@@ -442,23 +482,24 @@ body {
 
 .side-display-h1 {
   font-family: 'Syne', sans-serif;
-  font-size: 6rem;
+  font-size: clamp(2.4rem, 4.2vw, 6rem);
   font-weight: 900;
-  line-height: 0.85;
+  line-height: 0.9;
   color: #111111;
   text-transform: uppercase;
   position: relative;
   z-index: 2;
-  letter-spacing: -0.2rem;
+  letter-spacing: -0.03em;
+  white-space: nowrap;
 }
 
 .side-display-bullet {
   position: absolute;
   left: -1.2rem;
   font-family: 'Syne', sans-serif;
-  font-size: 6.5rem;
+  font-size: clamp(2.6rem, 4.5vw, 6.5rem);
   font-weight: 800;
-  line-height: 0.85;
+  line-height: 0.9;
   color: var(--accent-color);
   pointer-events: none;
   z-index: 10;
@@ -2539,7 +2580,8 @@ body {
 .telemetry-right-axis {
   position: relative;
   z-index: 20;
-  width: 40rem;
+  width: clamp(280px, 35vw, 40rem);
+  max-width: 90vw;
   display: flex;
   flex-direction: column;
   gap: 2rem;

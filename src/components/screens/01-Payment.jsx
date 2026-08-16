@@ -192,7 +192,7 @@ const PaymentScreen = forwardRef(({ onBack, onSuccess, printCopies, setPrintCopi
       <div ref={rightPanelRef} className="panel-right panel-center-content">
         <div className={styles.checkoutPhase}>
           <div className={styles.checkoutBody}>
-            <div className="qr-box" style={{ width: '600px', height: '250px', position: 'relative', overflow: 'visible', background: '#fff' }}>
+            <div className="qr-box" style={{ width: 'clamp(300px, 45vw, 600px)', maxWidth: '90vw', height: 'clamp(180px, 25vh, 250px)', position: 'relative', overflow: 'visible', background: '#fff' }}>
               <div className="vf-corner tl"></div>
               <div className="vf-corner tr"></div>
               <div className="vf-corner bl"></div>

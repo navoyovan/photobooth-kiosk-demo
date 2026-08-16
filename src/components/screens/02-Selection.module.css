@@ -10,9 +10,9 @@
 
 .modeToggleOption {
   font-family: 'Syne', sans-serif;
-  font-size: 6rem;
+  font-size: clamp(2.4rem, 4.2vw, 6rem);
   font-weight: 800;
-  line-height: 0.85;
+  line-height: 0.9;
   color: #A0A0A0;
   text-transform: uppercase;
   position: relative;
@@ -20,6 +20,8 @@
   margin-left: 0;
   transition: color 0.3s ease;
   pointer-events: none;
+  white-space: nowrap;
+  letter-spacing: -0.03em;
   /* Let clicks pass through to the grid behind the bleed */
 }
 
