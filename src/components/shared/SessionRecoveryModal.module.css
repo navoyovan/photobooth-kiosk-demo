@@ -12,13 +12,14 @@
 
 .modal {
   width: 100%;
-  max-width: 800px;
+  max-width: min(800px, 90vw);
+  max-height: 90vh;
+  overflow-y: auto;
   background: #FFFFFF;
   border: none;
   border-radius: 0;
-  padding: 64px;
+  padding: clamp(2rem, 4vh, 64px) clamp(1.5rem, 4vw, 64px);
   position: relative;
-  overflow: visible;
   box-shadow: none;
   color: #111111;
   display: flex;

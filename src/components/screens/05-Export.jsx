@@ -266,7 +266,16 @@ const ExportScreen = ({ finalImage, capturedPhotos = [], printCopies, onFinish, 
 
           <div
             className={`qr-box ${!allowCloudUpload ? styles.disabledQrBox : ''}`}
-            style={{ margin: '1rem 0 2.5rem 0', alignSelf: 'flex-start', position: 'relative', width: '280px', height: '280px', background: '#fff' }}
+            style={{ 
+              margin: '1rem 0 2rem 0', 
+              alignSelf: 'flex-start', 
+              position: 'relative', 
+              width: 'clamp(180px, 22vw, 280px)', 
+              height: 'clamp(180px, 22vw, 280px)', 
+              aspectRatio: '1/1',
+              maxWidth: '85vw',
+              background: '#fff' 
+            }}
           >
             <div className="qr-crop-marks">
               <span></span>
@@ -289,8 +298,8 @@ const ExportScreen = ({ finalImage, capturedPhotos = [], printCopies, onFinish, 
                 src={`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(downloadUrl)}`}
                 alt="Download QR"
                 style={{
-                  width: '200px',
-                  height: '200px',
+                  width: '80%',
+                  height: '80%',
                   objectFit: 'contain',
                   zIndex: 5,
                   cursor: devFreeFlow ? 'pointer' : 'default'
