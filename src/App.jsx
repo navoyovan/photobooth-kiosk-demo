@@ -304,9 +304,10 @@ export default function App() {
 
   // --- SESSION RECOVERY LOGIC ---
   useEffect(() => {
-    // We only save if we are past the Idle screen (currentStep > 0)
-    // and not yet in the Outro screen (currentStep < 6)
-    if (currentStep > 0 && currentStep < 6) {
+    // Only persist session from Payment (1) up to Checkout (4).
+    // Once in Export (5) or Outro (6), session is cleared and cannot be recovered.
+    // NOTE: NEVER delete on currentStep === 0 (Idle), so users returning/refreshing can recover their session!
+    if (currentStep >= 1 && currentStep <= 4) {
       const sessionData = {
         currentStep,
         selectedFrame,
@@ -323,10 +324,18 @@ export default function App() {
         timestamp: Date.now()
       };
       localStorage.setItem('photobooth_session', JSON.stringify(sessionData));
+    } else if (currentStep >= 5) {
+      localStorage.removeItem('photobooth_session');
     }
   }, [currentStep, selectedFrame, amountPaid, capturedPhotos, printCopies, captureFilter, captureMirrored, finalImage, sessionTime, transactionTime, sessionHash]);
 
   const handleRestoreSession = useCallback((data) => {
+    if (!data || (data.currentStep && data.currentStep >= 5)) {
+      localStorage.removeItem('photobooth_session');
+      setCurrentStep(1);
+      return;
+    }
+
     // Restore all states
     setAmountPaid(data.amountPaid || 0);
     setPrintCopies(data.printCopies || 1);
@@ -341,25 +350,29 @@ export default function App() {
     if (data.sessionHash) setSessionHash(data.sessionHash);
     setIsCheckoutModalOpen(false);
 
-    // Analyze Progress to Set Destination
     const hasRealPhotos = data.capturedPhotos && data.capturedPhotos.some(p => p && !p.includes('default.png'));
     const hasFrame = !!data.selectedFrame;
-    const hasPaid = (data.amountPaid || 0) > 0;
 
-    if (hasRealPhotos || data.finalImage) {
-      // Case A: Photos taken -> Compositing
-      setCurrentStep(3);
+    // Determine target destination step (capped at maximum Step 4 Checkout)
+    let targetStep = data.currentStep;
+    if (!targetStep) {
+      if (hasRealPhotos || data.finalImage) targetStep = 3;
+      else if (hasFrame) targetStep = 3;
+      else targetStep = 2;
+    }
+
+    if (targetStep >= 4) {
+      setCurrentStep(4);
       setIsCaptureFinished(true);
-    } else if (hasFrame) {
-      // Case B: Frame Selected, no photos -> Viewfinder
+    } else if (targetStep === 3) {
       setCurrentStep(3);
-      setIsCaptureFinished(false);
-    } else if (hasPaid) {
-      // Case C: Paid, no frame -> Selection
+      setIsCaptureFinished(hasRealPhotos || !!data.finalImage);
+    } else if (targetStep === 2) {
       setCurrentStep(2);
+      setIsCaptureFinished(false);
     } else {
-      // Fallback
       setCurrentStep(1);
+      setIsCaptureFinished(false);
     }
   }, []);
 

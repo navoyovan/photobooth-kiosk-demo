@@ -34,12 +34,14 @@ const PaymentScreen = forwardRef(({ onBack, onSuccess, printCopies, setPrintCopi
       try {
         const session = JSON.parse(rawSession);
         const isRecent = Date.now() - session.timestamp < 30 * 60 * 1000;
-        const hasSessionState = (session.currentStep > 1) ||
+        // Maximum at checkout page (steps 1 through 4 only). Export (5) and Outro (6) are never recovered.
+        const isValidStep = session.currentStep >= 1 && session.currentStep <= 4;
+        const hasSessionState = (session.currentStep >= 2) ||
           (session.selectedFrame !== null && session.selectedFrame !== undefined) ||
           (Array.isArray(session.capturedPhotos) && session.capturedPhotos.some(p => !!p)) ||
           ((session.amountPaid || 0) > 0);
 
-        if (isRecent && hasSessionState) {
+        if (isRecent && isValidStep && hasSessionState) {
           setSavedSession(session);
           setShowRecoveryModal(true);
         } else {
