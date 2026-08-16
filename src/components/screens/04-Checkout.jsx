@@ -183,7 +183,7 @@ const PrintManifestScreen = ({ finalImage, printCopies, setPrintCopies, initialC
             </div>
             <div className={styles.dataRow}>
               <span className={styles.dataLabel}>{t('sessionRef')}</span>
-              <span className={styles.dataValue}>DEMO V1.0 // {sessionHash}</span>
+              <span className={styles.dataValue}>DEMO V1.2 // {sessionHash}</span>
             </div>
           </div>
 

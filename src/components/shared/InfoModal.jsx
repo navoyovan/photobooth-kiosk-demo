@@ -81,7 +81,7 @@ const InfoModal = ({ isOpen, onClose, language = 'EN' }) => {
 
         <div className={styles.metaSection}>
           <span className={styles.versionLabel}>{t('demoVersionLabel') || 'DEMO VERSION'}</span>
-          <span className={styles.versionValue}>v1.0</span>
+          <span className={styles.versionValue}><v1 className="2"></v1></span>
         </div>
 
         <div className={styles.statusMatrix}>
