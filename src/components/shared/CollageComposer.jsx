@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { animate, set } from 'animejs';
 import { getFrameLayout } from '../../constants/frame_layouts';
+import { assetUrl } from '../../utils/assetUrl';
 
 const CollageComposer = forwardRef(({ photos = [], frame, photoFilter = 'none', isMirrored = false, isProcessing = false, onActiveIndexChange }, ref) => {
   const containerRef = useRef(null);
@@ -325,7 +326,7 @@ const CollageComposer = forwardRef(({ photos = [], frame, photoFilter = 'none', 
                 >
                   <div className="lens-refocus-wrapper" style={{ width: '100%', height: '100%' }}>
                     <img
-                      src={src || '/taken_pic/default.png'}
+                      src={src || assetUrl('taken_pic/default.png')}
                       onLoad={(e) => handlePhotoLoad(e, photoIdx)}
                       style={{
                         width: '100%',

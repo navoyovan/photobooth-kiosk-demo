@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { animate } from 'animejs';
+import { assetUrl } from './utils/assetUrl';
 
 import FloatingPhotos from './components/shared/Starfield';
 import IdleScreen from './components/screens/00-Idle';
@@ -74,8 +75,8 @@ export default function App() {
   // Global Asset Preloading
   useEffect(() => {
     const frameAssets = [...FRAME_TYPES.map(f => f.thumbnail), DEFAULT_FRAME.thumbnail];
-    const uiAssets = ['/hero.png', '/icons.svg', '/favicon.svg'];
-    const starfieldAssets = Array.from({ length: 30 }, (_, i) => `/starfield/${i + 1}.webp`);
+    const uiAssets = [assetUrl('hero.png'), assetUrl('icons.svg'), assetUrl('favicon.svg')];
+    const starfieldAssets = Array.from({ length: 30 }, (_, i) => assetUrl(`starfield/${i + 1}.webp`));
 
     const assetsToPreload = [...frameAssets, ...uiAssets, ...starfieldAssets];
 
@@ -377,32 +378,54 @@ export default function App() {
   }, []);
 
   // CAMERA MANAGEMENT (LAZY INITIALIZATION)
+  const isTransitioningRef = useRef(false);
+  const cameraStreamRef = useRef(null);
+
   useEffect(() => {
-    // Narrowed: only requested warmup or active in Capture (Step 3)
+    let isCancelled = false;
     const isCameraNeeded = currentStep === 3 || isCameraRequested;
 
-    if (!isCameraNeeded) {
-      if (cameraStream) {
-        console.log("[App] Stopping camera stream - out of range");
-        cameraStream.getTracks().forEach(t => t.stop());
-        setCameraStream(null);
-      }
-      return;
-    }
+    const manageCamera = async () => {
+      if (isTransitioningRef.current) return;
+      isTransitioningRef.current = true;
 
-    const startCamera = async () => {
       try {
+        if (!isCameraNeeded) {
+          if (cameraStreamRef.current) {
+            console.log("[App] Stopping camera stream - out of range");
+            const s = cameraStreamRef.current;
+            cameraStreamRef.current = null;
+            s.getTracks().forEach(t => {
+              try { t.stop(); } catch(e) {}
+            });
+            if (!isCancelled) setCameraStream(null);
+          }
+          return;
+        }
+
         // Ensure devices are enumerated if we're in range
         if (cameraDevices.length === 0) {
           console.log("[App] Lazy enumerating devices...");
-          const initial = await navigator.mediaDevices.getUserMedia({ video: true });
-          initial.getTracks().forEach(t => t.stop());
+          try {
+            const initial = await navigator.mediaDevices.getUserMedia({ video: true });
+            initial.getTracks().forEach(t => {
+              try { t.stop(); } catch(e) {}
+            });
+            await new Promise(r => setTimeout(r, 150)); // wait for hardware lock release
+          } catch(e) {
+            console.warn("Camera warmup/permission failed:", e);
+          }
+
+          if (isCancelled) return;
+
           const allDevices = await navigator.mediaDevices.enumerateDevices();
           const videoDevices = allDevices.filter(d => d.kind === 'videoinput');
-          setCameraDevices(videoDevices);
+          if (!isCancelled) setCameraDevices(videoDevices);
 
           if (videoDevices.length > 0 && !selectedDeviceId) {
-            setSelectedDeviceId(videoDevices[0].deviceId);
+            if (!isCancelled) {
+              setSelectedDeviceId(videoDevices[0].deviceId);
+            }
             return; // Effect will re-run with selectedDeviceId
           }
         }
@@ -410,17 +433,24 @@ export default function App() {
         if (!selectedDeviceId) return;
 
         // Check if current stream is already correct and active
-        const activeTrack = cameraStream?.getVideoTracks()[0];
+        const activeTrack = cameraStreamRef.current?.getVideoTracks()[0];
         const currentId = activeTrack?.getSettings()?.deviceId;
 
-        if (cameraStream && cameraStream.active && currentId === selectedDeviceId) {
+        if (cameraStreamRef.current && cameraStreamRef.current.active && currentId === selectedDeviceId) {
           return; // Already streaming correct device
         }
 
         // Cleanup old stream if switching or restarting
-        if (cameraStream) {
-          cameraStream.getTracks().forEach(t => t.stop());
+        if (cameraStreamRef.current) {
+          const oldStream = cameraStreamRef.current;
+          cameraStreamRef.current = null;
+          oldStream.getTracks().forEach(t => {
+            try { t.stop(); } catch(e) {}
+          });
+          await new Promise(r => setTimeout(r, 150)); // wait for hardware lock release
         }
+
+        if (isCancelled) return;
 
         console.log("[App] Starting camera stream for device:", selectedDeviceId);
         const stream = await navigator.mediaDevices.getUserMedia({
@@ -430,21 +460,36 @@ export default function App() {
             height: { ideal: 1080 }
           }
         });
+
+        if (isCancelled) {
+          stream.getTracks().forEach(t => {
+            try { t.stop(); } catch(e) {}
+          });
+          return;
+        }
+
+        cameraStreamRef.current = stream;
         setCameraStream(stream);
       } catch (err) {
         console.error("Camera management error:", err);
+      } finally {
+        isTransitioningRef.current = false;
       }
     };
 
-    startCamera();
-  }, [currentStep, selectedDeviceId, isCameraRequested, cameraDevices, cameraStream]);
+    manageCamera();
 
+    return () => {
+      isCancelled = true;
+    };
+  }, [currentStep, selectedDeviceId, isCameraRequested, cameraDevices.length]);
 
   const transitionTimeout1 = React.useRef(null);
   const transitionTimeout2 = React.useRef(null);
   const ensureTimeout = React.useRef(null);
 
   const onEnsureCamera = useCallback(() => {
+    setIsCameraRequested(true);
     // Force re-start stream if it died
     setSelectedDeviceId(prev => {
       return ""; // trigger effect

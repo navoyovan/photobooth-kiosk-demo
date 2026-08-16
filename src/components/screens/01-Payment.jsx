@@ -9,6 +9,7 @@ import InfoModal from '../shared/InfoModal';
 import { CtaButton } from '../../ui';
 import { TRANSLATIONS } from '../../constants/translations';
 import styles from './01-Payment.module.css';
+import { assetUrl } from '../../utils/assetUrl';
 
 const PaymentScreen = forwardRef(({ onBack, onSuccess, printCopies, setPrintCopies, timerDisplay, transactionTime, setIsTimerPaused, kioskId, onRestoreSession, selectedFrame, bypassMode = false, devFreeFlow = false, language = 'EN', setLanguage, isCheckoutOpen, setIsCheckoutOpen }, ref) => {
   const t = (key) => {
@@ -202,7 +203,7 @@ const PaymentScreen = forwardRef(({ onBack, onSuccess, printCopies, setPrintCopi
                 <CardStackOdometer
                   count={printCopies}
                   onChange={handleSetCopies}
-                  imageSrc={selectedFrame?.thumbnail || "/assets/payment_qty.webp"}
+                  imageSrc={selectedFrame?.thumbnail || assetUrl('assets/payment_qty.webp')}
                   size="compact"
                   min={1}
                   max={10}

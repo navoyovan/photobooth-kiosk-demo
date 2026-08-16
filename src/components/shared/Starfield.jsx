@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { animate } from 'animejs';
 import { getCommunityPhotoUrls } from '../../utils/imageProcessor';
+import { assetUrl } from '../../utils/assetUrl';
 
 const FloatingPhotos = ({ previousImage, isOutro, isVisible, isTransformed, showPhotos = true, grayscale = false }) => {
   const canvasRef = useRef(null);
@@ -15,7 +16,7 @@ const FloatingPhotos = ({ previousImage, isOutro, isVisible, isTransformed, show
 
   useEffect(() => {
     const localPhotos = Array.from({ length: 30 }, (_, i) =>
-      `/starfield/${String(i + 1).padStart(2, '0')}.webp`
+      assetUrl(`starfield/${String(i + 1).padStart(2, '0')}.webp`)
     );
     Promise.all(
       localPhotos.map(src => {

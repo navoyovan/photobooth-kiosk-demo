@@ -4,6 +4,7 @@ import styles from './GalleryCheckoutModal.module.css';
 import { getBackendUrl } from '../../utils/kioskId';
 import { TRANSLATIONS } from '../../constants/translations';
 import { SecondaryButton, PrimaryButton, CtaButton } from '../../ui';
+import { assetUrl } from '../../utils/assetUrl';
 
 // ---------------------------------------------------------------------------
 // HYPEBOX DEMO INTRODUCTION SCREEN
@@ -27,7 +28,7 @@ const DemoIntroContent = ({ onStart, onClose, modalRef, successOverlayRef }) => 
       <div className="vf-corner br"></div>
 
       <img
-        src="/assets/payment_qty.webp"
+        src={assetUrl('assets/payment_qty.webp')}
         alt="Sample photo experience preview"
         className={styles.demoPreviewImg}
       />

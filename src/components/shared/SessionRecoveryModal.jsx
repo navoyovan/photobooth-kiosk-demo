@@ -4,6 +4,7 @@ import styles from './SessionRecoveryModal.module.css';
 import { getFrameLayout } from '../../constants/frame_layouts';
 import { TRANSLATIONS } from '../../constants/translations';
 import { CtaButton, SecondaryButton } from '../../ui';
+import { assetUrl } from '../../utils/assetUrl';
 
 
 const SessionRecoveryModal = ({ isOpen, onContinue, onDiscard, sessionData, savedSession, language = 'EN' }) => {
@@ -63,7 +64,7 @@ const SessionRecoveryModal = ({ isOpen, onContinue, onDiscard, sessionData, save
   const totalSlots = selectedFrame?.slots || 1;
   const photosTaken = Array.isArray(capturedPhotos) ? capturedPhotos.filter(p => !!p).length : 0;
 
-  const filledPhotos = Array.from({ length: totalSlots }).map((_, i) => capturedPhotos[i] || '/taken_pic/default.png');
+  const filledPhotos = Array.from({ length: totalSlots }).map((_, i) => capturedPhotos[i] || assetUrl('taken_pic/default.png'));
   const layout = selectedFrame ? getFrameLayout(selectedFrame) : [];
 
   return (
@@ -98,14 +99,14 @@ const SessionRecoveryModal = ({ isOpen, onContinue, onDiscard, sessionData, save
               {selectedFrame ? (
                 <img src={selectedFrame.thumbnail} alt="Frame" className={styles.frameImg} style={{ zIndex: 10, position: 'relative', pointerEvents: 'none' }} />
               ) : (
-                <img src="/taken_pic/default.png" alt="Default" className={styles.frameImg} style={{ opacity: 0.1, zIndex: 10, position: 'relative' }} />
+                <img src={assetUrl('taken_pic/default.png')} alt="Default" className={styles.frameImg} style={{ opacity: 0.1, zIndex: 10, position: 'relative' }} />
               )}
 
               <div className={styles.photosGrid} style={{ padding: 0 }}>
                 {(layout.length > 0 ? layout : filledPhotos).map((item, i) => {
                   const slot = layout.length > 0 ? item : (layout[i] || { x: 0, y: 0, w: 100, h: 100 });
                   const photoIdx = slot.photo_index !== undefined ? slot.photo_index : i;
-                  const photo = capturedPhotos[photoIdx] || '/taken_pic/default.png';
+                  const photo = capturedPhotos[photoIdx] || assetUrl('taken_pic/default.png');
                   return (
                     <div
                       key={i}

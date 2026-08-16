@@ -10,6 +10,7 @@ import { TRANSLATIONS } from '../../constants/translations';
 import { SecondaryButton, CtaButton } from '../../ui';
 import vfStyles from './03a-Viewfinder.module.css';
 import cpStyles from './03b-Compositing.module.css';
+import { assetUrl } from '../../utils/assetUrl';
 
 
 
@@ -202,6 +203,11 @@ const CaptureScreen = React.forwardRef(({
     if (videoRef.current && cameraStream) {
       videoRef.current.srcObject = cameraStream;
     }
+    return () => {
+      if (videoRef.current) {
+        videoRef.current.srcObject = null;
+      }
+    };
   }, [cameraStream]);
 
   // Viewfinder fallback: proactively check if camera is alive while in viewfinder
@@ -223,8 +229,8 @@ const CaptureScreen = React.forwardRef(({
       }
     };
 
-    // Initial check after mount/state change
-    const initialTimeout = setTimeout(checkAndFire, 1000);
+    // Initial check after mount/state change with grace period
+    const initialTimeout = setTimeout(checkAndFire, 2000);
 
     // Periodic health check every 3 seconds
     const interval = setInterval(checkAndFire, 3000);
@@ -384,7 +390,7 @@ const CaptureScreen = React.forwardRef(({
         dataUrl = canvas.toDataURL('image/jpeg', 0.9);
       } else {
         console.warn("Camera not ready, using fallback image.");
-        dataUrl = "/taken_pic/default.png";
+        dataUrl = assetUrl('taken_pic/default.png');
       }
 
       setPhotos(prev => {

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { assetUrl } from '../../utils/assetUrl';
 
 const ThumbnailOrFallback = React.memo(({ src, alt, slots = 1 }) => {
   const [failed, setFailed] = useState(false);
@@ -8,7 +9,7 @@ const ThumbnailOrFallback = React.memo(({ src, alt, slots = 1 }) => {
   if (failed) {
     return (
       <div className="thumb-wrapper">
-        <img src="/thumbnail/00.png" alt="Fallback" className="thumb-img" />
+        <img src={assetUrl('thumbnail/00.png')} alt="Fallback" className="thumb-img" />
       </div>
     );
   }
@@ -30,7 +31,7 @@ const ThumbnailOrFallback = React.memo(({ src, alt, slots = 1 }) => {
   return (
     <div className="thumb-wrapper">
       <img
-        src={src || "/thumbnail/00.png"}
+        src={src || assetUrl('thumbnail/00.png')}
         alt={alt}
         className="thumb-img"
         onError={() => setFailed(true)}

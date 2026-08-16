@@ -6,6 +6,7 @@ import styles from './04-Checkout.module.css';
 import { entranceAqcuisitionLayout } from '../../utils/transitions';
 import { TRANSLATIONS } from '../../constants/translations';
 import { CtaButton } from '../../ui';
+import { assetUrl } from '../../utils/assetUrl';
 
 const PrintManifestScreen = ({ finalImage, printCopies, setPrintCopies, initialCopies, isCheckoutOpen, setIsCheckoutOpen, transactionTime, amountPaid, onNext, devFreeFlow, setIsTimerPaused, checkoutMode, setCheckoutMode, onTimeout, sessionHash, bypassMode = false, language = 'EN' }) => {
   const t = (key) => {
@@ -153,7 +154,7 @@ const PrintManifestScreen = ({ finalImage, printCopies, setPrintCopies, initialC
               <UnoCardStack
                 ref={stackContainerRef}
                 count={safeCopies}
-                imageSrc={finalImage || "/taken_pic/default.png"}
+                imageSrc={finalImage || assetUrl('taken_pic/default.png')}
                 size="large"
                 cardRefs={cardRefs}
               />

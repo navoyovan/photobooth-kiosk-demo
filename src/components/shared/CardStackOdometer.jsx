@@ -1,6 +1,7 @@
 import React, { useRef, useEffect, useState, forwardRef } from 'react';
 import { animate } from 'animejs';
 import styles from './CardStackOdometer.module.css';
+import { assetUrl } from '../../utils/assetUrl';
 
 export const ROTATION_SEEDS = [1.2, -0.8, 1.9, -1.5, 0.5, -1.2, 1.7, -0.3, 0.9, -1.8];
 
@@ -176,7 +177,7 @@ export const OdometerStepper = forwardRef(({
  */
 export const UnoCardStack = forwardRef(({
   count = 1,
-  imageSrc = '/assets/payment_qty.webp',
+  imageSrc = null,
   size = 'compact',
   cardRefs,
   className = ''
@@ -241,7 +242,7 @@ export const UnoCardStack = forwardRef(({
               transitionDelay: `${staggerDelay}ms`
             }}
           >
-            <img src={imageSrc} alt={`Card copy ${index + 1}`} />
+            <img src={imageSrc ?? assetUrl('assets/payment_qty.webp')} alt={`Card copy ${index + 1}`} />
           </div>
         );
       })}
@@ -255,7 +256,7 @@ export const UnoCardStack = forwardRef(({
 const CardStackOdometer = ({
   count = 1,
   onChange,
-  imageSrc = '/assets/payment_qty.webp',
+  imageSrc = null,
   size = 'compact',
   theme = 'light',
   min = 1,
