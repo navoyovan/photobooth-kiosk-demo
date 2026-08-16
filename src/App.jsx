@@ -75,8 +75,8 @@ export default function App() {
   // Global Asset Preloading
   useEffect(() => {
     const frameAssets = [...FRAME_TYPES.map(f => f.thumbnail), DEFAULT_FRAME.thumbnail];
-    const uiAssets = [assetUrl('hero.png'), assetUrl('icons.svg'), assetUrl('favicon.svg')];
-    const starfieldAssets = Array.from({ length: 30 }, (_, i) => assetUrl(`starfield/${i + 1}.webp`));
+    const uiAssets = [assetUrl('icons.svg'), assetUrl('favicon.svg')];
+    const starfieldAssets = Array.from({ length: 30 }, (_, i) => assetUrl(`starfield/${String(i + 1).padStart(2, '0')}.webp`));
 
     const assetsToPreload = [...frameAssets, ...uiAssets, ...starfieldAssets];
 
