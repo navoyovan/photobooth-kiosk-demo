@@ -29,7 +29,6 @@ export const TRANSLATIONS = {
     promoApplied: "CODE APPLIED",
     promoInvalid: "INVALID CODE",
     pleaseWait: "Please wait...",
-    payWithOperator: "Pay with Operator",
     generatePaymentQR: "START  ↗",
     optics: "OPTICS",
     calibratedReady: "Calibrated & Ready",
@@ -40,8 +39,8 @@ export const TRANSLATIONS = {
 
     // SelectionScreen
     selectCanvasWatermark: "SELECT YOUR CANVAS",
-    frame: "FRAME",
-    collage: "COLLAGE",
+    frames: "FRAMES",
+    upload: "UPLOAD",
     previewTapDismiss: "[ PREVIEW ] — TAP OUTSIDE TO DISMISS",
     confirmSelection: "CONFIRM SELECTION",
     comingSoon: "Coming Soon",
@@ -177,7 +176,6 @@ export const TRANSLATIONS = {
     promoApplied: "PROMO AKTIF!",
     promoInvalid: "KODENYA SALAH",
     pleaseWait: "Bentar ya...",
-    payWithOperator: "Bayar di Kasir",
     generatePaymentQR: "Mulai  ↗",
     optics: "KAMERA",
     calibratedReady: "Kalibrasi Beres",
@@ -188,8 +186,8 @@ export const TRANSLATIONS = {
 
     // SelectionScreen
     selectCanvasWatermark: "PILIH KANVAS",
-    frame: "FRAME",
-    collage: "KOLASE",
+    frames: "FRAME",
+    upload: "UNGGAH",
     previewTapDismiss: "[ PRATINJAU ] — KETUK DI LUAR BUAT KELUAR",
     confirmSelection: "PILIH FRAME INI",
     comingSoon: "Segera Hadir",

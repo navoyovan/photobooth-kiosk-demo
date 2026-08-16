@@ -39,6 +39,25 @@ const IdleScreen = ({
   }, []); // Re-run on mount only
 
   const handleTap = () => {
+    // 0. Automatically enter Fullscreen mode on user tap
+    try {
+      const docEl = document.documentElement;
+      const requestFs =
+        docEl.requestFullscreen ||
+        docEl.webkitRequestFullscreen ||
+        docEl.mozRequestFullScreen ||
+        docEl.msRequestFullscreen;
+
+      if (requestFs && !document.fullscreenElement && !document.webkitFullscreenElement) {
+        const fsPromise = requestFs.call(docEl);
+        if (fsPromise && typeof fsPromise.catch === 'function') {
+          fsPromise.catch(() => {});
+        }
+      }
+    } catch (err) {
+      // Ignore if fullscreen is blocked by browser policies
+    }
+
     // 1. Trigger the background tunnel effect immediately
     if (onTransitionStart) onTransitionStart();
 

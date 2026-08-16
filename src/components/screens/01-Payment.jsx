@@ -210,7 +210,7 @@ const PaymentScreen = forwardRef(({ onBack, onSuccess, printCopies, setPrintCopi
           </div>
 
           <CtaButton className={styles.confirmBtn} onClick={handleConfirmCheckout}>
-            {bypassMode ? t('payWithOperator') : t('generatePaymentQR')}
+            {t('generatePaymentQR')}
           </CtaButton>
         </div>
 

@@ -5,6 +5,9 @@ import { exitEditorialLayout } from '../../utils/transitions';
 import { entranceEditorialLayout } from '../../utils/transitions';
 import { TRANSLATIONS } from '../../constants/translations';
 import { FRAME_TYPES } from '../../constants/frames';
+import FrameUploadWorkspace from '../upload/FrameUploadWorkspace';
+import FrameSlotToolbar from '../upload/FrameSlotToolbar';
+import { useFrameUpload } from '../../hooks/useFrameUpload';
 import { CtaButton } from '../../ui';
 import styles from './02-Selection.module.css';
 
@@ -22,10 +25,12 @@ const SelectionScreenInner = ({ onFinish, onPrepareCamera, kioskData, loading, l
   const leftPanelRef = useRef(null);
   const indicatorRef = useRef(null);
   const frameRefText = useRef(null);
-  const collageRefText = useRef(null);
+  const uploadRefText = useRef(null);
 
-  const [activeCategory, setActiveCategory] = useState("SPACE"); // SPACE (Frame) or GRID (Collage)
+  const [activeCategory, setActiveCategory] = useState("FRAMES"); // FRAMES or UPLOAD
   const [activeFrame, setActiveFrame] = useState(null); // Nothing selected on mount
+
+  const uploadState = useFrameUpload();
 
   const scrollState = useRef({ current: 0, target: 0 });
   const activeFrameRef = useRef(null);
@@ -33,10 +38,10 @@ const SelectionScreenInner = ({ onFinish, onPrepareCamera, kioskData, loading, l
 
   // Tab indicator & right panel transition
   useEffect(() => {
-    const isGrid = activeCategory === 'GRID';
+    const isUpload = activeCategory === 'UPLOAD';
     if (indicatorRef.current) {
       animate(indicatorRef.current, {
-        top: isGrid ? '6.1rem' : '0',
+        top: isUpload ? '6.1rem' : '0',
         duration: 600,
         easing: 'easeOutElastic(1, .75)'
       });
@@ -44,17 +49,17 @@ const SelectionScreenInner = ({ onFinish, onPrepareCamera, kioskData, loading, l
 
     if (frameRefText.current) {
       animate(frameRefText.current, {
-        translateX: !isGrid ? 0 : '3rem',
-        opacity: !isGrid ? 1 : 0.3,
+        translateX: !isUpload ? 0 : '3rem',
+        opacity: !isUpload ? 1 : 0.3,
         duration: 500,
         easing: 'easeOutCubic'
       });
     }
 
-    if (collageRefText.current) {
-      animate(collageRefText.current, {
-        translateX: isGrid ? 0 : '3rem',
-        opacity: isGrid ? 1 : 0.3,
+    if (uploadRefText.current) {
+      animate(uploadRefText.current, {
+        translateX: isUpload ? 0 : '3rem',
+        opacity: isUpload ? 1 : 0.3,
         duration: 500,
         easing: 'easeOutCubic'
       });
@@ -149,11 +154,15 @@ const SelectionScreenInner = ({ onFinish, onPrepareCamera, kioskData, loading, l
       }));
     }
 
-    // Use local standalone FRAME_TYPES, with optional kioskData merge if provided
+    if (activeCategory === 'UPLOAD') {
+      return [];
+    }
+
+    // Include all frames (both single-slot SPACE and multi-slot GRID/Collage) preserving slots_config metadata
     const sourceFrames = (kioskData?.frames && kioskData.frames.length > 0)
       ? kioskData.frames.map(f => ({
           id: f.id,
-          category: f.category || 'SPACE',
+          category: f.category || 'FRAMES',
           thumbnail: f.asset_path,
           name: f.name,
           slots: f.slots || 1,
@@ -161,10 +170,8 @@ const SelectionScreenInner = ({ onFinish, onPrepareCamera, kioskData, loading, l
         }))
       : FRAME_TYPES;
 
-    const filtered = sourceFrames.filter(f => f.category === activeCategory);
-
     // Guarantee minimum items for infinite scroll stability
-    const placeholderCount = Math.max(2, 6 - filtered.length);
+    const placeholderCount = Math.max(2, 8 - sourceFrames.length);
     const placeholders = Array.from({ length: placeholderCount }).map((_, i) => ({
       id: `placeholder-${i}`,
       isPlaceholder: true,
@@ -173,11 +180,12 @@ const SelectionScreenInner = ({ onFinish, onPrepareCamera, kioskData, loading, l
       slots: 1
     }));
 
-    return [...filtered, ...placeholders];
+    return [...sourceFrames, ...placeholders];
   }, [activeCategory, kioskData, loading, language]);
 
   // Construct 4 staggered infinite columns (6 repetitions each)
   const infiniteCols = React.useMemo(() => {
+    if (activeCategory === 'UPLOAD' || filteredFrames.length === 0) return [];
     return Array.from({ length: 4 }).map((_, colIndex) => {
       const base = [...filteredFrames.slice(colIndex), ...filteredFrames.slice(0, colIndex)];
       let massiveArray = [];
@@ -186,7 +194,7 @@ const SelectionScreenInner = ({ onFinish, onPrepareCamera, kioskData, loading, l
       }
       return massiveArray;
     });
-  }, [filteredFrames]);
+  }, [filteredFrames, activeCategory]);
 
   // Reset scroll when category changes
   useEffect(() => {
@@ -339,68 +347,87 @@ const SelectionScreenInner = ({ onFinish, onPrepareCamera, kioskData, loading, l
             <div ref={indicatorRef} className="side-display-bullet">{'▌'}</div>
             <div
               className={styles.modeToggleHitbox}
-              onClick={() => setActiveCategory('SPACE')}
+              onClick={() => setActiveCategory('FRAMES')}
             >
               <div
                 ref={frameRefText}
-                className={`${styles.modeToggleOption} ${activeCategory === 'SPACE' ? styles.active : ''}`}
+                className={`${styles.modeToggleOption} ${activeCategory === 'FRAMES' ? styles.active : ''}`}
               >
-                {t('frame')}
+                {t('frames')}
               </div>
             </div>
 
             <div
               className={styles.modeToggleHitbox}
-              onClick={() => setActiveCategory('GRID')}
+              onClick={() => setActiveCategory('UPLOAD')}
               style={{ marginTop: '1rem' }}
             >
               <div
-                ref={collageRefText}
-                className={`${styles.modeToggleOption} ${activeCategory === 'GRID' ? styles.active : ''}`}
+                ref={uploadRefText}
+                className={`${styles.modeToggleOption} ${activeCategory === 'UPLOAD' ? styles.active : ''}`}
               >
-                {t('collage')}
+                {t('upload')}
               </div>
             </div>
+
+            {/* Controls under UPLOAD header */}
+            {activeCategory === 'UPLOAD' && uploadState.imageSrc && (
+              <FrameSlotToolbar
+                slots={uploadState.slots}
+                activePreset={uploadState.activePreset}
+                onApplyPreset={uploadState.handleApplyPreset}
+                onAddSlot={uploadState.handleAddSlot}
+                onResetSlots={uploadState.handleResetSlots}
+                onReplaceImage={uploadState.handleReplaceImage}
+              />
+            )}
           </div>
         </div>
       </div>
 
-      {/* KANAN: Grid Alternating Scroll */}
-      <div className="panel-right" style={{ zIndex: 1, touchAction: 'none' }} ref={rightPanelRef}>
-        <div className={styles.gridWrapper}>
-          {infiniteCols.map((colData, colIndex) => (
-            <div
-              key={colIndex}
-              className={styles.scrollCol}
-              ref={el => colRefs.current[colIndex] = el}
-              style={{ marginTop: colIndex % 2 !== 0 ? '-150px' : '0' }}
-            >
-              {colData.map((frame, itemIndex) => {
-                const uniqueId = `${colIndex}-${itemIndex}-${frame.id}`;
-                const isHero = activeFrame === frame.id;
-                const isDimmed = activeFrame !== null && !isHero;
+      {/* KANAN: Grid Alternating Scroll or Empty Upload View */}
+      <div className="panel-right" style={{ zIndex: 1, touchAction: activeCategory === 'FRAMES' ? 'none' : 'auto' }} ref={rightPanelRef}>
+        {activeCategory === 'FRAMES' ? (
+          <div className={styles.gridWrapper}>
+            {infiniteCols.map((colData, colIndex) => (
+              <div
+                key={colIndex}
+                className={styles.scrollCol}
+                ref={el => colRefs.current[colIndex] = el}
+                style={{ marginTop: colIndex % 2 !== 0 ? '-150px' : '0' }}
+              >
+                {colData.map((frame, itemIndex) => {
+                  const uniqueId = `${colIndex}-${itemIndex}-${frame.id}`;
+                  const isHero = activeFrame === frame.id;
+                  const isDimmed = activeFrame !== null && !isHero;
 
-                return (
-                  <div
-                    key={uniqueId}
-                    className={`${styles.frameCard} ${isHero ? styles.hero : ''} ${isDimmed ? styles.dimmed : ''} ${frame.isPlaceholder ? styles.placeholder : ''}`}
-                    onClick={() => {
-                      if (frame.isPlaceholder) return;
-                      activeFrameRef.current = frame.id;
-                      setActiveFrame(frame.id);
-                    }}
-                  >
-                    <EditorialSkeletonFrame
-                      src={frame.thumbnail}
-                      alt={frame.name}
-                      isComingSoon={frame.isPlaceholder}
-                    />
-                  </div>
-                );
-              })}
-            </div>
-          ))}
-        </div>
+                  return (
+                    <div
+                      key={uniqueId}
+                      className={`${styles.frameCard} ${isHero ? styles.hero : ''} ${isDimmed ? styles.dimmed : ''} ${frame.isPlaceholder ? styles.placeholder : ''}`}
+                      onClick={() => {
+                        if (frame.isPlaceholder) return;
+                        activeFrameRef.current = frame.id;
+                        setActiveFrame(frame.id);
+                      }}
+                    >
+                      <EditorialSkeletonFrame
+                        src={frame.thumbnail}
+                        alt={frame.name}
+                        isComingSoon={frame.isPlaceholder}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <FrameUploadWorkspace
+            uploadState={uploadState}
+            onConfirm={() => uploadState.handleConfirm(onFinish, onPrepareCamera)}
+          />
+        )}
       </div>
 
       {/* Preview & Selection Modal */}

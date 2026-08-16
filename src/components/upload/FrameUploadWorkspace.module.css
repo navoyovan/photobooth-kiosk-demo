@@ -1,0 +1,440 @@
+.workspaceRoot {
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  padding: 2rem 3.5rem;
+  position: relative;
+  overflow: hidden;
+  user-select: none;
+}
+
+/* =========================================
+   STAGE 1: INGEST / DROPZONE
+   ========================================= */
+.ingestContainer {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.5rem;
+  position: relative;
+}
+
+.dropzoneBox {
+  width: 400px;
+  height: 580px;
+  max-height: 72vh;
+  border: 1px dashed #BFBFBF;
+  background: #FAFAFA;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  cursor: pointer;
+  position: relative;
+  transition: border-color 0.2s ease, border-style 0.2s ease, transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  padding: 2.5rem 2rem;
+  box-sizing: border-box;
+}
+
+.dropzoneBox:hover,
+.dropzoneBox.dragOver {
+  border: 1px solid #000000;
+  background: #FAFAFA;
+  transform: scale(1.01);
+}
+
+.dropzoneBox :global(.vf-corner) {
+  border-color: #111111;
+  opacity: 0.35;
+  width: 24px;
+  height: 24px;
+  transition: border-color 0.2s ease, opacity 0.2s ease, transform 0.2s ease;
+}
+
+.dropzoneBox:hover :global(.vf-corner),
+.dropzoneBox.dragOver :global(.vf-corner) {
+  border-color: #F0600D;
+  opacity: 1;
+  transform: scale(1.1);
+}
+
+.uploadIconWrap {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: #FFFFFF;
+  border: 1.5px solid #E0E0E0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1.8rem;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
+  transition: all 0.25s ease;
+}
+
+.dropzoneBox:hover .uploadIconWrap,
+.dropzoneBox.dragOver .uploadIconWrap {
+  border-color: #111111;
+  background: #111111;
+  transform: scale(1.05);
+}
+
+.dropzoneBox:hover .uploadIconWrap svg,
+.dropzoneBox.dragOver .uploadIconWrap svg {
+  stroke: #FFFFFF;
+}
+
+.dropzoneTitle {
+  font-family: 'Syne', sans-serif;
+  font-size: 1.5rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: #111111;
+  letter-spacing: 0.02em;
+  margin-bottom: 0.6rem;
+}
+
+.dropzoneSub {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #888888;
+  margin-bottom: 2rem;
+}
+
+.specsPill {
+  font-family: 'Space Grotesk', monospace;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #999999;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  border: 1px solid #E5E5E5;
+  padding: 0.4rem 1rem;
+  border-radius: 99px;
+  background: #FFFFFF;
+  transition: border-color 0.2s ease;
+}
+
+.dropzoneBox:hover .specsPill {
+  border-color: #CCCCCC;
+  color: #555555;
+}
+
+/* =========================================
+   STAGE 2: STUDIO WORKSPACE
+   ========================================= */
+.studioContainer {
+  flex: 1;
+  display: flex;
+  gap: 3.5rem;
+  align-items: stretch;
+  min-height: 0;
+  position: relative;
+}
+
+/* Full Canvas Stage */
+.canvasStageWrap {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.canvasOuterFrame {
+  position: relative;
+  height: 72vh;
+  max-height: 72vh;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.12);
+  background: #FFFFFF;
+  border: 1.5px solid #222222;
+  overflow: hidden;
+}
+
+.frameImg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+  pointer-events: none;
+  z-index: 10;
+}
+
+/* Checkerboard backdrop */
+.canvasBgGrid {
+  position: absolute;
+  inset: 0;
+  background-color: #FAFAFA;
+  background-image: 
+    linear-gradient(45deg, #EEEEEE 25%, transparent 25%),
+    linear-gradient(-45deg, #EEEEEE 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #EEEEEE 75%),
+    linear-gradient(-45deg, transparent 75%, #EEEEEE 75%);
+  background-size: 16px 16px;
+  background-position: 0 0, 0 8px, 8px -8px, -8px 0px;
+  z-index: 1;
+}
+
+/* Underlay animated punchholes */
+.slotUnderlay {
+  position: absolute;
+  z-index: 2;
+  box-sizing: border-box;
+  background-color: #FFFFFF;
+  background-image: conic-gradient(rgba(0, 0, 0, 0.1) 90deg, transparent 90deg 180deg, rgba(0, 0, 0, 0.1) 180deg 270deg, transparent 270deg);
+  background-size: 14px 14px;
+}
+
+/* Interactive slot overlay box (z-index above frame image for touch drag/resize) */
+.slotInteractiveBox {
+  position: absolute;
+  z-index: 25;
+  box-sizing: border-box;
+  border: 1.5px dashed rgba(0, 0, 0, 0.35);
+  background: rgba(0, 0, 0, 0.03);
+  cursor: move;
+  touch-action: none;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.slotInteractiveBox:hover:not(.selected) {
+  border-color: rgba(0, 0, 0, 0.7);
+  background: rgba(0, 0, 0, 0.06);
+}
+
+.slotInteractiveBox:hover:not(.selected) .slotCenterNumber {
+  color: rgba(0, 0, 0, 0.6);
+}
+
+.slotInteractiveBox.selected {
+  border: 2px solid #F0600D;
+  background: rgba(240, 96, 13, 0.15);
+  box-shadow: 0 0 0 1px #FFFFFF, 0 4px 15px rgba(240, 96, 13, 0.35);
+}
+
+.slotCenterNumber {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-family: 'Syne', sans-serif;
+  font-size: 2.4rem;
+  font-weight: 800;
+  color: rgba(0, 0, 0, 0.3);
+  pointer-events: none;
+  user-select: none;
+  line-height: 1;
+  letter-spacing: -0.04em;
+  transition: all 0.2s ease;
+}
+
+.slotInteractiveBox.selected .slotCenterNumber {
+  color: #F0600D;
+  font-size: 2.8rem;
+  text-shadow: 0 4px 15px rgba(240, 96, 13, 0.35);
+}
+
+.duplicateSlotBtn {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  width: 24px;
+  height: 24px;
+  background: #111111;
+  color: #FFFFFF;
+  border: none;
+  border-radius: 50%;
+  font-size: 0.75rem;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  z-index: 35;
+  transition: transform 0.15s, background 0.15s;
+}
+
+.duplicateSlotBtn:hover {
+  background: #F0600D;
+  transform: scale(1.1);
+}
+
+.deleteSlotBtn {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 24px;
+  height: 24px;
+  background: #FF3E3E;
+  color: #FFFFFF;
+  border: none;
+  border-radius: 50%;
+  font-size: 0.75rem;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  z-index: 35;
+  transition: transform 0.15s, background 0.15s;
+}
+
+.deleteSlotBtn:hover {
+  transform: scale(1.1);
+}
+
+/* Resize Handles */
+.resizeHandle {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  background: #FFFFFF;
+  border: 2px solid #F0600D;
+  border-radius: 2px;
+  z-index: 30;
+}
+
+.handleTL { top: -7px; left: -7px; cursor: nwse-resize; }
+.handleTR { top: -7px; right: -7px; cursor: nesw-resize; }
+.handleBL { bottom: -7px; left: -7px; cursor: nesw-resize; }
+.handleBR { bottom: -7px; right: -7px; cursor: nwse-resize; }
+
+.canvasFooterMeta {
+  margin-top: 1.2rem;
+  font-family: 'Space Grotesk', monospace;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #888888;
+  letter-spacing: 0.08em;
+}
+
+/* Left Column Controls / Inspector */
+.inspectorCol {
+  width: calc(100% - 3.5rem);
+  max-width: 380px;
+  margin-top: 3.5rem;
+  margin-left: 3.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.8rem;
+  animation: fadeInControls 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes fadeInControls {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.toolSection {
+  margin-bottom: 2rem;
+}
+
+.sectionTitle {
+  display: flex;
+  align-items: baseline;
+  gap: 0.8rem;
+  margin-bottom: 0.8rem;
+}
+
+.instructionNum {
+  font-family: 'Syne', sans-serif;
+  font-weight: 800;
+  color: #A0A0A0;
+  font-size: 0.85rem;
+}
+
+.sectionHeading {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #666666;
+  letter-spacing: 0.05em;
+  line-height: 1.6;
+}
+
+.presetGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+.presetCard {
+  background: #F8F8F8;
+  border: 1px solid #E0E0E0;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  text-align: left;
+}
+
+.presetCard:hover {
+  background: #FFFFFF;
+  border-color: #111111;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.presetCard.active {
+  border: 2px solid #F0600D;
+  background: #FFF9F5;
+}
+
+.presetName {
+  font-family: 'Syne', sans-serif;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #111111;
+}
+
+.presetDesc {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 0.75rem;
+  color: #777777;
+}
+
+.buttonRow {
+  display: flex;
+  gap: 0.8rem;
+}
+
+.secondaryBtn {
+  flex: 1;
+  background: #FFFFFF;
+  border: 1px solid #111111;
+  color: #111111;
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 700;
+  font-size: 0.85rem;
+  padding: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.secondaryBtn:hover {
+  background: #F0F0F0;
+}
