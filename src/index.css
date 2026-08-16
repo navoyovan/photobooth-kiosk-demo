@@ -1992,6 +1992,15 @@ body {
   letter-spacing: 0.12rem !important;
   font-weight: 700 !important;
   box-sizing: border-box !important;
+  transition: transform 0.2s cubic-bezier(0.2, 0, 0.2, 1), border 0.2s cubic-bezier(0.2, 0, 0.2, 1), color 0.2s ease !important;
+}
+
+.kinetic-back-btn:hover {
+  transform: translateX(-6px) !important;
+}
+
+.kinetic-back-btn:active {
+  transform: translateX(-3px) scale(0.98) !important;
 }
 
 

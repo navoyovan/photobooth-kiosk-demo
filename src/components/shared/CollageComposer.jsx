@@ -32,9 +32,10 @@ const CollageComposer = forwardRef(({ photos = [], frame, photoFilter = 'none', 
       const layout = getFrameLayout(frame);
 
       return {
-        photos: photos.map((src, i) => {
-          const s = statesRef.current[i];
-          const slot = layout[i] || { x: 0, y: 0, w: 100, h: 100 };
+        photos: layout.map((slot, i) => {
+          const photoIdx = slot.photo_index !== undefined ? slot.photo_index : i;
+          const src = photos[photoIdx];
+          const s = statesRef.current[photoIdx] || { x: 0, y: 0, w: 300, h: 300 };
           const sX = (slot.x / 100) * cW;
           const sY = (slot.y / 100) * cH;
           const sW = (slot.w / 100) * cW;
@@ -54,7 +55,8 @@ const CollageComposer = forwardRef(({ photos = [], frame, photoFilter = 'none', 
     const s = statesRef.current[idx];
     const { cW, cH } = containerDims.current || { cW: 400, cH: 400 };
     const layout = getFrameLayout(frame);
-    const slot = layout[idx] || { x: 0, y: 0, w: 100, h: 100 };
+    const firstSlotIdx = layout.findIndex((s, i) => (s.photo_index !== undefined ? s.photo_index : i) === idx);
+    const slot = layout[firstSlotIdx] || layout[idx] || { x: 0, y: 0, w: 100, h: 100 };
     const slotX = (slot.x / 100) * cW;
     const slotY = (slot.y / 100) * cH;
 
@@ -70,7 +72,9 @@ const CollageComposer = forwardRef(({ photos = [], frame, photoFilter = 'none', 
 
   const initPhotoPlacement = (cW, cH, photoIdx) => {
     const layout = getFrameLayout(frame);
-    const slot = layout[photoIdx] || { x: 0, y: 0, w: 100, h: 100 };
+    const firstSlotIdx = layout.findIndex((s, idx) => (s.photo_index !== undefined ? s.photo_index : idx) === photoIdx);
+    if (firstSlotIdx === -1) return;
+    const slot = layout[firstSlotIdx];
 
     const slotX = (slot.x / 100) * cW;
     const slotY = (slot.y / 100) * cH;
@@ -97,9 +101,13 @@ const CollageComposer = forwardRef(({ photos = [], frame, photoFilter = 'none', 
     const s = { x: initX, y: initY, w: initW, h: initH };
     statesRef.current[photoIdx] = s;
 
-    if (photoRefs.current[photoIdx]) {
-      set(photoRefs.current[photoIdx], { translateX: initX, translateY: initY, width: initW, height: initH });
-    }
+    layout.forEach((sl, idx) => {
+      if ((sl.photo_index !== undefined ? sl.photo_index : idx) === photoIdx) {
+        if (photoRefs.current[idx]) {
+          set(photoRefs.current[idx], { translateX: initX, translateY: initY, width: initW, height: initH });
+        }
+      }
+    });
 
     if (photoIdx === activeIndex && boundaryRef.current) {
       const globalX = slotX + initX;
@@ -148,7 +156,11 @@ const CollageComposer = forwardRef(({ photos = [], frame, photoFilter = 'none', 
     const onMove = (mv) => {
       const { cW, cH } = containerDims.current || { cW: 400, cH: 400 };
       const layout = getFrameLayout(frame);
-      const slot = layout[activeIndex] || { x: 0, y: 0, w: 100, h: 100 };
+      const targetSlotIndexes = layout.map((sl, idx) => ((sl.photo_index !== undefined ? sl.photo_index : idx) === activeIndex ? idx : null)).filter(idx => idx !== null);
+      if (targetSlotIndexes.length === 0) return;
+
+      const firstSlotIdx = targetSlotIndexes[0];
+      const slot = layout[firstSlotIdx];
       const slotX = (slot.x / 100) * cW;
       const slotY = (slot.y / 100) * cH;
 
@@ -158,7 +170,11 @@ const CollageComposer = forwardRef(({ photos = [], frame, photoFilter = 'none', 
         const newH = initH * (newW / initW);
         s.w = newW;
         s.h = newH;
-        set(photoRefs.current[activeIndex], { width: newW, height: newH });
+        targetSlotIndexes.forEach(slotIdx => {
+          if (photoRefs.current[slotIdx]) {
+            set(photoRefs.current[slotIdx], { width: newW, height: newH });
+          }
+        });
         set(boundaryRef.current, { width: newW, height: newH });
       } else {
         const dx = mv.clientX - startX;
@@ -167,7 +183,11 @@ const CollageComposer = forwardRef(({ photos = [], frame, photoFilter = 'none', 
         const newY = initY + dy;
         s.x = newX;
         s.y = newY;
-        set(photoRefs.current[activeIndex], { translateX: newX, translateY: newY });
+        targetSlotIndexes.forEach(slotIdx => {
+          if (photoRefs.current[slotIdx]) {
+            set(photoRefs.current[slotIdx], { translateX: newX, translateY: newY });
+          }
+        });
         set(boundaryRef.current, { translateX: slotX + newX, translateY: slotY + newY });
       }
       updateMetrics();
@@ -200,30 +220,52 @@ const CollageComposer = forwardRef(({ photos = [], frame, photoFilter = 'none', 
     if (onActiveIndexChange) onActiveIndexChange(idx);
     const { cW, cH } = containerDims.current || { cW: 400, cH: 400 };
     const layout = getFrameLayout(frame);
-    const slot = layout[idx] || { x: 0, y: 0, w: 100, h: 100 };
+    const firstSlotIdx = layout.findIndex((s, i) => (s.photo_index !== undefined ? s.photo_index : i) === idx);
+    const slot = layout[firstSlotIdx] || layout[idx] || { x: 0, y: 0, w: 100, h: 100 };
     const slotX = (slot.x / 100) * cW;
     const slotY = (slot.y / 100) * cH;
 
     const s = statesRef.current[idx];
-    set(boundaryRef.current, {
-      translateX: slotX + s.x,
-      translateY: slotY + s.y,
-      width: s.w,
-      height: s.h
-    });
+    if (s) {
+      set(boundaryRef.current, {
+        translateX: slotX + s.x,
+        translateY: slotY + s.y,
+        width: s.w,
+        height: s.h
+      });
+    }
     updateMetrics(idx);
   };
+
+  const layout = getFrameLayout(frame);
+  const totalSlots = frame?.slots || (Array.isArray(layout) ? layout.length : 1);
+
+  useEffect(() => {
+    if (activeIndex >= totalSlots) {
+      const clamped = Math.max(0, totalSlots - 1);
+      setActiveIndex(clamped);
+      if (onActiveIndexChange) onActiveIndexChange(clamped);
+    }
+  }, [totalSlots, activeIndex, onActiveIndexChange]);
 
   return (
     <div className="composer-gallery-wrapper">
       {photos.length > 1 && (
         <div className="layer-switcher-vertical">
           <div className="layer-label-micro">SLOT_INDEX</div>
-          {photos.map((_, i) => (
-            <button key={i} className={`btn-layer-square ${activeIndex === i ? 'active' : ''}`} onClick={() => switchLayer(i)}>
-              0{i + 1}
-            </button>
-          ))}
+          {photos.map((_, i) => {
+            const isDisabled = i >= totalSlots;
+            return (
+              <button
+                key={i}
+                disabled={isDisabled}
+                className={`btn-layer-square ${activeIndex === i ? 'active' : ''} ${isDisabled ? 'disabled' : ''}`}
+                onClick={() => !isDisabled && switchLayer(i)}
+              >
+                0{i + 1}
+              </button>
+            );
+          })}
         </div>
       )}
 
@@ -254,9 +296,9 @@ const CollageComposer = forwardRef(({ photos = [], frame, photoFilter = 'none', 
         <div className="hud-data-box bottom-right">H_SCALE: {metrics.h}PX</div>
 
         <div className="photo-clip-layer">
-          {photos.map((src, i) => {
-            const layout = getFrameLayout(frame);
-            const slot = layout[i] || { x: 0, y: 0, w: 100, h: 100 };
+          {layout.map((slot, i) => {
+            const photoIdx = slot.photo_index !== undefined ? slot.photo_index : i;
+            const src = photos[photoIdx];
 
             return (
               <div
@@ -269,22 +311,22 @@ const CollageComposer = forwardRef(({ photos = [], frame, photoFilter = 'none', 
                   width: `${slot.w}%`,
                   height: `${slot.h}%`,
                   overflow: 'hidden',
-                  zIndex: activeIndex === i ? 5 : 1,
+                  zIndex: activeIndex === photoIdx ? 5 : 1,
                   opacity: 1,
                   pointerEvents: 'auto',
                   cursor: 'pointer',
                 }}
-                onClick={() => switchLayer(i)}
+                onClick={() => switchLayer(photoIdx)}
               >
                 <div
                   ref={el => photoRefs.current[i] = el}
                   style={{ position: 'absolute', top: 0, left: 0, touchAction: 'none' }}
-                  onPointerDown={(e) => i === activeIndex && handlePointerDown(e, false)}
+                  onPointerDown={(e) => photoIdx === activeIndex && handlePointerDown(e, false)}
                 >
                   <div className="lens-refocus-wrapper" style={{ width: '100%', height: '100%' }}>
                     <img
                       src={src || '/taken_pic/default.png'}
-                      onLoad={(e) => handlePhotoLoad(e, i)}
+                      onLoad={(e) => handlePhotoLoad(e, photoIdx)}
                       style={{
                         width: '100%',
                         height: '100%',

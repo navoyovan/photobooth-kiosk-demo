@@ -422,6 +422,8 @@ const SelectionScreenInner = ({ onFinish, onPrepareCamera, kioskData, loading, l
                 <EditorialSkeletonFrame
                   src={selected.thumbnail}
                   alt={selected.name}
+                  frame={selected}
+                  showHoles={true}
                 />
                 <div className="vf-corner tl"></div>
                 <div className="vf-corner tr"></div>

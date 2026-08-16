@@ -102,8 +102,10 @@ const SessionRecoveryModal = ({ isOpen, onContinue, onDiscard, sessionData, save
               )}
 
               <div className={styles.photosGrid} style={{ padding: 0 }}>
-                {filledPhotos.map((photo, i) => {
-                  const slot = layout[i] || { x: 0, y: 0, w: 100, h: 100 };
+                {(layout.length > 0 ? layout : filledPhotos).map((item, i) => {
+                  const slot = layout.length > 0 ? item : (layout[i] || { x: 0, y: 0, w: 100, h: 100 });
+                  const photoIdx = slot.photo_index !== undefined ? slot.photo_index : i;
+                  const photo = capturedPhotos[photoIdx] || '/taken_pic/default.png';
                   return (
                     <div
                       key={i}
@@ -122,7 +124,7 @@ const SessionRecoveryModal = ({ isOpen, onContinue, onDiscard, sessionData, save
                         src={photo}
                         alt={`Slot ${i}`}
                         className={styles.capturedImg}
-                        style={{ opacity: capturedPhotos[i] ? 1 : 0.4 }}
+                        style={{ opacity: capturedPhotos[photoIdx] ? 1 : 0.4 }}
                       />
                     </div>
                   );

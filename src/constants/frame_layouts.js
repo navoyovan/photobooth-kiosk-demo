@@ -50,9 +50,14 @@ export const getFrameLayout = (frame) => {
   // Normalize: Ensure x, y, w, h exist and handle common aliases (width, height, left, top)
   return layout.map((s, idx) => ({
     id: s.id ?? idx,
+    type: s.type ?? 'rectangle',
     x: Number(s.x ?? s.left ?? 0),
     y: Number(s.y ?? s.top ?? 0),
     w: Number(s.w ?? s.width ?? 100),
     h: Number(s.h ?? s.height ?? 100),
+    photo_index: s.photo_index !== undefined ? Number(s.photo_index) : undefined,
+    path: s.path ?? null,
+    viewBox: s.viewBox ?? null,
+    color: s.color ?? null,
   }));
 };
