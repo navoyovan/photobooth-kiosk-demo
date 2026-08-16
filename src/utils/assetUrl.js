@@ -15,6 +15,9 @@
  * @returns {string} Fully resolved URL respecting the configured base path.
  */
 export function assetUrl(path) {
-  const base = import.meta.env.BASE_URL; // always ends with '/'
-  return `${base}${path}`;
+  if (!path) return path;
+  const base = import.meta.env.BASE_URL || '/';
+  const cleanBase = base.endsWith('/') ? base : `${base}/`;
+  const cleanPath = path.startsWith('/') ? path.slice(1) : path;
+  return `${cleanBase}${cleanPath}`;
 }
