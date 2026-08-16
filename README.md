@@ -4,11 +4,17 @@
 
 A self-contained photobooth experience demo built to showcase the core experience behind **Hype-box**: a modern digital photobooth platform.
 
+Live Demo
+[Open the interactive demo →]
+
+> This demo runs entirely in the browser and does not connect to
+the production Hype-box backend or payment infrastructure.
+
 Capture photos, apply layouts, generate photostrips, and share the result through QR download.
 
 Hype-box is a photobooth platform designed for events and businesses, combining interactive experiences with kiosk hardware, cloud services, and management tools.
 
-This repository represents the demo experience layer of the platform.
+This is an interactive frontend demonstration of the Hype-box kiosk experience. It is not the production kiosk software.
 
 > This repository contains the demo experience only. Production features such as printing, payment integration, vendor management, kiosk fleet control, and analytics are part of the commercial platform.
 
