@@ -278,3 +278,90 @@
   height: auto;
   display: block;
 }
+
+/* =========================================================================
+   PORTRAIT & MOBILE RESPONSIVE SIZES
+   ========================================================================= */
+@media (orientation: portrait), (max-width: 900px) {
+  .sizeCompact .qtyOdometerWindow {
+    height: 70px;
+    width: clamp(120px, 30vw, 180px);
+  }
+
+  .sizeCompact .qtyOdometerDigit {
+    font-size: clamp(3rem, 7vw, 4.5rem);
+    line-height: 70px;
+    height: 70px;
+  }
+
+  .sizeCompact .unoStackContainer {
+    width: clamp(120px, 28vw, 180px);
+    height: clamp(150px, 20vh, 220px);
+  }
+
+  .sizeCompact .unoCard {
+    height: clamp(150px, 20vh, 220px);
+  }
+
+  .sizeCompact .unoCard img {
+    height: clamp(150px, 20vh, 220px);
+  }
+
+  .themeLight .qtyStepperBtn {
+    font-size: 2.2rem;
+  }
+
+  .themeDark .qtyStepperBtn {
+    font-size: 2.8rem;
+  }
+
+  .sizeLarge .qtyOdometerWindow {
+    height: 100px;
+    width: clamp(180px, 40vw, 240px);
+  }
+
+  .sizeLarge .qtyOdometerDigit {
+    font-size: clamp(4.5rem, 12vw, 6.5rem);
+    line-height: 100px;
+    height: 100px;
+  }
+
+  .sizeLarge .unoCard img {
+    max-height: 45vh;
+    max-width: 75vw;
+  }
+}
+
+@media (max-width: 600px) {
+  .combinedContainer {
+    gap: 0.5rem;
+  }
+
+  .sizeCompact .qtyOdometerWindow {
+    height: 60px;
+    width: 110px;
+  }
+
+  .sizeCompact .qtyOdometerDigit {
+    font-size: 2.8rem;
+    line-height: 60px;
+    height: 60px;
+  }
+
+  .sizeCompact .unoStackContainer {
+    width: 110px;
+    height: 140px;
+  }
+
+  .sizeCompact .unoCard {
+    height: 140px;
+  }
+
+  .sizeCompact .unoCard img {
+    height: 140px;
+  }
+
+  .themeLight .qtyStepperBtn {
+    font-size: 1.8rem;
+  }
+}

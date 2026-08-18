@@ -9,6 +9,36 @@
   overflow: hidden;
 }
 
+.headerBlock {
+  width: 100%;
+  margin-top: 8rem;
+  margin-bottom: auto;
+  padding-bottom: 3rem;
+  z-index: 20;
+}
+
+.previewBox {
+  width: clamp(300px, 45vw, 600px);
+  max-width: 90vw;
+  height: clamp(180px, 25vh, 250px);
+  position: relative;
+  overflow: visible;
+  background: #ffffff;
+}
+
+.demoHintText {
+  margin-top: 2.5rem;
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: rgb(var(--theme-surface-dark-rgb));
+  text-transform: uppercase;
+  letter-spacing: 0.1rem;
+  text-align: center;
+  line-height: 1.6;
+  max-width: 380px;
+}
+
 .statusOverlay {
   position: absolute;
   inset: 0;
@@ -589,4 +619,150 @@
   width: 100%;
   border-top: 1px solid rgba(255, 255, 255, 0.1);
   padding-top: 0.6rem;
+}
+
+/* =========================================================================
+   PORTRAIT & MOBILE RESPONSIVE ADAPTATIONS
+   ========================================================================= */
+@media (orientation: portrait), (max-width: 900px) {
+  .screen {
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: stretch;
+    padding: clamp(1.2rem, 2.5vh, 2.5rem) clamp(1.2rem, 4vw, 2.5rem);
+    height: 100vh;
+    height: 100dvh;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+
+  .screen :global(.panel-left) {
+    width: 100%;
+    height: auto;
+    padding: 0;
+    justify-content: flex-start;
+    flex-shrink: 0;
+    z-index: 20;
+    margin-bottom: 0.5rem;
+  }
+
+  .screen :global(.panel-right) {
+    width: 100%;
+    height: auto;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 10;
+    pointer-events: auto;
+    margin-top: auto;
+    padding-bottom: clamp(1rem, 3vh, 3.5rem);
+  }
+
+  .langToggleContainer {
+    position: absolute;
+    top: 0;
+    right: 0;
+    left: auto;
+    z-index: 1000;
+  }
+
+  .headerBlock {
+    margin-top: clamp(2.2rem, 4.5vh, 4rem);
+    margin-bottom: 0;
+    padding-bottom: 0.5rem;
+  }
+
+  .screen :global(.side-display-container) {
+    margin-bottom: clamp(0.6rem, 1.5vh, 1.2rem);
+  }
+
+  .screen :global(.side-display-h1) {
+    font-size: clamp(2.2rem, 6.5vw, 3.6rem);
+  }
+
+  .screen :global(.side-display-bullet) {
+    left: -0.9rem;
+    font-size: clamp(2.4rem, 7vw, 3.8rem);
+  }
+
+  .instructionList {
+    margin-left: clamp(1rem, 2.5vw, 1.8rem);
+    gap: clamp(0.4rem, 1vh, 0.8rem);
+  }
+
+  .instructionStep {
+    gap: 0.6rem;
+  }
+
+  .instructionNum {
+    font-size: 0.75rem;
+  }
+
+  .instructionText {
+    font-size: clamp(0.72rem, 1.8vw, 0.82rem);
+    line-height: 1.4;
+  }
+
+  .previewBox {
+    width: clamp(260px, 85vw, 380px);
+    height: clamp(140px, 20vh, 200px);
+    margin: 0 auto clamp(0.6rem, 1.5vh, 1.2rem) auto;
+  }
+
+  .checkoutBody {
+    margin-bottom: 0.6rem;
+  }
+
+  .confirmBtn {
+    margin-top: clamp(0.6rem, 1.5vh, 1.2rem);
+    width: clamp(240px, 80vw, 340px);
+    max-width: 90vw;
+  }
+
+  .demoHintText {
+    margin-top: clamp(0.6rem, 1.5vh, 1.2rem);
+    font-size: clamp(0.65rem, 1.8vw, 0.75rem);
+    max-width: 320px;
+    line-height: 1.4;
+  }
+
+  .screen :global(.watermark-sideways) {
+    font-size: clamp(12vw, 15vh, 18vw);
+    left: -2vw;
+    opacity: 0.025;
+  }
+}
+
+@media (max-width: 600px) {
+  .screen {
+    padding: 1rem 1rem 2rem 1rem;
+  }
+
+  .headerBlock {
+    margin-top: 1.8rem;
+  }
+
+  .screen :global(.side-display-h1) {
+    font-size: clamp(1.8rem, 8vw, 2.5rem);
+  }
+
+  .instructionList {
+    margin-left: 0.8rem;
+    gap: 0.35rem;
+  }
+
+  .instructionText {
+    font-size: 0.72rem;
+  }
+
+  .previewBox {
+    width: 90vw;
+    height: 140px;
+  }
+
+  .langToggleContainer {
+    top: -0.2rem;
+  }
 }

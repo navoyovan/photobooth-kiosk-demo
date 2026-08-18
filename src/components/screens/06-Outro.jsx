@@ -150,22 +150,22 @@ const OutroScreen = ({ finalImage, type = 'NORMAL', isDonating, onReset, onExitS
         className="hero-display-layout outro active consent-mode"
         style={{ pointerEvents: 'auto', zIndex: 60, opacity: 0 }}
       >
-        <div className="hero-display-content" style={{ gap: '2rem', padding: '0 10vw', pointerEvents: 'auto' }}>
+        <div className="hero-display-content" style={{ gap: '1.5rem', padding: '0 clamp(1rem, 5vw, 10vw)', pointerEvents: 'auto' }}>
           <div className="hero-display-halo" style={{ pointerEvents: 'none' }} />
 
-          <h1 className="hero-display-main" style={{ fontSize: '3.5rem', marginBottom: '0.5rem', letterSpacing: '-0.1rem' }}>
+          <h1 className="hero-display-main" style={{ fontSize: 'clamp(2rem, 6vw, 3.5rem)', marginBottom: '0.5rem', letterSpacing: '-0.05rem', lineHeight: 1.1 }}>
             {t('grantExhibitionRights')}
           </h1>
 
-          <p className="hero-display-sub" style={{ fontSize: '0.9rem', letterSpacing: '0.3rem', maxWidth: '800px', lineHeight: '1.8', opacity: 0.8 }}>
+          <p className="hero-display-sub" style={{ fontSize: 'clamp(0.75rem, 2vw, 0.9rem)', letterSpacing: 'clamp(0.1rem, 0.3vw, 0.3rem)', maxWidth: '800px', lineHeight: '1.6', opacity: 0.8 }}>
             {t('exhibitionRightsDesc')}
           </p>
 
-          <div className="consent-actions" style={{ display: 'flex', gap: '2rem', zIndex: 100, position: 'relative', pointerEvents: 'auto', marginTop: '1rem', opacity: 0 }}>
-            <SecondaryButton onClick={handleDecline} disabled={isSaving} style={{ minWidth: '200px', mixBlendMode: 'difference', color: '#FFFFFF', pointerEvents: 'auto', cursor: 'pointer' }}>
+          <div className="consent-actions" style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '1rem', zIndex: 100, position: 'relative', pointerEvents: 'auto', marginTop: '1rem', opacity: 0 }}>
+            <SecondaryButton onClick={handleDecline} disabled={isSaving} style={{ minWidth: '160px', mixBlendMode: 'difference', color: '#FFFFFF', pointerEvents: 'auto', cursor: 'pointer' }}>
               {t('decline')}
             </SecondaryButton>
-            <CtaButton onClick={handleAccept} disabled={isSaving} style={{ minWidth: '240px', pointerEvents: 'auto', cursor: 'pointer' }}>
+            <CtaButton onClick={handleAccept} disabled={isSaving} style={{ minWidth: '200px', pointerEvents: 'auto', cursor: 'pointer' }}>
               {isSaving ? t('securing') : `${t('acceptPublish')} (${timeLeft}S)`}
             </CtaButton>
           </div>

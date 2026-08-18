@@ -594,3 +594,62 @@
       rgba(0, 0, 0, 0.04) 50%);
   background-size: 100% 4px;
 }
+
+/* =========================================================================
+   PORTRAIT & MOBILE RESPONSIVE ADAPTATIONS
+   ========================================================================= */
+@media (orientation: portrait), (max-width: 900px) {
+  .hudAnchor.topLeft {
+    top: clamp(1rem, 2vh, 2rem);
+    left: clamp(1rem, 3vw, 2rem);
+  }
+
+  .hudAnchor.centerLeft {
+    left: clamp(1rem, 3vw, 2rem);
+  }
+
+  .hudAnchor.bottomRight {
+    bottom: clamp(1rem, 2vh, 2rem);
+    right: clamp(1rem, 3vw, 2rem);
+  }
+
+  .timerNum {
+    font-size: clamp(3.5rem, 8vw, 4.5rem);
+  }
+
+  .watermark {
+    font-size: clamp(16vw, 12vh, 22vw);
+    bottom: 5%;
+  }
+
+  .filmStripContainer {
+    bottom: clamp(1rem, 2vh, 2.5rem);
+    left: 50%;
+    transform: translateX(-50%);
+    width: 90vw;
+  }
+}
+
+@media (max-width: 600px) {
+  .hudAnchor.topLeft {
+    top: 0.8rem;
+    left: 0.8rem;
+  }
+
+  .hudAnchor.centerLeft {
+    left: 0.8rem;
+  }
+
+  .hudAnchor.bottomRight {
+    bottom: 0.8rem;
+    right: 0.8rem;
+  }
+
+  .timerNum {
+    font-size: 3rem;
+  }
+
+  .timerAxis {
+    gap: 0.8rem;
+  }
+}

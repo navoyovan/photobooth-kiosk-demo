@@ -267,4 +267,83 @@
   color: #777777;
   line-height: 1.4;
   max-width: 180px;
+}
+
+/* =========================================================================
+   PORTRAIT & MOBILE RESPONSIVE ADAPTATIONS
+   ========================================================================= */
+@media (orientation: portrait), (max-width: 900px) {
+  .topSection {
+    padding-top: clamp(0.5rem, 1.5vh, 1.5rem);
+    gap: 0.8rem;
+    align-items: center;
+    text-align: center;
+  }
+
+  .telemetryTitle {
+    font-size: clamp(1.6rem, 5.5vw, 2.5rem);
+    margin: 0 0 0.5rem 0;
+    max-width: 90vw;
+    text-align: center;
+    line-height: 1;
+  }
+
+  .metadataStack {
+    align-items: center;
+    text-align: center;
+    gap: 0.25rem;
+  }
+
+  .metadataItem {
+    font-size: 0.65rem;
+  }
+
+  .securityNotice {
+    font-size: 0.62rem;
+    margin-top: 0.3rem;
+  }
+
+  .bottomSection {
+    padding-bottom: clamp(1.5rem, 3vh, 3.5rem);
+    gap: 1rem;
+    margin-top: 0.8rem;
+    align-items: center;
+    width: 100%;
+    max-width: 360px;
+  }
+
+  .finalActions {
+    align-items: center;
+    width: 100%;
+    gap: 1rem;
+  }
+
+  .donateToggle {
+    justify-content: center;
+  }
+
+  .donateLabel {
+    font-size: 0.68rem;
+    white-space: normal;
+    text-align: left;
+  }
+
+  .finalActions :global(button) {
+    width: 100%;
+  }
+}
+
+@media (max-width: 600px) {
+  .telemetryTitle {
+    font-size: 1.4rem;
+  }
+
+  .metadataItem {
+    font-size: 0.58rem;
+  }
+
+  .bottomSection {
+    padding-bottom: 1.2rem;
+    gap: 0.8rem;
+  }
 }
