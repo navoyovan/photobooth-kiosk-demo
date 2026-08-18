@@ -790,7 +790,7 @@ const CaptureScreen = React.forwardRef(({
             {Math.min((photos.length - 1) + 1, selectedFrame.slots)} / {selectedFrame.slots}
           </div>
           <div className={vfStyles.serialDetail}>
-            DEMO V1.2
+            DEMO V1.3
           </div>
         </div>
 
@@ -918,7 +918,7 @@ const CaptureScreen = React.forwardRef(({
               <div className="panel-right panel-center-content">
                 {/* <div className={cpStyles.greebles}>RENDER_SIZE: 14.2MB // PRINT_QUEUE: READY // DPI: 300</div> */}
                 <div className={cpStyles.statusFooter}>
-                  <span>SYS.DEMO_v1.2</span>
+                  <span>SYS.DEMO_v1.3</span>
                   {/* <RunningTimestamp /> */}
                   {/* <span>BUFFER_LOADED: 100%</span> */}
                 </div>

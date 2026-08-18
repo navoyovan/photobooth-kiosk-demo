@@ -377,9 +377,42 @@ export default function App() {
     }
   }, []);
 
-  // CAMERA MANAGEMENT (LAZY INITIALIZATION)
+  // CAMERA MANAGEMENT (BOOT PRE-WARM & LAZY INITIALIZATION)
   const isTransitioningRef = useRef(false);
   const cameraStreamRef = useRef(null);
+
+  // CAMERA BOOTSTRAP: Pre-warm camera permissions and enumerate devices at app launch
+  useEffect(() => {
+    let isCancelled = false;
+    const prewarmCamera = async () => {
+      if (!navigator.mediaDevices?.getUserMedia) return;
+      try {
+        console.log("[App] Pre-warming camera permissions and enumerating devices on boot...");
+        const probeStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+        probeStream.getTracks().forEach(track => {
+          try { track.stop(); } catch (e) {}
+        });
+        await new Promise(r => setTimeout(r, 150)); // wait for hardware lock release
+
+        if (isCancelled) return;
+
+        const allDevices = await navigator.mediaDevices.enumerateDevices();
+        const videoDevices = allDevices.filter(d => d.kind === 'videoinput');
+        if (!isCancelled && videoDevices.length > 0) {
+          setCameraDevices(videoDevices);
+          setSelectedDeviceId(prev => prev || videoDevices[0].deviceId);
+        }
+      } catch (err) {
+        console.warn("[App] Camera pre-warm failed (permission denied or no camera attached):", err);
+      }
+    };
+
+    prewarmCamera();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     let isCancelled = false;

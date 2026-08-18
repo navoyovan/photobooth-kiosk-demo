@@ -36,6 +36,11 @@ const SelectionScreenInner = ({ onFinish, onPrepareCamera, kioskData, loading, l
   const activeFrameRef = useRef(null);
   const autoSpeedRef = useRef(1.2); // px/frame constant drift
 
+  // Pre-warm camera stream early while user is browsing frames
+  useEffect(() => {
+    onPrepareCamera?.();
+  }, [onPrepareCamera]);
+
   // Tab indicator & right panel transition
   useEffect(() => {
     const isUpload = activeCategory === 'UPLOAD';
