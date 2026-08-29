@@ -326,21 +326,29 @@
   }
 
   .modalContent {
-    gap: 1.5rem;
-    padding: 1rem;
+    gap: 1.2rem;
+    padding: 1.2rem;
+    max-width: 90vw;
+  }
+
+  .modalContent :global(button) {
+    width: 100%;
+    max-width: 320px;
+    min-height: 48px;
   }
 
   .artifactWrapper {
-    max-height: 48vh;
+    max-height: 46vh;
     max-width: 85vw;
   }
 
   .artifactWrapper img {
-    max-height: 48vh;
+    max-height: 46vh;
   }
 
   .note {
     font-size: 0.72rem;
+    text-align: center;
   }
 }
 
@@ -364,5 +372,13 @@
 
   .scrollCol {
     gap: 0.8rem;
+  }
+
+  .artifactWrapper {
+    max-height: 42vh;
+  }
+
+  .artifactWrapper img {
+    max-height: 42vh;
   }
 }

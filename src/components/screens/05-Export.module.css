@@ -280,6 +280,11 @@
     text-align: center;
   }
 
+  .topSection :global(.qr-box) {
+    align-self: center !important;
+    margin: 0.6rem auto 1.2rem auto !important;
+  }
+
   .telemetryTitle {
     font-size: clamp(1.6rem, 5.5vw, 2.5rem);
     margin: 0 0 0.5rem 0;
@@ -292,15 +297,20 @@
     align-items: center;
     text-align: center;
     gap: 0.25rem;
+    width: 100%;
   }
 
   .metadataItem {
     font-size: 0.65rem;
+    word-break: break-all;
+    max-width: 85vw;
   }
 
   .securityNotice {
     font-size: 0.62rem;
     margin-top: 0.3rem;
+    max-width: 320px;
+    line-height: 1.3;
   }
 
   .bottomSection {
@@ -320,25 +330,34 @@
 
   .donateToggle {
     justify-content: center;
+    min-height: 44px;
+    padding: 0.4rem 0.6rem;
   }
 
   .donateLabel {
     font-size: 0.68rem;
     white-space: normal;
     text-align: left;
+    line-height: 1.3;
   }
 
   .finalActions :global(button) {
     width: 100%;
+    min-height: 48px;
+    font-size: 1rem;
   }
 }
 
 @media (max-width: 600px) {
   .telemetryTitle {
-    font-size: 1.4rem;
+    font-size: 1.35rem;
   }
 
   .metadataItem {
+    font-size: 0.58rem;
+  }
+
+  .securityNotice {
     font-size: 0.58rem;
   }
 
