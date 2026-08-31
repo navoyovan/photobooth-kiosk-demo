@@ -4,8 +4,12 @@ import styles from './FrameUploadWorkspace.module.css';
 
 const FrameCanvasStage = ({
   imageSrc,
+  fileName,
+  displaySrc,
   slots,
   selectedSlotId,
+  isEyedropperActive,
+  onCanvasTapKey,
   onSelectSlot,
   onUpdateSlot,
   onDeleteSlot,
@@ -15,6 +19,18 @@ const FrameCanvasStage = ({
   const containerRef = useRef(null);
   const [aspectRatio, setAspectRatio] = useState(2 / 3);
   const [dimensions, setDimensions] = useState({ w: 0, h: 0 });
+  const activeImage = displaySrc || imageSrc;
+
+  const handleEyedropTap = (e) => {
+    e.stopPropagation();
+    if (!containerRef.current || !onCanvasTapKey) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    const clientX = e.clientX ?? (e.touches && e.touches[0]?.clientX) ?? 0;
+    const clientY = e.clientY ?? (e.touches && e.touches[0]?.clientY) ?? 0;
+    const xPercent = Math.max(0, Math.min(100, ((clientX - rect.left) / rect.width) * 100));
+    const yPercent = Math.max(0, Math.min(100, ((clientY - rect.top) / rect.height) * 100));
+    onCanvasTapKey(xPercent, yPercent);
+  };
 
   // Measure natural dimensions
   const handleImageLoad = (e) => {
@@ -130,6 +146,13 @@ const FrameCanvasStage = ({
 
   return (
     <div className={styles.canvasStageWrap} onClick={() => onSelectSlot(null)}>
+      {/* Existing Blinking CTA Outside the frame */}
+      {isEyedropperActive && (
+        <span className="ctaLabel" style={{ marginBottom: '1.2rem' }}>
+          TAP BACKGROUND COLOR ON FRAME
+        </span>
+      )}
+
       <div
         ref={containerRef}
         className={styles.canvasOuterFrame}
@@ -143,6 +166,7 @@ const FrameCanvasStage = ({
         <div className="vf-corner tr"></div>
         <div className="vf-corner bl"></div>
         <div className="vf-corner br"></div>
+        <div className="boundary-dashed-line-visual"></div>
 
         {/* Checkerboard Backdrop */}
         <div className={styles.canvasBgGrid} />
@@ -163,11 +187,20 @@ const FrameCanvasStage = ({
 
         {/* Frame Overlay Image */}
         <img
-          src={imageSrc}
+          src={activeImage}
           alt="Custom Frame"
           className={styles.frameImg}
           onLoad={handleImageLoad}
         />
+
+        {/* Transparent Eyedropper Tap Hitbox */}
+        {isEyedropperActive && (
+          <div
+            className={styles.canvasEyedropHitbox}
+            onClick={handleEyedropTap}
+            onTouchStart={handleEyedropTap}
+          />
+        )}
 
         {/* Interactive Editable Slot Boxes */}
         {slots.map((slot) => {
@@ -257,7 +290,7 @@ const FrameCanvasStage = ({
       </div>
 
       <div className={styles.canvasFooterMeta}>
-        {dimensions.w > 0 ? `CANVAS RESOLUTION: ${dimensions.w} × ${dimensions.h} PX` : 'CALIBRATING CANVAS...'}
+        {dimensions.w > 0 ? `${fileName || 'tutorial.png'} : ${dimensions.w} × ${dimensions.h} PX` : 'CALIBRATING CANVAS...'}
       </div>
 
       {onConfirm && (

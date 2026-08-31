@@ -850,7 +850,7 @@ const CaptureScreen = React.forwardRef(({
                 {/* Vertical Watermark — separate ref for deepest parallax */}
                 <h2 className="watermark-sideways">{t('curateWatermark')}</h2>
 
-                <div style={{ width: '100%', marginTop: '8rem', marginBottom: 'auto', zIndex: 20 }}>
+                <div className={cpStyles.headerBlock}>
                   {/* Hero Title with Cyan Overlap */}
                   <div className="side-display-container">
                     <div className="side-display-bullet">▌</div>

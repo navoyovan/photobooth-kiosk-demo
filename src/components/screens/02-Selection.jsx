@@ -44,17 +44,29 @@ const SelectionScreenInner = ({ onFinish, onPrepareCamera, kioskData, loading, l
   // Tab indicator & right panel transition
   useEffect(() => {
     const isUpload = activeCategory === 'UPLOAD';
+    const isPortrait = window.innerWidth <= 900 || window.innerHeight > window.innerWidth;
+
     if (indicatorRef.current) {
-      animate(indicatorRef.current, {
-        top: isUpload ? '6.1rem' : '0',
-        duration: 600,
-        easing: 'easeOutElastic(1, .75)'
-      });
+      if (isPortrait) {
+        animate(indicatorRef.current, {
+          left: isUpload ? '9.5rem' : '-0.8rem',
+          top: '0',
+          duration: 500,
+          easing: 'easeOutCubic'
+        });
+      } else {
+        animate(indicatorRef.current, {
+          top: isUpload ? '6.1rem' : '0',
+          left: '-1.2rem',
+          duration: 600,
+          easing: 'easeOutElastic(1, .75)'
+        });
+      }
     }
 
     if (frameRefText.current) {
       animate(frameRefText.current, {
-        translateX: !isUpload ? 0 : '3rem',
+        translateX: !isUpload ? 0 : (isPortrait ? 0 : '3rem'),
         opacity: !isUpload ? 1 : 0.3,
         duration: 500,
         easing: 'easeOutCubic'
@@ -63,7 +75,7 @@ const SelectionScreenInner = ({ onFinish, onPrepareCamera, kioskData, loading, l
 
     if (uploadRefText.current) {
       animate(uploadRefText.current, {
-        translateX: isUpload ? 0 : '3rem',
+        translateX: isUpload ? 0 : (isPortrait ? 0 : '3rem'),
         opacity: isUpload ? 1 : 0.3,
         duration: 500,
         easing: 'easeOutCubic'
@@ -343,11 +355,11 @@ const SelectionScreenInner = ({ onFinish, onPrepareCamera, kioskData, loading, l
   return (
     <div ref={screenRef} className={styles.layout}>
       {/* KIRI: Informasi & Kontrol */}
-      <div ref={leftPanelRef} className="panel-left">
+      <div ref={leftPanelRef} className={`panel-left ${activeCategory === 'UPLOAD' ? styles.panelLeftUpload : ''}`}>
         {/* Giant Rotated Bleeding Title */}
         <h2 ref={watermarkRef} className="watermark-sideways">{t('selectCanvasWatermark')}</h2>
 
-        <div style={{ display: 'flex', flexDirection: 'column', flexGrow: 1, justifyItems: 'flex-start', justifyContent: 'flex-start', marginTop: '8rem', marginBottom: 'auto', zIndex: 20 }}>
+        <div className={styles.selectionNav}>
           <div className="side-display-container">
             <div ref={indicatorRef} className="side-display-bullet">{'▌'}</div>
             <div
@@ -365,7 +377,6 @@ const SelectionScreenInner = ({ onFinish, onPrepareCamera, kioskData, loading, l
             <div
               className={styles.modeToggleHitbox}
               onClick={() => setActiveCategory('UPLOAD')}
-              style={{ marginTop: '1rem' }}
             >
               <div
                 ref={uploadRefText}
@@ -384,6 +395,18 @@ const SelectionScreenInner = ({ onFinish, onPrepareCamera, kioskData, loading, l
                 onAddSlot={uploadState.handleAddSlot}
                 onResetSlots={uploadState.handleResetSlots}
                 onReplaceImage={uploadState.handleReplaceImage}
+                onImageSelected={uploadState.handleImageSelected}
+                imageSrc={uploadState.imageSrc}
+                chromaKeyedSrc={uploadState.chromaKeyedSrc}
+                chromaKeyColor={uploadState.chromaKeyColor}
+                chromaKeyTolerance={uploadState.chromaKeyTolerance}
+                chromaKeySoftness={uploadState.chromaKeySoftness}
+                isEyedropperActive={uploadState.isEyedropperActive}
+                isChromaProcessing={uploadState.isChromaProcessing}
+                onToggleEyedropper={uploadState.toggleEyedropper}
+                onToleranceChange={uploadState.handleToleranceChange}
+                onSoftnessChange={uploadState.handleSoftnessChange}
+                onClearChromaKey={uploadState.handleClearChromaKey}
               />
             )}
           </div>

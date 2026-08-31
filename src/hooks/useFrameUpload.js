@@ -1,7 +1,11 @@
 import { useState, useCallback, useEffect } from 'react';
+import { assetUrl } from '../utils/assetUrl';
 import { detectPunchholesFromImage, PRESET_LAYOUTS } from '../utils/punchholeDetector';
+import { useChromaKey, samplePixelFromImage } from './useChromaKey';
 
 const STORAGE_KEY = 'photobooth_custom_frame';
+const DEFAULT_FRAME_SRC = assetUrl('assets/tutorial.png');
+const DEFAULT_FILE_NAME = 'tutorial.png';
 
 function getPersistedFrame() {
   try {
@@ -20,11 +24,37 @@ function getPersistedFrame() {
 export function useFrameUpload() {
   const initialData = getPersistedFrame();
 
-  const [imageSrc, setImageSrc] = useState(initialData?.imageSrc || null);
-  const [fileName, setFileName] = useState(initialData?.fileName || '');
+  const [imageSrc, setImageSrc] = useState(initialData?.imageSrc || DEFAULT_FRAME_SRC);
+  const [fileName, setFileName] = useState(initialData?.fileName || DEFAULT_FILE_NAME);
   const [slots, setSlots] = useState(initialData?.slots || []);
   const [selectedSlotId, setSelectedSlotId] = useState(initialData?.slots?.length > 0 ? 0 : null);
-  const [activePreset, setActivePreset] = useState(initialData?.activePreset || 'AUTO_TWIN');
+  const [activePreset, setActivePreset] = useState(initialData?.activePreset || null);
+
+  // Chroma Key State
+  const [chromaKeyedSrc, setChromaKeyedSrc] = useState(initialData?.chromaKeyedSrc || null);
+  const [chromaKeyColor, setChromaKeyColor] = useState(initialData?.chromaKeyColor || '#00FF00');
+  const [chromaKeyTolerance, setChromaKeyTolerance] = useState(initialData?.chromaKeyTolerance ?? 30);
+  const [chromaKeySoftness, setChromaKeySoftness] = useState(initialData?.chromaKeySoftness ?? 10);
+  const [isEyedropperActive, setIsEyedropperActive] = useState(false);
+
+  const { applyChromaKey, isProcessing: isChromaProcessing } = useChromaKey();
+
+  // Scan default image on initial mount if not persisted
+  useEffect(() => {
+    if (!initialData && imageSrc === DEFAULT_FRAME_SRC) {
+      detectPunchholesFromImage(DEFAULT_FRAME_SRC, 4, 'twin').then((detected) => {
+        if (detected && detected.length > 0) {
+          setSlots(detected);
+          setSelectedSlotId(0);
+          setActivePreset('AUTO_TWIN');
+        } else {
+          setSlots([]);
+          setSelectedSlotId(null);
+          setActivePreset(null);
+        }
+      });
+    }
+  }, []);
 
   // Automatically persist to browser localStorage whenever custom frame data changes
   useEffect(() => {
@@ -37,6 +67,10 @@ export function useFrameUpload() {
             fileName,
             slots,
             activePreset,
+            chromaKeyedSrc,
+            chromaKeyColor,
+            chromaKeyTolerance,
+            chromaKeySoftness,
             savedAt: Date.now()
           })
         );
@@ -44,52 +78,145 @@ export function useFrameUpload() {
         console.warn('[useFrameUpload] Could not save frame to localStorage (quota or disabled):', err);
       }
     }
-  }, [imageSrc, fileName, slots, activePreset]);
+  }, [imageSrc, fileName, slots, activePreset, chromaKeyedSrc, chromaKeyColor, chromaKeyTolerance, chromaKeySoftness]);
 
   const handleImageSelected = async (src, name) => {
     setImageSrc(src);
     setFileName(name || 'custom_frame.png');
-    setActivePreset('AUTO_TWIN');
+    setChromaKeyedSrc(null);
+    setIsEyedropperActive(false);
 
     const detected = await detectPunchholesFromImage(src, 4, 'twin');
     if (detected && detected.length > 0) {
       setSlots(detected);
       setSelectedSlotId(0);
+      setActivePreset('AUTO_TWIN');
     } else {
-      setSlots(PRESET_LAYOUTS.STRIP_3);
-      setSelectedSlotId(0);
-      setActivePreset('STRIP_3');
+      // When no alpha/transparency is detected, do NOT auto add slot presets
+      setSlots([]);
+      setSelectedSlotId(null);
+      setActivePreset(null);
     }
   };
 
   const handleApplyPreset = async (presetKey) => {
     setActivePreset(presetKey);
+    const activeSrc = chromaKeyedSrc || imageSrc;
     if (presetKey === 'AUTO') {
-      if (imageSrc) {
-        const detected = await detectPunchholesFromImage(imageSrc, 4, 'sequential');
+      if (activeSrc) {
+        const detected = await detectPunchholesFromImage(activeSrc, 4, 'sequential');
         if (detected && detected.length > 0) {
           setSlots(detected);
           setSelectedSlotId(0);
           return;
         }
       }
-      setSlots(PRESET_LAYOUTS.STRIP_3);
-      setSelectedSlotId(0);
     } else if (presetKey === 'AUTO_TWIN') {
-      if (imageSrc) {
-        const detected = await detectPunchholesFromImage(imageSrc, 4, 'twin');
+      if (activeSrc) {
+        const detected = await detectPunchholesFromImage(activeSrc, 4, 'twin');
         if (detected && detected.length > 0) {
           setSlots(detected);
           setSelectedSlotId(0);
           return;
         }
       }
-      setSlots(PRESET_LAYOUTS.STRIP_3);
-      setSelectedSlotId(0);
     } else if (PRESET_LAYOUTS[presetKey]) {
       setSlots(PRESET_LAYOUTS[presetKey]);
       setSelectedSlotId(0);
     }
+  };
+
+  const toggleEyedropper = () => {
+    setIsEyedropperActive((prev) => !prev);
+  };
+
+  const handleCanvasTapKey = async (xPercent, yPercent) => {
+    if (!imageSrc) return;
+    try {
+      const pixel = await samplePixelFromImage(imageSrc, xPercent, yPercent);
+      if (!pixel) return;
+      const sampledHex = pixel.hex;
+      setChromaKeyColor(sampledHex);
+
+      const keyedResult = await applyChromaKey(imageSrc, sampledHex, chromaKeyTolerance, chromaKeySoftness);
+      if (keyedResult) {
+        setChromaKeyedSrc(keyedResult);
+
+        // Automatically auto-delete holes / detect transparent punchholes
+        const mode = activePreset === 'AUTO' ? 'sequential' : 'twin';
+        const detected = await detectPunchholesFromImage(keyedResult, 4, mode);
+        if (detected && detected.length > 0) {
+          setSlots(detected);
+          setSelectedSlotId(0);
+        }
+
+        setIsEyedropperActive(false);
+      }
+    } catch (err) {
+      console.error('[useFrameUpload] Error in handleCanvasTapKey:', err);
+    }
+  };
+
+  const handleToleranceChange = async (newTol) => {
+    setChromaKeyTolerance(newTol);
+    if (imageSrc && chromaKeyedSrc && chromaKeyColor) {
+      try {
+        const keyedResult = await applyChromaKey(imageSrc, chromaKeyColor, newTol, chromaKeySoftness);
+        if (keyedResult) {
+          setChromaKeyedSrc(keyedResult);
+          const mode = activePreset === 'AUTO' ? 'sequential' : 'twin';
+          const detected = await detectPunchholesFromImage(keyedResult, 4, mode);
+          if (detected && detected.length > 0) {
+            setSlots(detected);
+            setSelectedSlotId(0);
+          }
+        }
+      } catch (err) {
+        console.error('[useFrameUpload] Error updating tolerance:', err);
+      }
+    }
+  };
+
+  const handleSoftnessChange = async (newSoft) => {
+    setChromaKeySoftness(newSoft);
+    if (imageSrc && chromaKeyedSrc && chromaKeyColor) {
+      try {
+        const keyedResult = await applyChromaKey(imageSrc, chromaKeyColor, chromaKeyTolerance, newSoft);
+        if (keyedResult) {
+          setChromaKeyedSrc(keyedResult);
+        }
+      } catch (err) {
+        console.error('[useFrameUpload] Error updating softness:', err);
+      }
+    }
+  };
+
+  const handleApplyChromaKey = async (color, tolerance, softness) => {
+    if (!imageSrc) return;
+    try {
+      const keyedResult = await applyChromaKey(imageSrc, color, tolerance, softness);
+      if (keyedResult) {
+        setChromaKeyedSrc(keyedResult);
+        setChromaKeyColor(color);
+        setChromaKeyTolerance(tolerance);
+        setChromaKeySoftness(softness);
+
+        // Auto-detect punchholes on keyed image
+        const mode = activePreset === 'AUTO' ? 'sequential' : 'twin';
+        const detected = await detectPunchholesFromImage(keyedResult, 4, mode);
+        if (detected && detected.length > 0) {
+          setSlots(detected);
+          setSelectedSlotId(0);
+        }
+      }
+    } catch (err) {
+      console.error('[useFrameUpload] Failed to apply chroma key:', err);
+    }
+  };
+
+  const handleClearChromaKey = () => {
+    setChromaKeyedSrc(null);
+    setIsEyedropperActive(false);
   };
 
   const handleUpdateSlot = useCallback((id, updates) => {
@@ -155,7 +282,14 @@ export function useFrameUpload() {
   };
 
   const handleResetSlots = () => {
-    handleApplyPreset(activePreset || 'STRIP_3');
+    setSlots([]);
+    setSelectedSlotId(null);
+    setActivePreset(null);
+    setChromaKeyedSrc(null);
+    setChromaKeyColor('#00FF00');
+    setChromaKeyTolerance(30);
+    setChromaKeySoftness(10);
+    setIsEyedropperActive(false);
   };
 
   const handleReplaceImage = () => {
@@ -163,6 +297,7 @@ export function useFrameUpload() {
     setFileName('');
     setSlots([]);
     setSelectedSlotId(null);
+    setChromaKeyedSrc(null);
     try {
       localStorage.removeItem(STORAGE_KEY);
     } catch (e) {}
@@ -179,7 +314,7 @@ export function useFrameUpload() {
       id: `upload-${Date.now()}`,
       name: fileName || 'Custom Frame',
       category: 'UPLOAD',
-      thumbnail: imageSrc,
+      thumbnail: chromaKeyedSrc || imageSrc,
       slots: Math.max(1, uniqueCaptureCount),
       slots_config: slots
     };
@@ -193,9 +328,22 @@ export function useFrameUpload() {
     slots,
     selectedSlotId,
     activePreset,
+    chromaKeyedSrc,
+    chromaKeyColor,
+    chromaKeyTolerance,
+    chromaKeySoftness,
+    isEyedropperActive,
+    isChromaProcessing,
     setSelectedSlotId,
+    setIsEyedropperActive,
+    toggleEyedropper,
+    handleCanvasTapKey,
+    handleToleranceChange,
+    handleSoftnessChange,
     handleImageSelected,
     handleApplyPreset,
+    handleApplyChromaKey,
+    handleClearChromaKey,
     handleUpdateSlot,
     handleDeleteSlot,
     handleDuplicateSlot,
@@ -205,3 +353,5 @@ export function useFrameUpload() {
     handleConfirm
   };
 }
+
+

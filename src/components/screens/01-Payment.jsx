@@ -164,7 +164,7 @@ const PaymentScreen = forwardRef(({ onBack, onSuccess, printCopies, setPrintCopi
           </button>
         </div>
 
-        <div style={{ width: '100%', marginTop: '8rem', marginBottom: 'auto', paddingBottom: '3rem', zIndex: 20 }}>
+        <div className={styles.headerBlock}>
           {/* The Hero Overlap Title */}
           <div className="side-display-container">
             <div className="side-display-bullet">▌</div>
@@ -192,7 +192,7 @@ const PaymentScreen = forwardRef(({ onBack, onSuccess, printCopies, setPrintCopi
       <div ref={rightPanelRef} className="panel-right panel-center-content">
         <div className={styles.checkoutPhase}>
           <div className={styles.checkoutBody}>
-            <div className="qr-box" style={{ width: 'clamp(300px, 45vw, 600px)', maxWidth: '90vw', height: 'clamp(180px, 25vh, 250px)', position: 'relative', overflow: 'visible', background: '#fff' }}>
+            <div className={`qr-box ${styles.previewBox}`}>
               <div className="vf-corner tl"></div>
               <div className="vf-corner tr"></div>
               <div className="vf-corner bl"></div>
@@ -218,18 +218,7 @@ const PaymentScreen = forwardRef(({ onBack, onSuccess, printCopies, setPrintCopi
         </div>
 
 
-        <div style={{
-          marginTop: '2.5rem',
-          fontFamily: 'Space Grotesk',
-          fontSize: '0.8rem',
-          fontWeight: 700,
-          color: "rgb(var(--theme-surface-dark-rgb))",
-          textTransform: 'uppercase',
-          letterSpacing: '0.1rem',
-          textAlign: 'center',
-          lineHeight: '1.6',
-          maxWidth: '380px'
-        }}>
+        <div className={styles.demoHintText}>
           {t('demoHint')}
         </div>
       </div>

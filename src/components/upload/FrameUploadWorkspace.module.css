@@ -128,6 +128,29 @@
   color: #555555;
 }
 
+.tryTutorialBtn {
+  margin-top: 1.2rem;
+  background: transparent;
+  border: 1px dashed #111111;
+  color: #111111;
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 700;
+  font-size: 0.75rem;
+  padding: 0.55rem 1.1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  z-index: 10;
+}
+
+.tryTutorialBtn:hover {
+  background: #111111;
+  color: #FFFFFF;
+  border-style: solid;
+  transform: translateY(-2px);
+}
+
 /* =========================================
    STAGE 2: STUDIO WORKSPACE
    ========================================= */
@@ -324,13 +347,13 @@
 
 /* Left Column Controls / Inspector */
 .inspectorCol {
-  width: calc(100% - 3.5rem);
-  max-width: 380px;
-  margin-top: 3.5rem;
-  margin-left: 3.5rem;
+  width: 100%;
+  max-width: 540px;
+  margin-top: 2rem;
+  margin-left: 0;
   display: flex;
   flex-direction: column;
-  gap: 1.8rem;
+  gap: 1rem;
   animation: fadeInControls 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
@@ -345,46 +368,63 @@
   }
 }
 
+.toolbarSideBySideRow {
+  display: flex;
+  gap: 1.4rem;
+  align-items: stretch;
+  width: 100%;
+}
+
+.toolbarCol {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
 .toolSection {
-  margin-bottom: 2rem;
+  margin-bottom: 0;
 }
 
 .sectionTitle {
   display: flex;
   align-items: baseline;
-  gap: 0.8rem;
-  margin-bottom: 0.8rem;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
 }
 
 .instructionNum {
-  font-family: 'Syne', sans-serif;
-  font-weight: 800;
-  color: #A0A0A0;
-  font-size: 0.85rem;
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 600;
+  color: #888888;
+  font-size: 0.8rem;
 }
 
 .sectionHeading {
   font-family: 'Space Grotesk', sans-serif;
-  font-size: 0.85rem;
-  font-weight: 700;
-  color: #666666;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #555555;
+  text-transform: uppercase;
   letter-spacing: 0.05em;
-  line-height: 1.6;
+  line-height: 1.4;
 }
 
-.presetGrid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.75rem;
+.presetList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  width: 100%;
 }
 
 .presetCard {
   background: #F8F8F8;
   border: 1px solid #E0E0E0;
-  padding: 1rem;
+  padding: 0.55rem 0.65rem;
   display: flex;
-  flex-direction: column;
-  gap: 0.3rem;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   text-align: left;
@@ -393,31 +433,41 @@
 .presetCard:hover {
   background: #FFFFFF;
   border-color: #111111;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.04);
 }
 
 .presetCard.active {
-  border: 2px solid #F0600D;
+  border: 1.5px solid #F0600D;
   background: #FFF9F5;
 }
 
 .presetName {
   font-family: 'Syne', sans-serif;
-  font-size: 0.9rem;
+  font-size: 0.82rem;
   font-weight: 700;
   color: #111111;
+  white-space: nowrap;
 }
 
 .presetDesc {
   font-family: 'Space Grotesk', sans-serif;
-  font-size: 0.75rem;
+  font-size: 0.7rem;
+  font-weight: 500;
   color: #777777;
+  white-space: nowrap;
+}
+
+.bottomActionRow {
+  display: flex;
+  gap: 0.65rem;
+  margin-top: 1.6rem;
+  width: 100%;
 }
 
 .buttonRow {
   display: flex;
-  gap: 0.8rem;
+  gap: 0.65rem;
 }
 
 .secondaryBtn {
@@ -427,14 +477,163 @@
   color: #111111;
   font-family: 'Space Grotesk', sans-serif;
   font-weight: 700;
-  font-size: 0.85rem;
-  padding: 0.8rem;
+  font-size: 0.82rem;
+  padding: 0.75rem 0.6rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   cursor: pointer;
   transition: all 0.2s;
+  text-align: center;
 }
 
 .secondaryBtn:hover {
   background: #F0F0F0;
 }
+
+/* =========================================
+   STAGE 3: CHROMA KEY (CONTAINERLESS)
+   ========================================= */
+.chromaDirectContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  width: 100%;
+}
+
+.chromaToggleBtn {
+  width: 100%;
+  background: #111111;
+  color: #FFFFFF;
+  border: 1px solid #111111;
+  font-family: 'Syne', sans-serif;
+  font-weight: 700;
+  font-size: 0.82rem;
+  padding: 0.85rem 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+  box-sizing: border-box;
+}
+
+.chromaToggleBtn:hover:not(:disabled) {
+  background: #222222;
+  border-color: #222222;
+  transform: translateY(-1px);
+}
+
+.chromaToggleActive {
+  background: #F0600D !important;
+  border-color: #F0600D !important;
+  color: #FFFFFF !important;
+}
+
+.chromaHasKey {
+  border-color: #F0600D;
+}
+
+.chromaDialsContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  width: 100%;
+}
+
+.chromaDialRow {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.chromaDialHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.chromaDialLabel {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #666666;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.chromaDialVal {
+  font-family: 'Space Grotesk', monospace;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #111111;
+}
+
+.chromaRangeInput {
+  width: 100%;
+  height: 4px;
+  accent-color: #F0600D;
+  cursor: pointer;
+}
+
+.chromaStatusRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.4rem;
+  padding-top: 0.1rem;
+}
+
+.chromaKeyBadge {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.chromaColorSwatchSmall {
+  width: 14px;
+  height: 14px;
+  border: 1px solid #222222;
+  border-radius: 2px;
+}
+
+.chromaKeyHex {
+  font-family: 'Space Grotesk', monospace;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #444444;
+}
+
+.chromaRevertBtn {
+  background: transparent;
+  border: none;
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: #888888;
+  cursor: pointer;
+  padding: 0.15rem 0.3rem;
+  letter-spacing: 0.05em;
+  transition: color 0.15s ease;
+}
+
+.chromaRevertBtn:hover {
+  color: #FF3E3E;
+  text-decoration: underline;
+}
+
+/* =========================================
+   CANVAS EYEDROP HITBOX (DIRECT TAP)
+   ========================================= */
+.canvasEyedropHitbox {
+  position: absolute;
+  inset: 0;
+  z-index: 60;
+  cursor: crosshair;
+  background: transparent;
+}
+
+
+

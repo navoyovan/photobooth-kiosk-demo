@@ -154,3 +154,52 @@
   letter-spacing: 0.1em;
   text-transform: uppercase;
 }
+
+/* =========================================================================
+   PORTRAIT & MOBILE RESPONSIVE ADAPTATIONS
+   ========================================================================= */
+@media (orientation: portrait), (max-width: 900px) {
+  .overlay {
+    padding: 16px;
+  }
+
+  .modal {
+    padding: clamp(1.5rem, 3vh, 2.5rem) clamp(1.2rem, 4vw, 2rem);
+    max-width: 94vw;
+  }
+
+  .header {
+    margin-bottom: 24px;
+  }
+
+  .title {
+    font-size: clamp(1.8rem, 6vw, 2.2rem);
+  }
+
+  .previewContainer {
+    flex-direction: column-reverse;
+    gap: 24px;
+    margin-bottom: 24px;
+  }
+
+  .previewMeta {
+    width: 100%;
+    flex-direction: row;
+    justify-content: space-around;
+    gap: 16px;
+  }
+
+  .frameImg {
+    max-height: 240px;
+  }
+
+  .actions {
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 16px;
+  }
+
+  .footer {
+    margin-top: 24px;
+  }
+}
