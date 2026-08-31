@@ -5,7 +5,7 @@
 A self-contained photobooth experience demo built to showcase the core experience behind **HYPE-BOX**: a modern digital photobooth platform.
 
 Live Demo
-[Open the interactive demo →]
+[Open the interactive demo →](https://navoyovan.github.io/photobooth-kiosk-demo/)
 
 > This demo runs entirely in the browser and does not connect to
 the production HYPE-BOX backend or payment infrastructure.
