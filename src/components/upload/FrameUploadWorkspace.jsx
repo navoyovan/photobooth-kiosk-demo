@@ -23,8 +23,12 @@ const FrameUploadWorkspace = ({ uploadState, onConfirm }) => {
         <div className={styles.studioContainer}>
           <FrameCanvasStage
             imageSrc={imageSrc}
+            fileName={uploadState.fileName}
+            displaySrc={uploadState.chromaKeyedSrc || imageSrc}
             slots={slots}
             selectedSlotId={selectedSlotId}
+            isEyedropperActive={uploadState.isEyedropperActive}
+            onCanvasTapKey={uploadState.handleCanvasTapKey}
             onSelectSlot={setSelectedSlotId}
             onUpdateSlot={handleUpdateSlot}
             onDeleteSlot={handleDeleteSlot}

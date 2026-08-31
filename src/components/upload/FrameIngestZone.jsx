@@ -1,4 +1,5 @@
 import React, { useRef, useState } from 'react';
+import { assetUrl } from '../../utils/assetUrl';
 import styles from './FrameUploadWorkspace.module.css';
 
 const FrameIngestZone = ({ onImageSelected }) => {
@@ -55,12 +56,22 @@ const FrameIngestZone = ({ onImageSelected }) => {
           </svg>
         </div>
 
-        <div className={styles.dropzoneTitle}>UPLOAD CANVAS</div>
         <div className={styles.dropzoneSub}>TAP TO BROWSE OR DROP FILE</div>
 
         <div className={styles.specsPill}>
           PNG / WEBP • TRANSPARENT CUTOUTS
         </div>
+
+        <button
+          type="button"
+          className={styles.tryTutorialBtn}
+          onClick={(e) => {
+            e.stopPropagation();
+            onImageSelected(assetUrl('assets/tutorial.png'), 'tutorial.png');
+          }}
+        >
+          OR TRY TUTORIAL FRAME
+        </button>
       </div>
     </div>
   );

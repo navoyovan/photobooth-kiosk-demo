@@ -355,7 +355,7 @@ const SelectionScreenInner = ({ onFinish, onPrepareCamera, kioskData, loading, l
   return (
     <div ref={screenRef} className={styles.layout}>
       {/* KIRI: Informasi & Kontrol */}
-      <div ref={leftPanelRef} className="panel-left">
+      <div ref={leftPanelRef} className={`panel-left ${activeCategory === 'UPLOAD' ? styles.panelLeftUpload : ''}`}>
         {/* Giant Rotated Bleeding Title */}
         <h2 ref={watermarkRef} className="watermark-sideways">{t('selectCanvasWatermark')}</h2>
 
@@ -395,6 +395,18 @@ const SelectionScreenInner = ({ onFinish, onPrepareCamera, kioskData, loading, l
                 onAddSlot={uploadState.handleAddSlot}
                 onResetSlots={uploadState.handleResetSlots}
                 onReplaceImage={uploadState.handleReplaceImage}
+                onImageSelected={uploadState.handleImageSelected}
+                imageSrc={uploadState.imageSrc}
+                chromaKeyedSrc={uploadState.chromaKeyedSrc}
+                chromaKeyColor={uploadState.chromaKeyColor}
+                chromaKeyTolerance={uploadState.chromaKeyTolerance}
+                chromaKeySoftness={uploadState.chromaKeySoftness}
+                isEyedropperActive={uploadState.isEyedropperActive}
+                isChromaProcessing={uploadState.isChromaProcessing}
+                onToggleEyedropper={uploadState.toggleEyedropper}
+                onToleranceChange={uploadState.handleToleranceChange}
+                onSoftnessChange={uploadState.handleSoftnessChange}
+                onClearChromaKey={uploadState.handleClearChromaKey}
               />
             )}
           </div>
