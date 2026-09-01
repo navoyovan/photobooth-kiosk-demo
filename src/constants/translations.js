@@ -9,6 +9,35 @@ export const TRANSLATIONS = {
     demoHint: "TAP START TO BEGIN INTERACTIVE SESSION",
     startExperience: "START EXPERIENCE ↗",
     infoBtnLabel: "INFO ⓘ",
+    privacyBtnLabel: "PRIVACY 🛡",
+    privacyNoticeTag: "PRIVACY & STORAGE",
+    privacyNoticeSummary: "In-browser capture & local storage only. No ads, no tracking. Cloud QR delivery (60m retention) & gallery wall require explicit consent.",
+    privacyNoticeLink: "READ STATEMENT",
+
+    privacyTagline: "DATA & HARDWARE DISCLOSURE",
+    privacyTitle: "PRIVACY STATEMENT",
+    privacyHeadline: "TRANSPARENT CLIENT-SIDE ARCHITECTURE. ZERO AD TRACKING.",
+    privacyDesc: "This kiosk demo operates on a privacy-first model. We do not use third-party analytics, tracking pixels, or advertising identifiers. All primary processing remains strictly on your device.",
+    privacyBadgeClient: "CLIENT-SIDE",
+    privacyBadgeDevice: "ON-DEVICE",
+    privacyBadgeLocal: "LOCAL ONLY",
+    privacyBadgeEphemeral: "OPT-OUT AVAILABLE",
+    privacyBadgeOptIn: "OPT-IN ONLY",
+
+    privacyPillarCameraTitle: "Optics & Camera Permissions",
+    privacyPillarCameraDesc: "Camera access is utilized exclusively for real-time in-browser live viewfinder preview and photo capture. Live video feeds are never recorded or transmitted to remote servers during active capture.",
+
+    privacyPillarStorageTitle: "Local Storage & Preferences",
+    privacyPillarStorageDesc: "Browser localStorage is used solely to maintain active session recovery (in case of accidental refresh), UI theme preferences, and demo configurations. No tracking cookies or advertising identifiers are ever placed.",
+
+    privacyPillarFrameTitle: "Custom Frame Uploads",
+    privacyPillarFrameDesc: "Custom PNG frames and layout presets uploaded in the studio are parsed and chroma-keyed directly inside browser memory and saved to your device storage. They are never uploaded to any remote server.",
+
+    privacyPillarCloudTitle: "Ephemeral Digital Delivery (60-Min)",
+    privacyPillarCloudDesc: "Rendered composite prints are temporarily uploaded to public cloud hosting solely to generate mobile retrieval QR codes. All uploaded files automatically purge after 60 minutes. An opt-out consent checkbox is provided at checkout to keep all sessions completely offline.",
+
+    privacyPillarGalleryTitle: "Community Exhibition Gallery",
+    privacyPillarGalleryDesc: "At the end of your session, you can choose whether to donate your photo to the local kiosk starfield background. Consented photos are stored strictly in local browser IndexedDB with all EXIF metadata stripped.",
 
     aboutTagline: "EXPERIENCE PLATFORM",
     aboutTitle: "ABOUT HYPE-BOX",
@@ -156,6 +185,35 @@ export const TRANSLATIONS = {
     demoHint: "KETUK MULAI UNTUK MEMULAI SESI",
     startExperience: "MULAI SEKARANG ↗",
     infoBtnLabel: "INFO ⓘ",
+    privacyBtnLabel: "PRIVASI 🛡",
+    privacyNoticeTag: "PRIVASI & PENYIMPANAN",
+    privacyNoticeSummary: "Pemrosesan foto & penyimpanan hanya di browser lo. Tanpa iklan, tanpa pelacak. Pengiriman QR cloud (kadaluarsa 60 mnt) & galeri butuh persetujuan lo.",
+    privacyNoticeLink: "BACA KEBIJAKAN",
+
+    privacyTagline: "INFORMASI DATA & HARDWARE",
+    privacyTitle: "PERNYATAAN PRIVASI",
+    privacyHeadline: "ARSITEKTUR CLIENT-SIDE TRANSPARAN. BEBAS PELACAK IKLAN.",
+    privacyDesc: "Demo kiosk ini mengutamakan privasi pengguna. Kami tidak memakai analitik pihak ketiga, piksel pelacak, atau identifikasi iklan. Semua pemrosesan utama tetap berada di perangkat lo.",
+    privacyBadgeClient: "CLIENT-SIDE",
+    privacyBadgeDevice: "DI PERANGKAT",
+    privacyBadgeLocal: "LOKAL AJA",
+    privacyBadgeEphemeral: "BISA DI-OPTOUT",
+    privacyBadgeOptIn: "OPSIONAL (OPT-IN)",
+
+    privacyPillarCameraTitle: "Kamera & Izin Akses",
+    privacyPillarCameraDesc: "Akses kamera hanya dipakai buat pratinjau viewfinder langsung dan jepret foto di browser. Video live gak pernah direkam atau dikirim ke server luar selama sesi foto berlangsung.",
+
+    privacyPillarStorageTitle: "Local Storage & Pengaturan",
+    privacyPillarStorageDesc: "Penyimpanan localStorage browser hanya dipakai buat pemulihan sesi aktif (kalo gak sengaja ke-refresh), preferensi tema, dan pengaturan demo. Gak ada cookie pelacak atau identifikasi iklan sama sekali.",
+
+    privacyPillarFrameTitle: "Unggah Frame Kustom",
+    privacyPillarFrameDesc: "File PNG frame dan konfigurasi slot yang lo unggah diproses dan di-chroma-key langsung di memori browser dan disimpan di perangkat lo. File gak pernah diunggah ke server luar.",
+
+    privacyPillarCloudTitle: "Pengiriman Digital Sementara (60 Menit)",
+    privacyPillarCloudDesc: "Foto komposit yang udah jadi diunggah sementara ke cloud hosting publik cuma buat bikin QR code download di HP. Semua file otomatis dihapus bersih setelah 60 menit. Lo juga bisa centang opt-out di kasir buat tetep offline.",
+
+    privacyPillarGalleryTitle: "Galeri Pameran Komunitas",
+    privacyPillarGalleryDesc: "Di akhir sesi, lo bisa milih buat donasiin foto lo ke dinding galeri starfield kiosk lokal. Foto yang lo setujui cuma disimpan di IndexedDB browser lokal dengan metadata EXIF yang udah dibersihkan total.",
 
     aboutTagline: "PLATFORM PENGALAMAN",
     aboutTitle: "TENTANG HYPE-BOX",

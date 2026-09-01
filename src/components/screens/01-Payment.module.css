@@ -151,6 +151,69 @@
   flex-direction: column;
 }
 
+.privacyNoticeBar {
+  margin-top: 2.2rem;
+  margin-left: 3.5rem;
+  max-width: 440px;
+  background: rgba(0, 0, 0, 0.03);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  padding: 0.9rem 1.1rem;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  text-align: left;
+}
+
+.privacyNoticeBar:hover {
+  background: rgba(0, 0, 0, 0.06);
+  border-color: rgba(0, 0, 0, 0.2);
+  transform: translateY(-2px);
+}
+
+.privacyNoticeHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.privacyNoticeIcon {
+  font-size: 0.8rem;
+  line-height: 1;
+}
+
+.privacyNoticeTag {
+  font-family: 'Space Grotesk', monospace;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: #111111;
+  text-transform: uppercase;
+}
+
+.privacyNoticeSummary {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 0.72rem;
+  line-height: 1.45;
+  color: #666666;
+  font-weight: 500;
+  margin: 0;
+}
+
+.privacyNoticeLink {
+  font-family: 'Space Grotesk', monospace;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--accent-color, #f86910);
+  text-transform: uppercase;
+  margin-top: 0.2rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+}
+
 .priceDisplay {
   margin-top: 2rem;
 }
@@ -726,6 +789,19 @@
     line-height: 1.35;
   }
 
+  .privacyNoticeBar {
+    margin-left: clamp(0.9rem, 2.2vw, 1.6rem);
+    margin-top: clamp(0.6rem, 1.5vh, 1.2rem);
+    max-width: 90vw;
+    padding: 0.65rem 0.85rem;
+    gap: 0.25rem;
+  }
+
+  .privacyNoticeSummary {
+    font-size: clamp(0.62rem, 1.6vw, 0.7rem);
+    line-height: 1.35;
+  }
+
   .previewBox {
     width: clamp(260px, 84vw, 360px);
     height: clamp(135px, 19vh, 185px);
@@ -779,6 +855,15 @@
 
   .instructionText {
     font-size: 0.7rem;
+  }
+
+  .privacyNoticeBar {
+    margin-left: 0.7rem;
+    padding: 0.5rem 0.7rem;
+  }
+
+  .privacyNoticeSummary {
+    font-size: 0.62rem;
   }
 
   .previewBox {

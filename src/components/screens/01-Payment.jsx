@@ -6,6 +6,7 @@ import GalleryCheckoutModal from '../shared/GalleryCheckoutModal';
 import SessionRecoveryModal from '../shared/SessionRecoveryModal';
 import CardStackOdometer from '../shared/CardStackOdometer';
 import InfoModal from '../shared/InfoModal';
+import PrivacyModal from '../shared/PrivacyModal';
 import { CtaButton } from '../../ui';
 import { TRANSLATIONS } from '../../constants/translations';
 import styles from './01-Payment.module.css';
@@ -25,6 +26,7 @@ const PaymentScreen = forwardRef(({ onBack, onSuccess, printCopies, setPrintCopi
   const setIsCheckoutModalOpen = setIsCheckoutOpen || setInternalCheckoutOpen;
 
   const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
+  const [isPrivacyModalOpen, setIsPrivacyModalOpen] = useState(false);
   const [showRecoveryModal, setShowRecoveryModal] = useState(false);
   const [savedSession, setSavedSession] = useState(null);
 
@@ -121,7 +123,7 @@ const PaymentScreen = forwardRef(({ onBack, onSuccess, printCopies, setPrintCopi
     setPrintCopies(val);
   };
 
-  const isAnyModalOpen = isCheckoutModalOpen || isInfoModalOpen || showRecoveryModal;
+  const isAnyModalOpen = isCheckoutModalOpen || isInfoModalOpen || showRecoveryModal || isPrivacyModalOpen;
 
   return (
     <div
@@ -162,6 +164,16 @@ const PaymentScreen = forwardRef(({ onBack, onSuccess, printCopies, setPrintCopi
           >
             {t('infoBtnLabel')}
           </button>
+
+          <span className={styles.infoDivider}>|</span>
+
+          <button
+            className={styles.infoBtn}
+            onClick={() => setIsPrivacyModalOpen(true)}
+            aria-label="Privacy Statement"
+          >
+            {t('privacyBtnLabel')}
+          </button>
         </div>
 
         <div className={styles.headerBlock}>
@@ -184,6 +196,26 @@ const PaymentScreen = forwardRef(({ onBack, onSuccess, printCopies, setPrintCopi
               <span className={styles.instructionNum}>03.</span>
               <p className={styles.instructionText}>{t('demoStep3')}</p>
             </div>
+          </div>
+
+          {/* Inline Architectural Privacy Statement Notice */}
+          <div
+            className={styles.privacyNoticeBar}
+            onClick={() => setIsPrivacyModalOpen(true)}
+            role="button"
+            tabIndex={0}
+            aria-label="View Privacy Statement"
+          >
+            <div className={styles.privacyNoticeHeader}>
+              <span className={styles.privacyNoticeIcon}>🛡</span>
+              <span className={styles.privacyNoticeTag}>{t('privacyNoticeTag')}</span>
+            </div>
+            <p className={styles.privacyNoticeSummary}>
+              {t('privacyNoticeSummary')}
+            </p>
+            <span className={styles.privacyNoticeLink}>
+              {t('privacyNoticeLink')} ↗
+            </span>
           </div>
         </div>
       </div>
@@ -251,6 +283,16 @@ const PaymentScreen = forwardRef(({ onBack, onSuccess, printCopies, setPrintCopi
       <InfoModal
         isOpen={isInfoModalOpen}
         onClose={() => setIsInfoModalOpen(false)}
+        onOpenPrivacy={() => {
+          setIsInfoModalOpen(false);
+          setIsPrivacyModalOpen(true);
+        }}
+        language={language}
+      />
+
+      <PrivacyModal
+        isOpen={isPrivacyModalOpen}
+        onClose={() => setIsPrivacyModalOpen(false)}
         language={language}
       />
     </div>

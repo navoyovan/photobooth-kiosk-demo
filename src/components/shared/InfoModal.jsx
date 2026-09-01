@@ -1,10 +1,10 @@
 import React, { useEffect, useRef } from 'react';
 import { animate } from 'animejs';
 import { TRANSLATIONS } from '../../constants/translations';
-import { SecondaryButton } from '../../ui';
+import { SecondaryButton, PrimaryButton } from '../../ui';
 import styles from './InfoModal.module.css';
 
-const InfoModal = ({ isOpen, onClose, language = 'EN' }) => {
+const InfoModal = ({ isOpen, onClose, onOpenPrivacy, language = 'EN' }) => {
   const t = (key) => {
     return TRANSLATIONS[language]?.[key] || TRANSLATIONS['EN']?.[key] || key;
   };
@@ -81,7 +81,7 @@ const InfoModal = ({ isOpen, onClose, language = 'EN' }) => {
 
         <div className={styles.metaSection}>
           <span className={styles.versionLabel}>{t('demoVersionLabel') || 'DEMO VERSION'}</span>
-          <span className={styles.versionValue}><v1 className="2"></v1></span>
+          <span className={styles.versionValue}>DEMO v1.3</span>
         </div>
 
         <div className={styles.statusMatrix}>
@@ -103,12 +103,23 @@ const InfoModal = ({ isOpen, onClose, language = 'EN' }) => {
           </div>
         </div>
 
-        <SecondaryButton
-          onClick={handleClose}
-          style={{ width: '100%' }}
-        >
-          {t('closeModalBtn') || 'CLOSE ×'}
-        </SecondaryButton>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem', width: '100%' }}>
+          {onOpenPrivacy && (
+            <PrimaryButton
+              onClick={onOpenPrivacy}
+              style={{ width: '100%' }}
+            >
+              {t('privacyBtnLabel') || 'PRIVACY STATEMENT 🛡'}
+            </PrimaryButton>
+          )}
+
+          <SecondaryButton
+            onClick={handleClose}
+            style={{ width: '100%' }}
+          >
+            {t('closeModalBtn') || 'CLOSE ×'}
+          </SecondaryButton>
+        </div>
       </div>
     </div>
   );
