@@ -1,0 +1,192 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200000;
+  padding: 1.5rem;
+}
+
+.modal {
+  background: #0d0d0d;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  width: 100%;
+  max-width: 580px;
+  max-height: 88vh;
+  padding: 2.2rem 2.2rem 1.8rem 2.2rem;
+  color: #FFFFFF;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.8), 0 0 40px rgba(0, 255, 255, 0.05);
+  overflow: hidden;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1.2rem;
+  border-bottom: 1px dashed rgba(255, 255, 255, 0.12);
+  padding-bottom: 0.8rem;
+  flex-shrink: 0;
+}
+
+.tagline {
+  font-family: 'Space Grotesk', monospace;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--accent-color, #00ffff);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+
+.title {
+  font-family: 'Syne', sans-serif;
+  font-size: 1.4rem;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  color: #FFFFFF;
+  text-transform: uppercase;
+  margin-top: 0.25rem;
+}
+
+.headline {
+  font-family: 'Syne', sans-serif;
+  font-size: 0.95rem;
+  font-weight: 700;
+  line-height: 1.35;
+  color: #FFFFFF;
+  text-transform: uppercase;
+  letter-spacing: -0.01em;
+  margin-bottom: 0.6rem;
+  flex-shrink: 0;
+}
+
+.description {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 0.8rem;
+  line-height: 1.5;
+  color: #888888;
+  margin-bottom: 1.2rem;
+  flex-shrink: 0;
+}
+
+.pillarList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  overflow-y: auto;
+  padding-right: 0.5rem;
+  margin-right: -0.5rem;
+  flex: 1;
+  min-height: 0;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+}
+
+.pillarList::-webkit-scrollbar {
+  width: 4px;
+}
+
+.pillarList::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.pillarList::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 2px;
+}
+
+.pillarCard {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  padding: 0.9rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.pillarCard:hover {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.pillarHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.pillarNumber {
+  font-family: 'Syne', sans-serif;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--accent-color, #00ffff);
+  opacity: 0.9;
+  letter-spacing: 0.02em;
+}
+
+.pillarTitle {
+  font-family: 'Syne', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: #FFFFFF;
+  text-transform: none;
+  flex: 1;
+}
+
+.pillarBadge {
+  font-family: 'Space Grotesk', monospace;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  padding: 0.15rem 0.45rem;
+  background: rgba(0, 255, 255, 0.08);
+  border: 1px solid rgba(0, 255, 255, 0.25);
+  color: var(--accent-color, #00ffff);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.pillarText {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 0.76rem;
+  line-height: 1.45;
+  color: #A0A0A0;
+  margin: 0;
+}
+
+@media (max-width: 600px) {
+  .modal {
+    padding: 1.5rem 1.2rem 1.2rem 1.2rem;
+    max-height: 92vh;
+  }
+
+  .title {
+    font-size: 1.2rem;
+  }
+
+  .headline {
+    font-size: 0.88rem;
+  }
+
+  .pillarHeader {
+    flex-wrap: wrap;
+    gap: 0.4rem;
+  }
+
+  .pillarBadge {
+    font-size: 0.58rem;
+  }
+
+  .pillarText {
+    font-size: 0.72rem;
+  }
+}
