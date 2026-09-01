@@ -42,7 +42,18 @@ export default function App() {
   const { kioskData, loading: kioskLoading } = useKioskBoot();
   const appRef = React.useRef();
   // 0: Idle, 1: Payment, 2: Selection, 3: Capture, 4: Print Manifest, 5: Export, 6: Outro
-  const [currentStep, setCurrentStep] = useState(0);
+  const [currentStep, setCurrentStep] = useState(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const step = params.get('step');
+      const tab = params.get('tab');
+      const hash = window.location.hash;
+      if (tab === 'upload' || step === '2' || hash === '#upload') return 2;
+    } catch {
+      // ignore
+    }
+    return 0;
+  });
   const [kioskId] = useState(getKioskId());
   const [machineUUID] = useState(getMachineUUID());
   const [isTunneling, setIsTunneling] = useState(false);

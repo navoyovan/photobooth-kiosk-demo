@@ -27,7 +27,15 @@ const SelectionScreenInner = ({ onFinish, onPrepareCamera, kioskData, loading, l
   const frameRefText = useRef(null);
   const uploadRefText = useRef(null);
 
-  const [activeCategory, setActiveCategory] = useState("FRAMES"); // FRAMES or UPLOAD
+  const [activeCategory, setActiveCategory] = useState(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('tab') === 'upload' || window.location.hash === '#upload') return 'UPLOAD';
+    } catch {
+      // ignore
+    }
+    return 'FRAMES';
+  }); // FRAMES or UPLOAD
   const [activeFrame, setActiveFrame] = useState(null); // Nothing selected on mount
 
   const uploadState = useFrameUpload();
